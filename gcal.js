@@ -106,16 +106,24 @@
     picker.hidden = false;
     const sel = new Set(selectedIds());
     const tgt = targetId();
-    document.querySelector('#cal-list').innerHTML = calendars.map(c => `
-      <label style="--c:${c.color}">
-        <input type="checkbox" data-id="${c.id}" ${sel.has(c.id) ? 'checked' : ''}>
-        <input type="radio" name="target" data-id="${c.id}" title="Skriv nye hendelser hit"
+    const tour = new Set(window.tourCalIds ? tourCalIds() : []);
+    document.querySelector('#cal-list').innerHTML = `
+      <div class="cal-row cal-head"><span>Vis</span><span>Ny→</span><span>Tour</span><span></span><span></span></div>` +
+      calendars.map(c => `
+      <div class="cal-row" style="--c:${c.color}">
+        <input type="checkbox" class="showcal" data-id="${c.id}" ${sel.has(c.id) ? 'checked' : ''} title="Vis i almanakken">
+        <input type="radio" name="target" data-id="${c.id}" title="Nye hendelser skrives hit"
           ${c.writable ? '' : 'disabled'} ${c.id === tgt ? 'checked' : ''}>
-        <span class="dot"></span>${c.name}
-      </label>`).join('');
+        <input type="checkbox" class="tourtag" data-id="${c.id}" ${tour.has(c.id) ? 'checked' : ''} title="Telles som turné (Tour-knappen)">
+        <span class="dot"></span><span class="nm">${c.name}</span>
+      </div>`).join('');
     document.querySelector('#cal-list').onchange = async e => {
-      if (e.target.type === 'checkbox') {
-        const ids = [...document.querySelectorAll('#cal-list input[type=checkbox]:checked')].map(i => i.dataset.id);
+      if (e.target.classList.contains('tourtag')) {
+        const ids = [...document.querySelectorAll('#cal-list .tourtag:checked')].map(i => i.dataset.id);
+        localStorage.setItem('almanakk-tourcals', JSON.stringify(ids));
+        if (window.updateChips) updateChips();
+      } else if (e.target.classList.contains('showcal')) {
+        const ids = [...document.querySelectorAll('#cal-list .showcal:checked')].map(i => i.dataset.id);
         localStorage.setItem(SEL_KEY, JSON.stringify(ids));
         loadedYears = new Set();
         rawEvents = [];

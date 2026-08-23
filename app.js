@@ -45,7 +45,10 @@ function allCalendars() {
   return (state.mode === 'google' && window.gcalCalendars) ? window.gcalCalendars() : DEMO_CALENDARS;
 }
 function tourCalIds() {
-  return allCalendars().filter(c => /tour|turné|turne/i.test(c.name)).map(c => c.id);
+  const all = allCalendars();
+  const stored = JSON.parse(localStorage.getItem('almanakk-tourcals') || 'null');
+  if (stored) return stored.filter(id => all.some(c => c.id === id));
+  return all.filter(c => /tour|turné|turne/i.test(c.name)).map(c => c.id);
 }
 function visibleEvents() {
   return state.events.filter(e => !state.hiddenCals.has(e.calId));
