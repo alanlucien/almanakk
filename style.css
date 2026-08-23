@@ -155,7 +155,7 @@ button.active { background: var(--ink); color: var(--card); }
 /* shows ping red: band labels + a dot on the day number */
 .day .lane.showband i { color: var(--red); }
 .day.showday .num::after { content: '•'; color: var(--red); margin-left: 1px; }
-.month.haswg .day { --wgt: repeat(var(--wg, 1), minmax(0, 3fr)); }
+.month.haswg .day { --wgt: repeat(var(--wg, 1), minmax(0, 4.5fr)); --det: minmax(0, 5.5fr); }
 /* wg overlay lanes: clearly "context", not your own schedule */
 .day .lane.wg {
   border-left: 2px dashed var(--ci, var(--c));
