@@ -252,18 +252,25 @@ function renderMonthEl(y, m) {
       cityCell = `<span class="city">${show ? esc(cityName(city)) : ''}</span>`;
       prevCity = city;
     }
+    const todays = details.filter(e => e.start === ds);
     // lane cells (projects/tours)
+    const laneEvs = [];
+    for (let lane = 0; lane < nLanes; lane++) {
+      laneEvs[lane] = spans.find(e => e._lane === lane && e.start <= ds && e.end >= ds);
+    }
+    const infoEmpty = !h && wi !== 0;
     let laneCells = '';
     for (let lane = 0; lane < nLanes; lane++) {
-      const ev = spans.find(e => e._lane === lane && e.start <= ds && e.end >= ds);
+      const ev = laneEvs[lane];
       if (!ev) { laneCells += '<span class="lane"></span>'; continue; }
-      // repeat the label at span start, month start and on Mondays
+      // repeat the label at span start, month start and on Mondays;
+      // when everything to the right is empty, let it write across (spill)
       const showLabel = ev.start === ds || day === 1 || wi === 0;
-      laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''}" data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)}">`
+      const spill = showLabel && infoEmpty && !todays.length && laneEvs.slice(lane + 1).every(x => !x);
+      laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''}" data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
     }
     // detail cell (single-day events, stacked)
-    const todays = details.filter(e => e.start === ds);
     const detail = '<span class="detail">' + todays.map(e =>
       `<b class="evt" data-eid="${e.id}" style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
     ).join('') + '</span>';
