@@ -11,7 +11,19 @@ const state = {
   month: new Date().getMonth(), // 0-based, for month view
   events: [],      // {id, title, start, end (inclusive 'YYYY-MM-DD'), color, time?, gid?, calId?, src?}
   mode: 'demo',    // 'demo' | 'google'
+  hiddenCals: new Set(JSON.parse(localStorage.getItem('almanakk-hidden') || '[]')),
+  cities: localStorage.getItem('almanakk-cities') === '1',
 };
+
+function allCalendars() {
+  return (state.mode === 'google' && window.gcalCalendars) ? window.gcalCalendars() : DEMO_CALENDARS;
+}
+function tourCalIds() {
+  return allCalendars().filter(c => /tour|turné|turne/i.test(c.name)).map(c => c.id);
+}
+function visibleEvents() {
+  return state.events.filter(e => !state.hiddenCals.has(e.calId));
+}
 
 /* ---------- date helpers (string keys, no timezone traps) ---------- */
 
@@ -98,6 +110,36 @@ function monthLayout(y, m, events) {
   return { spans, details, nLanes: Math.min(MAX_LANES, Math.max(1, laneEnds.length)) };
 }
 
+/* ---------- cities (derived from flight-looking events) ---------- */
+
+// "OSL–LHR 14:55" / "BKK-PAR-MARSEILLE" -> last leg; "Fly Oslo" / "Flight to Helsinki (AY 62)" -> name.
+function flightDest(title) {
+  const chain = title.match(/\b[A-Z]{3}(?:\s*[-–—>→]+\s*[A-Z]{3})+\b/);
+  if (chain) {
+    const codes = chain[0].split(/[^A-Z]+/).filter(Boolean);
+    return codes[codes.length - 1];
+  }
+  const to = title.match(/\b(?:fly|flight)\s+(?:to\s+)?([A-ZÆØÅa-zæøå][A-Za-zæøåÆØÅ]{2,})/i);
+  if (to) return to[1];
+  return null;
+}
+function buildFlightIndex() {
+  const flights = [];
+  for (const ev of visibleEvents()) {
+    const dest = flightDest(ev.title);
+    if (dest) flights.push({ date: ev.start, time: ev.time || '99', dest });
+  }
+  flights.sort((a, b) => (a.date === b.date ? (a.time < b.time ? -1 : 1) : (a.date < b.date ? -1 : 1)));
+  return flights;
+}
+function cityOn(ds, flights) {
+  let city = null;
+  for (const f of flights) {
+    if (f.date <= ds) city = f.dest; else break;
+  }
+  return city;
+}
+
 /* ---------- rendering ---------- */
 
 function esc(s) {
@@ -105,10 +147,12 @@ function esc(s) {
 }
 
 function renderMonthEl(y, m) {
-  const { spans, details, nLanes } = monthLayout(y, m, state.events);
+  const { spans, details, nLanes } = monthLayout(y, m, visibleEvents());
   const hol = holidays(y);
   const todayStr = fmt(new Date());
   const n = daysInMonth(y, m);
+  const flights = state.cities ? buildFlightIndex() : null;
+  let prevCity = null;
   let rows = '';
   for (let day = 1; day <= n; day++) {
     const d = new Date(y, m, day);
@@ -116,6 +160,13 @@ function renderMonthEl(y, m) {
     const wi = weekdayIdx(d);
     const h = hol[ds];
     const red = wi === 6 || (h && h.red);
+    let cityCell = '';
+    if (flights) {
+      const city = cityOn(ds, flights);
+      const show = city && (city !== prevCity || day === 1 || wi === 0);
+      cityCell = `<span class="city">${show ? esc(city) : ''}</span>`;
+      prevCity = city;
+    }
     // lane cells (projects/tours)
     let laneCells = '';
     for (let lane = 0; lane < nLanes; lane++) {
@@ -136,19 +187,20 @@ function renderMonthEl(y, m) {
       : (wi === 0 ? `<span class="info">uke ${isoWeek(d)}</span>` : '<span class="info"></span>');
     rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${WD[wi]}</span>`
-      + laneCells + detail + info + `</div>`;
+      + cityCell + laneCells + detail + info + `</div>`;
   }
-  return `<section class="month" style="--lanes:${nLanes}"><h2>${MONTHS[m]} <small>${y}</small></h2>${rows}</section>`;
+  return `<section class="month ${state.cities ? 'cities' : ''}" style="--lanes:${nLanes}"><h2>${MONTHS[m]} <small>${y}</small></h2>${rows}</section>`;
 }
 
-function render() {
-  closePanel();
+function render(group) {
+  closePanel(true);
   const app = $('#app');
   if (state.view === 'year') {
+    const g = group || 3;
     let html = '';
-    for (let q = 0; q < 4; q++) {
-      html += '<div class="quarter">';
-      for (let m = q * 3; m < q * 3 + 3; m++) html += renderMonthEl(state.year, m);
+    for (let start = 0; start < 12; start += g) {
+      html += `<div class="quarter g${g}">`;
+      for (let m = start; m < Math.min(start + g, 12); m++) html += renderMonthEl(state.year, m);
       html += '</div>';
     }
     app.className = 'year';
@@ -161,6 +213,7 @@ function render() {
   }
   $('#view-year').classList.toggle('active', state.view === 'year');
   $('#view-month').classList.toggle('active', state.view === 'month');
+  updateChips();
 }
 
 // "8-12 Antigone" on a day in March -> span March 8–12.
@@ -191,9 +244,9 @@ async function addEvent(date, text) {
 /* ---------- day panel: tap a day -> full list + add field ---------- */
 
 function openDayPanel(row) {
-  closePanel();
+  closePanel(true);
   const date = row.dataset.date;
-  const evs = state.events.filter(e => e.start <= date && e.end >= date);
+  const evs = visibleEvents().filter(e => e.start <= date && e.end >= date);
   const pop = document.createElement('div');
   pop.id = 'popover';
   pop.innerHTML = `<p class="dim"><b>${date}</b></p>`
@@ -201,7 +254,7 @@ function openDayPanel(row) {
       `<p><b style="color:${e.color}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
       + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')
       + ` <button class="x" data-del="${e.id}">Slett</button></p>`).join('')
-    + `<form class="qa"><input type="text" placeholder="Ny · «8-12 tekst» = flere dager · «13:00» = tid" autocomplete="off"></form>`;
+    + `<form class="qa"><input type="text" placeholder="Ny · «8-12 tekst» = flere dager · «13:00» = tid" autocomplete="off"><button type="submit" class="add">Legg til</button></form>`;
   document.body.appendChild(pop);
   const r = row.getBoundingClientRect();
   pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
@@ -212,7 +265,7 @@ function openDayPanel(row) {
     if (!text) return closePanel();
     try {
       await addEvent(date, text);
-      closePanel();
+      closePanel(true);
     } catch (err) { toast(err.message); }
   });
   pop.addEventListener('click', async e => {
@@ -223,13 +276,27 @@ function openDayPanel(row) {
     try {
       await deleteEvent(ev);
       closePanel();
-      toast('Slettet');
+      toast('Slettet', { label: 'Angre', fn: () => undoDelete(ev) });
     } catch (err) { toast(err.message); }
   });
 }
-function closePanel() {
+// Don't close the panel if the add-field holds unsaved text.
+function closePanel(force) {
   const p = $('#popover');
-  if (p) p.remove();
+  if (!p) return;
+  const input = p.querySelector('.qa input');
+  if (!force && input && input.value.trim()) return;
+  p.remove();
+}
+
+async function undoDelete(ev) {
+  if (state.mode === 'google') {
+    await window.gcalRestoreEvent(ev);
+  } else {
+    DEMO_EVENTS.push(ev.src);
+    loadDemo();
+  }
+  toast('Gjenopprettet');
 }
 
 async function deleteEvent(ev) {
@@ -249,19 +316,28 @@ async function deleteEvent(ev) {
 function loadDemo() {
   const colors = Object.fromEntries(DEMO_CALENDARS.map(c => [c.id, c.color]));
   state.events = DEMO_EVENTS.map((ev, i) => ({
-    id: i, title: ev.t, start: ev.s, end: ev.e || ev.s, color: colors[ev.c] || '#26241f', src: ev,
+    id: i, title: ev.t, start: ev.s, end: ev.e || ev.s, color: colors[ev.c] || '#26241f', calId: ev.c, src: ev,
   }));
   render();
 }
 
 /* ---------- ui chrome ---------- */
 
-function toast(msg) {
+function toast(msg, action) {
   const t = $('#toast');
   t.textContent = msg;
+  if (action) {
+    const b = document.createElement('button');
+    b.textContent = action.label;
+    b.addEventListener('click', async () => {
+      t.hidden = true;
+      try { await action.fn(); } catch (e) { toast(e.message); }
+    });
+    t.appendChild(b);
+  }
   t.hidden = false;
   clearTimeout(toast._h);
-  toast._h = setTimeout(() => { t.hidden = true; }, 2500);
+  toast._h = setTimeout(() => { t.hidden = true; }, action ? 8000 : 2500);
 }
 
 function step(dir) {
@@ -276,24 +352,76 @@ function step(dir) {
   render();
 }
 
+// Tour chip: show/hide touring calendar(s). Cities chip: derived location column.
+function updateChips() {
+  const tourIds = tourCalIds();
+  const tc = $('#tour-chip');
+  tc.hidden = tourIds.length === 0;
+  tc.classList.toggle('active', tourIds.some(id => !state.hiddenCals.has(id)));
+  $('#cities-chip').classList.toggle('active', state.cities);
+}
+$('#tour-chip').addEventListener('click', () => {
+  const tourIds = tourCalIds();
+  const anyVisible = tourIds.some(id => !state.hiddenCals.has(id));
+  tourIds.forEach(id => anyVisible ? state.hiddenCals.add(id) : state.hiddenCals.delete(id));
+  localStorage.setItem('almanakk-hidden', JSON.stringify([...state.hiddenCals]));
+  render();
+  updateChips();
+});
+$('#cities-chip').addEventListener('click', () => {
+  state.cities = !state.cities;
+  localStorage.setItem('almanakk-cities', state.cities ? '1' : '0');
+  render();
+  updateChips();
+});
+
 $('#prev').addEventListener('click', () => step(-1));
 $('#next').addEventListener('click', () => step(1));
 $('#view-year').addEventListener('click', () => { state.view = 'year'; render(); });
 $('#view-month').addEventListener('click', () => { state.view = 'month'; render(); });
-$('#print').addEventListener('click', () => window.print());
+// Print: choose 3, 6 or 12 months per A4 landscape page.
+let printGroup = 3;
+$('#print').addEventListener('click', () => {
+  closePanel(true);
+  const pop = document.createElement('div');
+  pop.id = 'popover';
+  pop.style.cssText = 'top:60px;left:50%;transform:translateX(-50%)';
+  pop.innerHTML = `<p class="dim"><b>Skriv ut ${state.year} — A4 liggende</b></p>
+    <div class="actions">
+      <button data-g="3">3 mnd/side</button>
+      <button data-g="6">6 mnd/side</button>
+      <button data-g="12">Hele året på én side</button>
+    </div>`;
+  document.body.appendChild(pop);
+  pop.addEventListener('click', e => {
+    const g = e.target.dataset.g;
+    if (!g) return;
+    printGroup = Number(g);
+    pop.remove();
+    window.print();
+  });
+});
 
-// Printing always outputs the year view.
+// Printing always outputs the year view, in the chosen grouping.
 let viewBeforePrint = null;
 window.addEventListener('beforeprint', () => {
-  if (state.view !== 'year') { viewBeforePrint = state.view; state.view = 'year'; render(); }
+  viewBeforePrint = state.view;
+  document.body.classList.add('print-' + printGroup);
+  state.view = 'year';
+  render(printGroup);
 });
 window.addEventListener('afterprint', () => {
-  if (viewBeforePrint) { state.view = viewBeforePrint; viewBeforePrint = null; render(); }
+  document.body.classList.remove('print-3', 'print-6', 'print-12');
+  if (viewBeforePrint) { state.view = viewBeforePrint; viewBeforePrint = null; }
+  render();
 });
 
 // Tap a day -> panel with the day's full list + add field.
+// If a panel is already open, any tap outside it just dismisses it
+// (unless the add-field holds unsaved text — then it stays).
 $('#app').addEventListener('click', e => {
   if (e.target.closest('#popover')) return;
+  if ($('#popover')) { closePanel(); return; }
   const row = e.target.closest('.day');
   if (row) openDayPanel(row);
 });
@@ -301,7 +429,7 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#popover') && !e.target.closest('.day')) closePanel();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closePanel();
+  if (e.key === 'Escape') closePanel(true);
 });
 
 // Swipe between months in strip view.

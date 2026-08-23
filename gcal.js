@@ -172,6 +172,39 @@
     await window.gcalEnsureYear(state.year);
   };
 
+  window.gcalCalendars = () => calendars;
+
+  // Undo a delete: Google keeps the event with status 'cancelled'; flip it back.
+  window.gcalRestoreEvent = async function (ev) {
+    try {
+      await api('calendars/' + encodeURIComponent(ev.calId) + '/events/' + encodeURIComponent(ev.gid), {}, {
+        method: 'PATCH', body: JSON.stringify({ status: 'confirmed' }),
+      });
+    } catch (e) {
+      // fall back: recreate from what the almanakk knows
+      let body;
+      if (ev.time) {
+        const startDt = ev.start + 'T' + ev.time + ':00';
+        const endD = new Date(startDt);
+        endD.setHours(endD.getHours() + 1);
+        const p = n => String(n).padStart(2, '0');
+        body = {
+          summary: ev.title,
+          start: { dateTime: startDt, timeZone: 'Europe/Oslo' },
+          end: { dateTime: fmt(endD) + 'T' + p(endD.getHours()) + ':' + p(endD.getMinutes()) + ':00', timeZone: 'Europe/Oslo' },
+        };
+      } else {
+        const next = parseDate(ev.end);
+        next.setDate(next.getDate() + 1);
+        body = { summary: ev.title, start: { date: ev.start }, end: { date: fmt(next) } };
+      }
+      await api('calendars/' + encodeURIComponent(ev.calId) + '/events', {}, { method: 'POST', body: JSON.stringify(body) });
+    }
+    loadedYears = new Set();
+    rawEvents = [];
+    await window.gcalEnsureYear(state.year);
+  };
+
   window.gcalDeleteEvent = async function (ev) {
     const url = new URL('https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(ev.calId) + '/events/' + encodeURIComponent(ev.gid));
     const r = await fetch(url, { method: 'DELETE', headers: { Authorization: 'Bearer ' + accessToken } });

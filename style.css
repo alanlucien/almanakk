@@ -172,27 +172,65 @@ main.strip { height: 100%; overflow-y: auto; }
   .quarter { grid-template-columns: 1fr; padding: 8px; }
 }
 
-/* ---------- print (A4 portrait, one quarter per page) ---------- */
+/* ---------- cities column (derived from flights) ---------- */
+
+.day .city {
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  align-self: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.month.cities .day { grid-template-columns: 1.8em 1.7em 3.6em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5.2em; }
+
+#toast button {
+  margin-left: 12px;
+  background: var(--card);
+  color: var(--ink);
+  border: none;
+  border-radius: 3px;
+  font-weight: 600;
+  padding: 2px 10px;
+}
+
+#popover .qa { display: flex; gap: 6px; align-items: stretch; }
+#popover .qa .add { margin-top: 6px; white-space: nowrap; }
+
+/* ---------- print (A4 landscape; 3, 6 or 12 months per page) ---------- */
 
 @media print {
-  @page { size: A4 portrait; margin: 8mm; }
-  header, #banner, #toast, .quick-add { display: none !important; }
-  body { background: #fff; }
+  @page { size: A4 landscape; margin: 6mm; }
+  header, #banner, #toast, #popover { display: none !important; }
+  body { background: #fff; display: block; height: auto; }
   .quarter {
-    grid-template-columns: repeat(3, 1fr);
     gap: 3mm;
     padding: 0;
     page-break-after: always;
   }
+  .quarter.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .quarter.g6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .quarter.g12 { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1.5mm; }
   .quarter:last-child { page-break-after: auto; }
   .month { border-color: #999; break-inside: avoid; }
-  .day { font-size: 6.5pt; min-height: 8.2mm; border-bottom-color: #ccc; grid-template-columns: 2.6em 2.2em repeat(var(--lanes, 0), minmax(0, 4fr)) minmax(0, 7fr) 6em; }
+  .day { font-size: 6.5pt; min-height: 5.7mm; border-bottom-color: #ccc; grid-template-columns: 2.6em 2.2em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 6em; }
+  .month.cities .day { grid-template-columns: 2.6em 2.2em 3.6em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 6em; }
   .day > span { padding: 1px 2px; }
-  /* on paper: keep every day the same height — details join on one line */
-  .day .detail { flex-direction: row; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-  .day .detail .evt { display: inline; }
-  .day .detail .evt + .evt::before { content: ' · '; color: #999; }
+  /* on paper: every day the same height — details stay on one line */
+  .day .detail { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .day .info { font-size: 5.5pt; }
   .month h2 { font-size: 9pt; }
   .day.today { outline: none; }
+  /* 6 months per page */
+  body.print-6 .day { font-size: 5pt; grid-template-columns: 2.4em 2em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5em; }
+  body.print-6 .month.cities .day { grid-template-columns: 2.4em 2em 3.2em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5em; }
+  body.print-6 .day .info { font-size: 4.2pt; }
+  body.print-6 .month h2 { font-size: 6.5pt; letter-spacing: .2em; }
+  /* the whole year on one classic sheet */
+  body.print-12 .day { font-size: 3.8pt; grid-template-columns: 2.2em 1.9em repeat(var(--lanes, 1), minmax(0, 3fr)) minmax(0, 4fr) 4em; }
+  body.print-12 .month.cities .day { grid-template-columns: 2.2em 1.9em 3em repeat(var(--lanes, 1), minmax(0, 3fr)) minmax(0, 4fr) 4em; }
+  body.print-12 .day .info { font-size: 3.2pt; }
+  body.print-12 .month h2 { font-size: 5pt; letter-spacing: .1em; padding: 2px; }
+  body.print-12 .day .lane i { padding: 0 1px; }
 }
