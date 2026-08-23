@@ -299,7 +299,8 @@ function openDayPanel(row) {
   const evs = visibleEvents().filter(e => e.start <= date && e.end >= date);
   const pop = document.createElement('div');
   pop.id = 'popover';
-  pop.innerHTML = `<p class="dim"><b>${date}</b></p>`
+  const city = state.cities ? cityOn(date, buildFlightIndex()) : null;
+  pop.innerHTML = `<p class="dim"><b>${date}</b>${city ? `<span class="city-tag">${esc(city)}</span>` : ''}</p>`
     + evs.map(e =>
       `<p><b style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
       + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')

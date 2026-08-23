@@ -128,6 +128,7 @@ button.active { background: var(--ink); color: var(--card); }
   font-size: 13px;
 }
 #popover p { margin: 0 0 4px; }
+#popover .city-tag { float: right; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 600; }
 #popover .dim { color: var(--muted); font-size: 11px; }
 #popover .actions { display: flex; gap: 8px; margin-top: 6px; }
 
