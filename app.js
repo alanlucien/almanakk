@@ -173,9 +173,15 @@ function monthLayout(y, m, events, overlays) {
 
 const SHOW_RE = /\b(show\w*|prem\w*|première|performance\w*|forest\w*|visning\w*|vorstellung\w*|matin[ée]\w*)\b/i;
 function isShow(ev) { return SHOW_RE.test(ev.title); }
+// an event's time for ordering: the real clock time, or one written in the title
+function effTime(e) {
+  if (e.time) return e.time;
+  const m = e.title.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/);
+  return m ? m[1].padStart(2, '0') + ':' + m[2] : null;
+}
 // day-line order: all-day headline first, then red shows, then the rest by time
 function detOrder(a, b) {
-  const k = e => (e.time ? (isShow(e) ? '1' : '2') + e.time : '0');
+  const k = e => { const t = effTime(e); return t ? (isShow(e) ? '1' : '2') + t : '0'; };
   const ka = k(a), kb = k(b);
   return ka < kb ? -1 : ka > kb ? 1 : 0;
 }
@@ -420,7 +426,11 @@ function openDayPanel(row) {
   const tour = new Set(tourCalIds());
   const evs = state.events
     .filter(e => e.start <= date && e.end >= date)
-    .sort((a, b) => ((a.time || '') < (b.time || '') ? -1 : 1));
+    .sort((a, b) => {
+      const k = e => (e.end > e.start ? '0' : (effTime(e) ? '2' + effTime(e) : '1'));
+      const ka = k(a), kb = k(b);
+      return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
   const pop = document.createElement('div');
   pop.id = 'popover';
   const city = cityOn(date, buildFlightIndex()); // always shown, independent of the Cities toggle
