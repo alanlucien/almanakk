@@ -123,6 +123,7 @@ button.active { background: var(--ink); color: var(--card); }
 .day .detail { border-left: 1px dotted var(--rule); white-space: nowrap; text-overflow: ellipsis; align-self: center; width: 100%; }
 .day .detail .evt { font-weight: 400; display: inline; }
 .day .detail .evt + .evt::before { content: ' · '; color: var(--muted); }
+.day .detail .evt.wgd { opacity: .55; } /* wg items: visibly "theirs", clipped first */
 .day .info { font-size: 10px; color: var(--muted); text-align: right; border-left: 1px dotted var(--rule); align-self: center; white-space: nowrap; text-overflow: ellipsis; }
 .day .info.red { color: var(--red); font-weight: 600; }
 .day.today { outline: 2px solid #d97706; outline-offset: -2px; }

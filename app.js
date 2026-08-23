@@ -65,6 +65,15 @@ function overlayEvents() {
   // multi-day tour spans AND single-day items (two columns when both exist)
   return state.events.filter(e => t.has(e.calId) && !e.time);
 }
+// wg timed events join the detail line AFTER Alan's own events; the one-line
+// clip means they show when there is room and vanish first on busy days.
+function wgDetailEvents() {
+  if (!state.wg) return [];
+  const t = new Set(tourCalIds());
+  return state.events
+    .filter(e => t.has(e.calId) && e.time)
+    .sort((a, b) => ((a.time || '99') < (b.time || '99') ? -1 : 1));
+}
 
 /* ---------- date helpers (string keys, no timezone traps) ---------- */
 
@@ -233,6 +242,7 @@ function inkColor(hex) {
 
 function renderMonthEl(y, m) {
   const { spans, details, nLanes } = monthLayout(y, m, visibleEvents(), overlayEvents());
+  const wgDet = wgDetailEvents();
   const hol = holidays(y);
   const todayStr = fmt(new Date());
   const n = daysInMonth(y, m);
@@ -253,27 +263,35 @@ function renderMonthEl(y, m) {
       prevCity = city;
     }
     const todays = details.filter(e => e.start === ds);
+    const wgTodays = wgDet.filter(e => e.start === ds);
     // lane cells (projects/tours)
     const laneEvs = [];
     for (let lane = 0; lane < nLanes; lane++) {
       laneEvs[lane] = spans.find(e => e._lane === lane && e.start <= ds && e.end >= ds);
     }
     const infoEmpty = !h && wi !== 0;
+    const hasLanes = laneEvs.some(Boolean);
     let laneCells = '';
-    for (let lane = 0; lane < nLanes; lane++) {
-      const ev = laneEvs[lane];
-      if (!ev) { laneCells += '<span class="lane"></span>'; continue; }
-      // repeat the label at span start, month start and on Mondays;
-      // when everything to the right is empty, let it write across (spill)
-      const showLabel = ev.start === ds || day === 1 || wi === 0;
-      const spill = showLabel && infoEmpty && !todays.length && laneEvs.slice(lane + 1).every(x => !x);
-      laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''}" data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)}">`
-        + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
+    if (hasLanes) {
+      for (let lane = 0; lane < nLanes; lane++) {
+        const ev = laneEvs[lane];
+        if (!ev) { laneCells += '<span class="lane"></span>'; continue; }
+        // repeat the label at span start, month start and on Mondays;
+        // when everything to the right is empty, let it write across (spill)
+        const showLabel = ev.start === ds || day === 1 || wi === 0;
+        const spill = showLabel && infoEmpty && !todays.length && !wgTodays.length && laneEvs.slice(lane + 1).every(x => !x);
+        laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''}" data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)}">`
+          + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
+      }
     }
-    // detail cell (single-day events, stacked)
-    const detail = '<span class="detail">' + todays.map(e =>
-      `<b class="evt" data-eid="${e.id}" style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
-    ).join('') + '</span>';
+    // detail cell (single-day events, one line): Alan's events first, wg items after;
+    // on a day without bands it starts at the far left and uses the full width
+    const detail = `<span class="detail"${hasLanes ? '' : ` style="grid-column: span ${nLanes + 1}"`}>`
+      + todays.map(e =>
+        `<b class="evt" data-eid="${e.id}" style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
+      + wgTodays.map(e =>
+        `<b class="evt wgd" data-eid="${e.id}" style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
+      + '</span>';
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
       : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
