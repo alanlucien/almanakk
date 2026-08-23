@@ -73,7 +73,7 @@ function wgDetailEvents() {
   const t = new Set(tourCalIds());
   return state.events
     .filter(e => t.has(e.calId) && e.end === e.start)
-    .sort((a, b) => ((a.time || '99') < (b.time || '99') ? -1 : 1));
+    .sort(detOrder);
 }
 
 /* ---------- date helpers (string keys, no timezone traps) ---------- */
@@ -165,9 +165,21 @@ function monthLayout(y, m, events, overlays) {
   const nOvl = packLanes(ovl, 2, n);
   const details = overlapping
     .filter(ev => ev.end === ev.start)
-    .sort((a, b) => ((a.time || '99') < (b.time || '99') ? -1 : 1));
+    .sort(detOrder);
   return { spans: spans.concat(ovl), details, nLanes: n + nOvl };
 }
+
+/* ---------- shows ping red ---------- */
+
+const SHOW_RE = /\b(show\w*|prem\w*|première|performance\w*|forest\w*|visning\w*|vorstellung\w*)\b/i;
+function isShow(ev) { return SHOW_RE.test(ev.title); }
+// day-line order: all-day headline first, then red shows, then the rest by time
+function detOrder(a, b) {
+  const k = e => (e.time ? (isShow(e) ? '1' : '2') + e.time : '0');
+  const ka = k(a), kb = k(b);
+  return ka < kb ? -1 : ka > kb ? 1 : 0;
+}
+function evInk(e) { return isShow(e) ? 'var(--red)' : inkColor(e.color); }
 
 /* ---------- cities (derived from flight-looking events) ---------- */
 
@@ -291,8 +303,9 @@ function renderMonthEl(y, m) {
         const spillK = 1 + freeRight + (detailsFree ? 1.7 : 0); // detail track ≈ 1.7 lane widths
         const spill = showLabel && spillK > 1.05;
         const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
-        const lines = (showLabel && !spill) ? Math.min(3, endInMonth - day + 1) : 1;
-        laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''} ${lines > 1 ? 'wrap' : ''}"`
+        // a label may spend at most half its band on text (and max 3 lines)
+        const lines = (showLabel && !spill) ? Math.max(1, Math.min(3, Math.floor((endInMonth - day + 1) / 2))) : 1;
+        laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''} ${lines > 1 ? 'wrap' : ''} ${isShow(ev) ? 'showband' : ''}"`
           + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--lines:${lines};--spillw:${Math.round(spillK * 100)}%">`
           + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
       }
@@ -301,14 +314,15 @@ function renderMonthEl(y, m) {
     // on a day without bands it starts at the far left and uses the full width
     const detail = `<span class="detail"${hasLanes ? '' : ` style="grid-column: span ${nLanes + 1}"`}>`
       + todays.map(e =>
-        `<b class="evt" data-eid="${e.id}" style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
+        `<b class="evt" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
       + wgTodays.map(e =>
-        `<b class="evt wgd" data-eid="${e.id}" style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
+        `<b class="evt wgd" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
       + '</span>';
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
       : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
-    rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''}" data-date="${ds}">`
+    const showDay = todays.some(isShow) || wgTodays.some(isShow) || laneEvs.some(e => e && isShow(e));
+    rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
       + cityCell + laneCells + detail + info + `</div>`;
   }
@@ -402,7 +416,7 @@ function openDayPanel(row) {
   pop.innerHTML = `<p class="dim"><b>${date}</b>${city ? `<span class="city-tag">${esc(cityName(city))}</span>` : ''}</p>`
     + evs.map(e =>
       `<p class="${tour.has(e.calId) ? 'wgrow' : ''}">${tour.has(e.calId) ? '<span class="wg-mark">wg</span> ' : ''}`
-      + `<b style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
+      + `<b style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
       + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')
       + ` <button class="x" data-edit="${e.id}">${L().edit}</button>`
       + ` <button class="x" data-del="${e.id}">${L().del}</button></p>`).join('')

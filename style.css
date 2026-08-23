@@ -134,7 +134,13 @@ button.active { background: var(--ink); color: var(--card); }
   max-width: var(--spillw, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
+  background: color-mix(in srgb, var(--c) 14%, transparent); /* tint travels with the text */
 }
+.day .lane.wg.spill i { background: color-mix(in srgb, var(--c) 22%, transparent); }
+
+/* shows ping red: band labels + a dot on the day number */
+.day .lane.showband i { color: var(--red); }
+.day.showday .num::after { content: '•'; color: var(--red); margin-left: 1px; }
 /* wg overlay lanes: clearly "context", not your own schedule */
 .day .lane.wg {
   border-left: 2px dashed var(--ci, var(--c));
