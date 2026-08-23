@@ -139,8 +139,9 @@ button.active { background: var(--ink); color: var(--card); }
   max-width: var(--spillw, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
-  width: var(--spillw, 100%); /* tint fills whole cells, grid-aligned */
+  /* tint hugs the text (Alan: like a marker following the handwriting) */
   background: color-mix(in srgb, var(--c) 14%, transparent);
+  padding-right: 4px;
 }
 .day .lane.wg.spill i { background: color-mix(in srgb, var(--c) 22%, transparent); }
 
