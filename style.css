@@ -136,6 +136,7 @@ button.active { background: var(--ink); color: var(--card); }
   left: 0; top: 0;
   z-index: 1;
   white-space: nowrap;
+  width: max-content; /* grow past the anchor cell, exactly as far as the words */
   max-width: var(--spillw, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
