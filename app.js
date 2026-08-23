@@ -61,17 +61,18 @@ function visibleEvents() {
 function overlayEvents() {
   if (!state.wg) return [];
   const t = new Set(tourCalIds());
-  // Alan's decision 2026-08-23: show ALL all-day wg events in the overlay —
-  // multi-day tour spans AND single-day items (two columns when both exist)
-  return state.events.filter(e => t.has(e.calId) && !e.time);
+  // Alan's decision (B, 2026-08-23): bands mean "tour period" — multi-day
+  // spans only; every single-day wg item goes on the day line instead
+  return state.events.filter(e => t.has(e.calId) && !e.time && e.end > e.start);
 }
-// wg timed events join the detail line AFTER Alan's own events; the one-line
-// clip means they show when there is room and vanish first on busy days.
+// wg single-day items (all-day and timed) join the detail line AFTER Alan's
+// own events; the one-line clip shows them when there is room and drops them
+// first on busy days.
 function wgDetailEvents() {
   if (!state.wg) return [];
   const t = new Set(tourCalIds());
   return state.events
-    .filter(e => t.has(e.calId) && e.time)
+    .filter(e => t.has(e.calId) && e.end === e.start)
     .sort((a, b) => ((a.time || '99') < (b.time || '99') ? -1 : 1));
 }
 
