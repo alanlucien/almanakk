@@ -140,11 +140,11 @@ button.active { background: var(--ink); color: var(--card); }
   max-width: var(--spillw, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
-  /* tint hugs the text (Alan: like a marker following the handwriting) */
-  background: color-mix(in srgb, var(--c) 14%, transparent);
+  /* tint hugs the text; mixed with the paper so it never double-darkens the band */
+  background: color-mix(in srgb, var(--c) 14%, var(--card));
   padding-right: 4px;
 }
-.day .lane.wg.spill i { background: color-mix(in srgb, var(--c) 22%, transparent); }
+.day .lane.wg.spill i { background: color-mix(in srgb, var(--c) 22%, var(--card)); }
 
 /* a thin paper seam marks where one band ends and the next begins */
 .day .lane.on.bstart { border-top: 3px solid var(--card); }
