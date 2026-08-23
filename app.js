@@ -281,7 +281,12 @@ function renderMonthEl(y, m) {
         // when everything to the right is empty, let it write across (spill)
         const showLabel = ev.start === ds || day === 1 || wi === 0;
         const spill = showLabel && infoEmpty && !todays.length && !wgTodays.length && laneEvs.slice(lane + 1).every(x => !x);
-        laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''}" data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)}">`
+        // no sideways room -> wrap the label word-by-word down the band,
+        // but never past the band's last day in this month (max 3 lines)
+        const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
+        const lines = (showLabel && !spill) ? Math.min(3, endInMonth - day + 1) : 1;
+        laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''} ${lines > 1 ? 'wrap' : ''}"`
+          + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--lines:${lines}">`
           + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
       }
     }

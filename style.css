@@ -108,7 +108,19 @@ button.active { background: var(--ink); color: var(--card); }
 .day .wd { color: var(--muted); white-space: nowrap; }
 .day.red .num, .day.red .wd { color: var(--red); }
 /* project/tour lanes: tinted band, label at span start / month start / Mondays */
-.day .lane { padding: 0; }
+.day .lane { padding: 0; position: relative; }
+/* multi-line band label: wraps at word boundaries, flows down over the band */
+.day .lane.wrap { overflow: visible; }
+.day .lane.wrap i {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  z-index: 1;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--lines, 1);
+  overflow: hidden;
+}
 .day .lane.on { background: color-mix(in srgb, var(--c) 14%, transparent); border-left: 2px solid var(--ci, var(--c)); }
 .day .lane i { font-style: normal; color: var(--ci, var(--c)); font-weight: 600; padding: 1px 3px; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 /* a label with only empty cells to its right writes across them, like handwriting */
