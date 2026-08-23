@@ -170,9 +170,10 @@
             const e = parseDate(ev.end.date); e.setDate(e.getDate() - 1); // exclusive -> inclusive
             end = fmt(e);
           } else {
-            const dt = new Date(ev.start.dateTime);
-            start = end = fmt(dt);
-            time = String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+            // read the event's own wall-clock (Google sends dateTime in the
+            // event's time zone) — a 10:00 Kobe rehearsal shows as 10:00
+            start = end = ev.start.dateTime.slice(0, 10);
+            time = ev.start.dateTime.slice(11, 16);
           }
           rawEvents.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color });
         }

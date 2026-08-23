@@ -355,7 +355,8 @@ function renderMonthEl(y, m) {
         const ka = k(a), kb = k(b);
         return ka < kb ? -1 : ka > kb ? 1 : 0;
       });
-    const evtHtml = (e, wg) => `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`;
+    // compact views show WHAT (no clock prefix); Detaljer view and the day box show WHEN
+    const evtHtml = (e, wg) => `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc(((state.detailed && e.time) ? e.time + ' ' : '') + e.title)}</b>`;
     // a day without any band absorbs all lane columns (keeps the grid aligned)
     const detail = `<span class="detail"${(hasOwn || hasWgBand) ? '' : ` style="grid-column: span ${nOwn + nOvl + 1}"`}>`
       + lineItems.map(({ e, wg }) => evtHtml(e, wg)).join('')
