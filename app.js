@@ -299,14 +299,18 @@ function renderMonthEl(y, m) {
       const offset = Math.round((parseDate(ds) - parseDate(ev.start)) / 864e5);
       const untilNextBeat = (14 - (offset % 14)) % 14;
       const showLabel = offset % 14 === 0 || (day === 1 && offset > 0 && untilNextBeat > 7);
-      const spill = showLabel && spillK > 1.05;
+      const canSpill = spillK > 1.05;
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
       // a label may spend at most half its band on text (and max 3 lines)
-      const lines = (showLabel && !spill) ? Math.max(1, Math.min(3, Math.floor((endInMonth - day + 1) / 2))) : 1;
-      return `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''} ${lines > 1 ? 'wrap' : ''}`
+      const lines = (showLabel && !canSpill) ? Math.max(1, Math.min(3, Math.floor((endInMonth - day + 1) / 2))) : 1;
+      // continuation rows carry an invisible copy of the title, so the band
+      // stays text-wide wherever the row is free and snaps back where it isn't
+      const txt = showLabel ? `<i>${esc(ev.title)}</i>`
+        : (canSpill ? `<i class="ghost">${esc(ev.title)}</i>` : '');
+      return `<span class="lane on ${ev._wg ? 'wg' : ''} ${canSpill ? 'spill' : ''} ${lines > 1 ? 'wrap' : ''}`
         + ` ${isShow(ev) ? 'showband' : ''} ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--lines:${lines};--spillw:${Math.round(spillK * 100)}%">`
-        + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
+        + txt + '</span>';
     };
     const freeAfter = (arr, i) => {
       let f = 0;

@@ -146,6 +146,7 @@ button.active { background: var(--ink); color: var(--card); }
 }
 .day .lane.wg.spill i { background: color-mix(in srgb, var(--c) 22%, var(--card)); }
 
+.day .lane i.ghost { color: transparent; user-select: none; }
 /* a thin paper seam marks where one band ends and the next begins */
 .day .lane.on.bstart { border-top: 3px solid var(--card); }
 /* tbc in a title renders tentative: italic text, dashed lighter band */
