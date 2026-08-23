@@ -284,12 +284,13 @@ function renderMonthEl(y, m) {
     }
     const todays = details.filter(e => e.start === ds);
     const wgTodays = wgDet.filter(e => e.start === ds);
-    const detailsFree = !todays.length && !wgTodays.length;
-    // lanes: Alan's projects left of the day line, wg context to its right
+    const lineEmpty = !todays.length && !wgTodays.length;
+    // bands grouped left: Alan's solid lanes, then wg's dashed lanes
     const ownEvs = [], wgEvs = [];
     for (let l = 0; l < nOwn; l++) ownEvs[l] = spans.find(e => !e._wg && e._lane === l && e.start <= ds && e.end >= ds);
-    for (let k = 0; k < nOvl; k++) wgEvs[k] = spans.find(e => e._wg && e._lane === nOwn + k && e.start <= ds && e.end >= ds);
+    for (let g = 0; g < nOvl; g++) wgEvs[g] = spans.find(e => e._wg && e._lane === nOwn + g && e.start <= ds && e.end >= ds);
     const hasOwn = ownEvs.some(Boolean);
+    const hasWgBand = wgEvs.some(Boolean);
 
     // one lane cell; spillK = how many lane-widths the label may write across
     const laneCell = (ev, spillK) => {
@@ -317,37 +318,48 @@ function renderMonthEl(y, m) {
       for (let j = i + 1; j < arr.length; j++) { if (!arr[j]) f++; else break; }
       return f;
     };
-    let ownCells = '';
-    if (hasOwn) {
+    // spill room: remaining own lanes, then free wg lanes (0.75 lane width
+    // each), then the day line itself when it is empty
+    let ownCells = '', wgCells = '';
+    if (hasOwn || hasWgBand) {
+      let wgFreeRun = 0;
+      for (const e of wgEvs) { if (!e) wgFreeRun++; else break; }
       for (let l = 0; l < nOwn; l++) {
         const free = freeAfter(ownEvs, l);
-        // the detail area (≈1.75 lane widths) counts only when the free run reaches it
-        const bonus = (free === nOwn - 1 - l && detailsFree) ? 1.75 : 0;
-        ownCells += laneCell(ownEvs[l], 1 + free + bonus);
+        let k = 1 + free;
+        if (free === nOwn - 1 - l) {
+          k += wgFreeRun * 0.75;
+          if (wgFreeRun === nOvl && lineEmpty) k += 1.75;
+        }
+        ownCells += laneCell(ownEvs[l], k);
+      }
+      for (let g = 0; g < nOvl; g++) {
+        const free = freeAfter(wgEvs, g);
+        let k = 1 + free * 0.75;
+        if (free === nOvl - 1 - g && lineEmpty) k += 2.33; // the day line is ~2.33 wg-lane widths
+        wgCells += laneCell(wgEvs[g], k);
       }
     }
-    let wgCells = '';
-    for (let k = 0; k < nOvl; k++) wgCells += laneCell(wgEvs[k], 1 + freeAfter(wgEvs, k));
 
-    // the day line: Alan's events first, wg items after; on a day without own
-    // bands it starts at the far left and uses their width too
-    // two-sided day line: Alan's items flow from the left, wg's items flow
-    // from the right, hugging their band; each side clips independently
-    const ownLine = todays.slice().sort(detOrder);
-    const wgLine = wgTodays.slice().sort((a, b) => {
-      const k = e => { const t = effTime(e) || ''; return (isShow(e) ? '0' : (t ? '2' : '1')) + t; };
-      const ka = k(a), kb = k(b);
-      return ka < kb ? -1 : ka > kb ? 1 : 0;
-    });
-    // with no own bands, the line always absorbs the own-lane columns
-    // (otherwise the whole row would shift into the wrong grid tracks)
+    // ONE wide shared day line: Alan's headline first, shows (any calendar)
+    // pinned next, then Alan's items, then wg's dimmed items
+    const lineItems = todays.map(e => ({ e, wg: false }))
+      .concat(wgTodays.map(e => ({ e, wg: true })))
+      .sort((a, b) => {
+        const k = x => {
+          const t = effTime(x.e) || '';
+          if (!t && !x.wg && !isShow(x.e)) return '0';
+          if (isShow(x.e)) return '1' + t;
+          return (x.wg ? '3' : '2') + t;
+        };
+        const ka = k(a), kb = k(b);
+        return ka < kb ? -1 : ka > kb ? 1 : 0;
+      });
     const evtHtml = (e, wg) => `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`;
-    const detail = `<span class="detail"${hasOwn ? '' : ` style="grid-column: span ${nOwn + 1}"`}>`
-      + ownLine.map(e => evtHtml(e, false)).join('')
+    // a day without any band absorbs all lane columns (keeps the grid aligned)
+    const detail = `<span class="detail"${(hasOwn || hasWgBand) ? '' : ` style="grid-column: span ${nOwn + nOvl + 1}"`}>`
+      + lineItems.map(({ e, wg }) => evtHtml(e, wg)).join('')
       + '</span>';
-    // wg day-items live to the RIGHT of the wg bands (band left of its items,
-    // same rule as Alan's own side), in their own slot before the uke column
-    const wgDetail = nOvl ? `<span class="detail wgdet">${wgLine.map(e => evtHtml(e, true)).join('')}</span>` : '';
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
       : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
@@ -355,7 +367,7 @@ function renderMonthEl(y, m) {
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
     rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
-      + cityCell + ownCells + detail + wgCells + wgDetail + info + `</div>`;
+      + cityCell + ownCells + wgCells + detail + info + `</div>`;
   }
   return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}" style="--lanes:${nOwn};--wg:${nOvl}">`
     + `<h2>${L().months[m]} <small>${y}</small></h2>${rows}</section>`;
