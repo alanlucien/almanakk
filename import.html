@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Almanakk — import fra arket</title>
+<style>
+  body { font: 14px/1.4 "Helvetica Neue", Helvetica, Arial, sans-serif; background: #efe8d4; color: #26241f; margin: 0; padding: 16px; }
+  h1 { font-size: 16px; letter-spacing: .2em; }
+  .box { background: #fbf7ea; border: 1px solid #a89e7f; padding: 12px 16px; max-width: 760px; margin: 0 auto 14px; }
+  button { font: inherit; padding: 5px 14px; background: #fbf7ea; border: 1px solid #a89e7f; border-radius: 3px; cursor: pointer; }
+  button.primary { background: #26241f; color: #fbf7ea; }
+  select { font: inherit; padding: 4px; max-width: 100%; }
+  .month-group { margin: 14px 0; }
+  .month-group h3 { margin: 4px 0; font-size: 13px; letter-spacing: .15em; border-bottom: 1px solid #d4cbb0; padding-bottom: 3px; }
+  label.ev { display: block; padding: 1px 0; }
+  label.ev.dupe { color: #8a8265; }
+  .dupe-tag { font-size: 11px; color: #b3261e; }
+  .dates { color: #8a8265; font-size: 12px; }
+  #progress { font-weight: 600; }
+  .danger { border-color: #b3261e; color: #b3261e; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>IMPORT FRA ARKET → GOOGLE KALENDER</h1>
+  <p>Engangsimport av arkets oppføringer fra 1. januar 2026 og utover.
+     Alt merkes slik at hele importen kan angres med én knapp.
+     <a href="./">← tilbake til almanakken</a></p>
+  <p id="auth"><button id="signin" class="primary">Logg inn med Google</button></p>
+  <p id="target-row" hidden>Skriv til kalender:
+    <select id="target"></select>
+    <button id="check" class="primary">Sjekk duplikater og vis listen</button>
+  </p>
+</div>
+<div class="box" id="list-box" hidden>
+  <p><b id="count"></b>
+     <button id="import" class="primary">Importer valgte</button>
+     <span id="progress"></span></p>
+  <div id="list"></div>
+</div>
+<div class="box">
+  <p><button id="undo-all" class="danger">Slett alt fra denne importen (angre alt)</button> <span id="undo-status"></span></p>
+</div>
+<script src="config.js"></script>
+<script src="import-data.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const TAG = 'sheet-2026-2027';
+let accessToken = null, tokenClient = null, calendars = [];
+
+function gcalReady() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: ALMANAKK_CONFIG.clientId,
+    scope: 'https://www.googleapis.com/auth/calendar',
+    callback: onToken,
+  });
+  $('#signin').addEventListener('click', () => tokenClient.requestAccessToken());
+  const saved = JSON.parse(localStorage.getItem('almanakk-token') || 'null');
+  if (saved && saved.exp > Date.now()) { onToken({ access_token: saved.t }); }
+}
+
+async function onToken(resp) {
+  if (resp.error) return alert('Innlogging feilet: ' + resp.error);
+  accessToken = resp.access_token;
+  if (resp.expires_in) {
+    localStorage.setItem('almanakk-token', JSON.stringify({ t: resp.access_token, exp: Date.now() + (Number(resp.expires_in) - 60) * 1000 }));
+  }
+  $('#auth').hidden = true;
+  const data = await api('users/me/calendarList');
+  calendars = (data.items || []).filter(c => c.accessRole === 'owner' || c.accessRole === 'writer');
+  const sel = $('#target');
+  sel.innerHTML = calendars.map(c =>
+    `<option value="${c.id}" ${/alanoeyen/i.test(c.id) ? 'selected' : ''}>${(c.summaryOverride || c.summary)}</option>`).join('');
+  $('#target-row').hidden = false;
+}
+
+async function api(path, params, opts = {}) {
+  const url = new URL('https://www.googleapis.com/calendar/v3/' + path);
+  for (const [k, v] of Object.entries(params || {})) url.searchParams.set(k, v);
+  const r = await fetch(url, { ...opts, headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' } });
+  if (!r.ok && r.status !== 410) throw new Error('Google API-feil ' + r.status);
+  return r.status === 204 || opts.method === 'DELETE' ? {} : r.json();
+}
+
+const norm = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/[.·]+$/, '').trim();
+const addDay = s => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); };
+
+async function loadExisting(calId) {
+  const keys = new Set();
+  let pageToken = '';
+  do {
+    const data = await api('calendars/' + encodeURIComponent(calId) + '/events', {
+      timeMin: '2026-01-01T00:00:00Z', timeMax: '2028-01-10T00:00:00Z',
+      maxResults: '2500', singleEvents: 'true', ...(pageToken ? { pageToken } : {}),
+    });
+    for (const ev of data.items || []) {
+      if (!ev.start) continue;
+      const start = ev.start.date || (ev.start.dateTime || '').slice(0, 10);
+      keys.add(norm(ev.summary || '') + '|' + start);
+    }
+    pageToken = data.nextPageToken || '';
+  } while (pageToken);
+  return keys;
+}
+
+$('#check').addEventListener('click', async () => {
+  $('#check').disabled = true;
+  $('#check').textContent = 'Sjekker …';
+  try {
+    const existing = await loadExisting($('#target').value);
+    const groups = {};
+    IMPORT_EVENTS.forEach((ev, i) => {
+      ev._dupe = existing.has(norm(ev.t) + '|' + ev.s);
+      (groups[ev.s.slice(0, 7)] = groups[ev.s.slice(0, 7)] || []).push([ev, i]);
+    });
+    $('#list').innerHTML = Object.keys(groups).sort().map(m => `
+      <div class="month-group">
+        <h3><label><input type="checkbox" class="month-all" data-m="${m}" checked> ${m}</label></h3>
+        ${groups[m].map(([ev, i]) => `
+          <label class="ev ${ev._dupe ? 'dupe' : ''}">
+            <input type="checkbox" data-i="${i}" data-m="${m}" ${ev._dupe ? '' : 'checked'}>
+            ${ev.t} <span class="dates">${ev.s}${ev.e ? ' – ' + ev.e : ''}</span>
+            ${ev._dupe ? '<span class="dupe-tag">finnes fra før — hoppes over</span>' : ''}
+          </label>`).join('')}
+      </div>`).join('');
+    $('#list-box').hidden = false;
+    updateCount();
+    $('#list').addEventListener('change', e => {
+      if (e.target.classList.contains('month-all')) {
+        document.querySelectorAll(`input[data-i][data-m="${e.target.dataset.m}"]`).forEach(cb => { cb.checked = e.target.checked; });
+      }
+      updateCount();
+    });
+  } catch (e) { alert(e.message); }
+  $('#check').disabled = false;
+  $('#check').textContent = 'Sjekk duplikater og vis listen';
+});
+
+function updateCount() {
+  const n = document.querySelectorAll('#list input[data-i]:checked').length;
+  $('#count').textContent = n + ' hendelser valgt for import.';
+}
+
+$('#import').addEventListener('click', async () => {
+  const boxes = [...document.querySelectorAll('#list input[data-i]:checked')];
+  if (!boxes.length) return;
+  if (!confirm('Opprette ' + boxes.length + ' hendelser i «' + $('#target').selectedOptions[0].text + '»?')) return;
+  $('#import').disabled = true;
+  const calId = $('#target').value;
+  let done = 0, failed = 0;
+  for (const box of boxes) {
+    const ev = IMPORT_EVENTS[Number(box.dataset.i)];
+    try {
+      await api('calendars/' + encodeURIComponent(calId) + '/events', {}, {
+        method: 'POST',
+        body: JSON.stringify({
+          summary: ev.t,
+          start: { date: ev.s },
+          end: { date: addDay(ev.e || ev.s) },
+          extendedProperties: { private: { almanakkImport: TAG } },
+        }),
+      });
+      done++;
+    } catch (e) { failed++; }
+    $('#progress').textContent = done + ' opprettet' + (failed ? ', ' + failed + ' feilet' : '') + ' av ' + boxes.length + ' …';
+  }
+  $('#progress').textContent = 'Ferdig: ' + done + ' opprettet' + (failed ? ', ' + failed + ' feilet.' : '.');
+  $('#import').disabled = false;
+});
+
+$('#undo-all').addEventListener('click', async () => {
+  if (!accessToken) return alert('Logg inn først.');
+  if (!confirm('Slette ALT som ble opprettet av denne importen?')) return;
+  const calId = $('#target').value;
+  let deleted = 0, pageToken = '';
+  do {
+    const data = await api('calendars/' + encodeURIComponent(calId) + '/events', {
+      privateExtendedProperty: 'almanakkImport=' + TAG,
+      maxResults: '2500', ...(pageToken ? { pageToken } : {}),
+    });
+    for (const ev of data.items || []) {
+      await api('calendars/' + encodeURIComponent(calId) + '/events/' + encodeURIComponent(ev.id), {}, { method: 'DELETE' });
+      deleted++;
+      $('#undo-status').textContent = deleted + ' slettet …';
+    }
+    pageToken = data.nextPageToken || '';
+  } while (pageToken);
+  $('#undo-status').textContent = 'Ferdig — ' + deleted + ' hendelser slettet.';
+});
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="gcalReady()"></script>
+</body>
+</html>

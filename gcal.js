@@ -10,6 +10,8 @@
   let loadedYears = new Set();
   let rawEvents = []; // internal events from Google, all loaded years
 
+  const TOKEN_KEY = 'almanakk-token';
+
   window.gcalReady = function () {
     if (!ALMANAKK_CONFIG.clientId) return; // demo mode
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -20,7 +22,14 @@
     const btn = document.querySelector('#signin');
     btn.hidden = false;
     btn.addEventListener('click', () => tokenClient.requestAccessToken());
-    // Show last-synced events right away (works offline too).
+    // Reuse a still-valid token so a refresh doesn't sign you out (tokens last ~1h).
+    const saved = JSON.parse(localStorage.getItem(TOKEN_KEY) || 'null');
+    if (saved && saved.exp > Date.now()) {
+      accessToken = saved.t;
+      bootGoogle();
+      return;
+    }
+    // Otherwise: show last-synced events right away (works offline too).
     const cached = JSON.parse(localStorage.getItem('almanakk-events') || 'null');
     if (cached && cached.length) {
       state.events = cached;
@@ -34,6 +43,14 @@
   async function onToken(resp) {
     if (resp.error) { toastErr('Innlogging feilet: ' + resp.error); return; }
     accessToken = resp.access_token;
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({
+      t: resp.access_token,
+      exp: Date.now() + (Number(resp.expires_in || 3600) - 60) * 1000,
+    }));
+    bootGoogle();
+  }
+
+  async function bootGoogle() {
     state.mode = 'google';
     document.querySelector('#signin').hidden = true;
     document.querySelector('#banner').hidden = true;
@@ -173,6 +190,20 @@
   };
 
   window.gcalCalendars = () => calendars;
+
+  // Make sure the given calendars are in the selected set and loaded
+  // (used by the Tour chip so switching it on always has data to show).
+  window.gcalEnsureSelected = async function (ids) {
+    const sel = new Set(selectedIds());
+    const missing = ids.filter(id => !sel.has(id));
+    if (!missing.length) return;
+    missing.forEach(id => sel.add(id));
+    localStorage.setItem(SEL_KEY, JSON.stringify([...sel]));
+    loadedYears = new Set();
+    rawEvents = [];
+    renderCalPicker();
+    await window.gcalEnsureYear(state.year);
+  };
 
   // Undo a delete: Google keeps the event with status 'cancelled'; flip it back.
   window.gcalRestoreEvent = async function (ev) {

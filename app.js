@@ -360,11 +360,14 @@ function updateChips() {
   tc.classList.toggle('active', tourIds.some(id => !state.hiddenCals.has(id)));
   $('#cities-chip').classList.toggle('active', state.cities);
 }
-$('#tour-chip').addEventListener('click', () => {
+$('#tour-chip').addEventListener('click', async () => {
   const tourIds = tourCalIds();
   const anyVisible = tourIds.some(id => !state.hiddenCals.has(id));
   tourIds.forEach(id => anyVisible ? state.hiddenCals.add(id) : state.hiddenCals.delete(id));
   localStorage.setItem('almanakk-hidden', JSON.stringify([...state.hiddenCals]));
+  if (!anyVisible && state.mode === 'google' && window.gcalEnsureSelected) {
+    try { await window.gcalEnsureSelected(tourIds); } catch (e) { toast(e.message); }
+  }
   render();
   updateChips();
 });
