@@ -43,11 +43,15 @@
   <p><button id="undo-all" class="danger">Slett alt fra denne importen (angre alt)</button> <span id="undo-status"></span></p>
 </div>
 <script src="config.js"></script>
-<script src="import-data.js"></script>
+<script>
+// ?set=antigone loads import-antigone.js; default is the sheet import
+const SET = (new URLSearchParams(location.search).get('set') || 'data').replace(/[^a-z0-9-]/gi, '');
+document.write('<script src="import-' + SET + '.js"><\/script>');
+</script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
-const TAG = 'sheet-2026-2027';
+const TAG = window.IMPORT_TAG || 'sheet-2026-2027';
 let accessToken = null, tokenClient = null, calendars = [];
 
 function gcalReady() {
@@ -72,7 +76,7 @@ async function onToken(resp) {
   calendars = (data.items || []).filter(c => c.accessRole === 'owner' || c.accessRole === 'writer');
   const sel = $('#target');
   sel.innerHTML = calendars.map(c =>
-    `<option value="${c.id}" ${/alanoeyen/i.test(c.id) ? 'selected' : ''}>${(c.summaryOverride || c.summary)}</option>`).join('');
+    `<option value="${c.id}" ${new RegExp(window.IMPORT_TARGET || 'alanoeyen', 'i').test((c.summaryOverride || c.summary) + ' ' + c.id) ? 'selected' : ''}>${(c.summaryOverride || c.summary)}</option>`).join('');
   $('#target-row').hidden = false;
 }
 
@@ -121,7 +125,7 @@ $('#check').addEventListener('click', async () => {
         ${groups[m].map(([ev, i]) => `
           <label class="ev ${ev._dupe ? 'dupe' : ''}">
             <input type="checkbox" data-i="${i}" data-m="${m}" ${ev._dupe ? '' : 'checked'}>
-            ${ev.t} <span class="dates">${ev.s}${ev.e ? ' – ' + ev.e : ''}</span>
+            ${ev.time ? ev.time + ' ' : ''}${ev.t} <span class="dates">${ev.s}${ev.e ? ' – ' + ev.e : ''}</span>
             ${ev._dupe ? '<span class="dupe-tag">finnes fra før — hoppes over</span>' : ''}
           </label>`).join('')}
       </div>`).join('');
@@ -155,7 +159,12 @@ $('#import').addEventListener('click', async () => {
     try {
       await api('calendars/' + encodeURIComponent(calId) + '/events', {}, {
         method: 'POST',
-        body: JSON.stringify({
+        body: JSON.stringify(ev.time ? {
+          summary: ev.t,
+          start: { dateTime: ev.s + 'T' + ev.time + ':00', timeZone: 'Europe/Oslo' },
+          end: { dateTime: ev.s + 'T' + String(Number(ev.time.slice(0, 2)) + 1).padStart(2, '0') + ev.time.slice(2) + ':00', timeZone: 'Europe/Oslo' },
+          extendedProperties: { private: { almanakkImport: TAG } },
+        } : {
           summary: ev.t,
           start: { date: ev.s },
           end: { date: addDay(ev.e || ev.s) },

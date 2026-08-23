@@ -180,6 +180,7 @@ function detOrder(a, b) {
   return ka < kb ? -1 : ka > kb ? 1 : 0;
 }
 function evInk(e) { return isShow(e) ? 'var(--red)' : inkColor(e.color); }
+const isTbc = ev => /\btbc\b/i.test(ev.title);
 
 /* ---------- cities (derived from flight-looking events) ---------- */
 
@@ -297,7 +298,7 @@ function renderMonthEl(y, m) {
       // a label may spend at most half its band on text (and max 3 lines)
       const lines = (showLabel && !spill) ? Math.max(1, Math.min(3, Math.floor((endInMonth - day + 1) / 2))) : 1;
       return `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''} ${lines > 1 ? 'wrap' : ''}`
-        + ` ${isShow(ev) ? 'showband' : ''} ${ev.start === ds ? 'bstart' : ''}"`
+        + ` ${isShow(ev) ? 'showband' : ''} ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--lines:${lines};--spillw:${Math.round(spillK * 100)}%">`
         + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
     };
@@ -322,9 +323,9 @@ function renderMonthEl(y, m) {
     // bands it starts at the far left and uses their width too
     const detail = `<span class="detail"${hasOwn ? '' : ` style="grid-column: span ${nOwn + 1}"`}>`
       + todays.map(e =>
-        `<b class="evt" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
+        `<b class="evt ${isTbc(e) ? 'tbc' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
       + wgTodays.map(e =>
-        `<b class="evt wgd" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
+        `<b class="evt wgd ${isTbc(e) ? 'tbc' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
       + '</span>';
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
@@ -425,7 +426,7 @@ function openDayPanel(row) {
   const city = cityOn(date, buildFlightIndex()); // always shown, independent of the Cities toggle
   pop.innerHTML = `<p class="dim"><b>${date}</b>${city ? `<span class="city-tag">${esc(cityName(city))}</span>` : ''}</p>`
     + evs.map(e =>
-      `<p class="${tour.has(e.calId) ? 'wgrow' : ''}">${tour.has(e.calId) ? '<span class="wg-mark">wg</span> ' : ''}`
+      `<p class="${tour.has(e.calId) ? 'wgrow' : ''} ${isTbc(e) ? 'tbc' : ''}">${tour.has(e.calId) ? '<span class="wg-mark">wg</span> ' : ''}`
       + `<b style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
       + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')
       + ` <button class="x" data-edit="${e.id}">${L().edit}</button>`

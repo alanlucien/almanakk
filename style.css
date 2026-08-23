@@ -147,6 +147,9 @@ button.active { background: var(--ink); color: var(--card); }
 
 /* a thin paper seam marks where one band ends and the next begins */
 .day .lane.on.bstart { border-top: 3px solid var(--card); }
+/* tbc in a title renders tentative: italic text, dashed lighter band */
+.evt.tbc, #popover p.tbc b, .lane.tbc i { font-style: italic; }
+.day .lane.on.tbc { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, transparent); }
 /* shows ping red: band labels + a dot on the day number */
 .day .lane.showband i { color: var(--red); }
 .day.showday .num::after { content: '•'; color: var(--red); margin-left: 1px; }
