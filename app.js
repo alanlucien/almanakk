@@ -12,6 +12,7 @@ const LANGS = {
     signin: 'Logg inn med Google', cals: 'Kalendere',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender',
     deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', citiesBtn: 'Byer',
+    tourHint: 'Huk av «Tour» på turnékalenderne under Kalendere først.',
     newPh: 'Ny · «8-12 tekst» = flere dager · «13:00» = tid', add: 'Legg til', del: 'Slett',
     printHead: 'Skriv ut %Y — A4 liggende', per3: '3 mnd/side', per6: '6 mnd/side', per12: 'Hele året på én side',
   },
@@ -23,6 +24,7 @@ const LANGS = {
     signin: 'Sign in with Google', cals: 'Calendars',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar',
     deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', citiesBtn: 'Cities',
+    tourHint: 'Tick "Tour" on the touring calendars under Calendars first.',
     newPh: 'New · "8-12 text" = several days · "13:00" = timed', add: 'Add', del: 'Delete',
     printHead: 'Print %Y — A4 landscape', per3: '3 months/page', per6: '6 months/page', per12: 'Whole year on one page',
   },
@@ -486,11 +488,17 @@ function step(dir) {
 // wg chip: overlay the tour-tagged calendars' all-day events. Cities chip: derived location column.
 function updateChips() {
   const tc = $('#tour-chip');
-  tc.hidden = tourCalIds().length === 0;
-  tc.classList.toggle('active', state.wg);
+  tc.hidden = false;
+  tc.classList.toggle('active', state.wg && tourCalIds().length > 0);
   $('#cities-chip').classList.toggle('active', state.cities);
 }
 $('#tour-chip').addEventListener('click', async () => {
+  if (!tourCalIds().length) {
+    const picker = $('#cal-picker');
+    if (!picker.hidden) picker.open = true;
+    toast(L().tourHint);
+    return;
+  }
   state.wg = !state.wg;
   localStorage.setItem('almanakk-wg', state.wg ? '1' : '0');
   if (state.wg && state.mode === 'google' && window.gcalEnsureSelected) {
