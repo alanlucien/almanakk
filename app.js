@@ -278,18 +278,22 @@ function renderMonthEl(y, m) {
         const ev = laneEvs[lane];
         if (!ev) { laneCells += '<span class="lane"></span>'; continue; }
         // label at span start, then every 14 days counted from it; the 1st of
-        // a month only gets a label when no 14-day beat lands in its first week.
-        // When everything to the right is empty, the label writes across (spill).
+        // a month only gets a label when no 14-day beat lands in its first week
         const offset = Math.round((parseDate(ds) - parseDate(ev.start)) / 864e5);
         const untilNextBeat = (14 - (offset % 14)) % 14;
         const showLabel = offset % 14 === 0 || (day === 1 && offset > 0 && untilNextBeat > 7);
-        const spill = showLabel && infoEmpty && !todays.length && !wgTodays.length && laneEvs.slice(lane + 1).every(x => !x);
-        // no sideways room -> wrap the label word-by-word down the band,
-        // but never past the band's last day in this month (max 3 lines)
+        // sideways first: spill across the consecutive EMPTY lane cells to the
+        // right (plus the detail area when that is empty too); wrap word-by-word
+        // down the band only when there is no sideways room at all
+        let freeRight = 0;
+        for (let l2 = lane + 1; l2 < nLanes; l2++) { if (!laneEvs[l2]) freeRight++; else break; }
+        const detailsFree = !todays.length && !wgTodays.length;
+        const spillK = 1 + freeRight + (detailsFree ? 1.7 : 0); // detail track ≈ 1.7 lane widths
+        const spill = showLabel && spillK > 1.05;
         const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
         const lines = (showLabel && !spill) ? Math.min(3, endInMonth - day + 1) : 1;
         laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''} ${lines > 1 ? 'wrap' : ''}"`
-          + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--lines:${lines}">`
+          + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--lines:${lines};--spillw:${Math.round(spillK * 100)}%">`
           + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
       }
     }

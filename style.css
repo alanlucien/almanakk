@@ -123,9 +123,18 @@ button.active { background: var(--ink); color: var(--card); }
 }
 .day .lane.on { background: color-mix(in srgb, var(--c) 14%, transparent); border-left: 2px solid var(--ci, var(--c)); }
 .day .lane i { font-style: normal; color: var(--ci, var(--c)); font-weight: 600; padding: 1px 3px; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-/* a label with only empty cells to its right writes across them, like handwriting */
+/* a label writes sideways across the free cells to its right, like handwriting;
+   --spillw = how far it may reach, in multiples of its own lane width */
 .day .lane.spill { overflow: visible; }
-.day .lane.spill i { position: absolute; z-index: 1; width: max-content; max-width: 72%; }
+.day .lane.spill i {
+  position: absolute;
+  left: 0; top: 0;
+  z-index: 1;
+  white-space: nowrap;
+  max-width: var(--spillw, 100%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 /* wg overlay lanes: clearly "context", not your own schedule */
 .day .lane.wg {
   border-left: 2px dashed var(--ci, var(--c));
