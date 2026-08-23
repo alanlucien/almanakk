@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#efe8d4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Almanakk</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>ALMANAKK</h1>
+  <nav>
+    <button id="prev" title="Forrige">‹</button>
+    <strong id="period-label"></strong>
+    <button id="next" title="Neste">›</button>
+  </nav>
+  <div class="spacer"></div>
+  <nav>
+    <button id="view-year">År</button>
+    <button id="view-month">Måned</button>
+    <button id="print" title="Skriv ut A4">Skriv ut</button>
+    <button id="signin" hidden>Logg inn med Google</button>
+    <details id="cal-picker" hidden>
+      <summary>Kalendere</summary>
+      <div id="cal-list"></div>
+    </details>
+  </nav>
+</header>
+<div id="banner" hidden></div>
+<main id="app"></main>
+<div id="toast" hidden></div>
+<script src="config.js"></script>
+<script src="demo-data.js"></script>
+<script src="app.js"></script>
+<script src="gcal.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="window.gcalReady && gcalReady()"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+</body>
+</html>
