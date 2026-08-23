@@ -339,7 +339,10 @@ function renderMonthEl(y, m) {
         const ka = k(a), kb = k(b);
         return ka < kb ? -1 : ka > kb ? 1 : 0;
       });
-    const detail = `<span class="detail"${hasOwn ? '' : ` style="grid-column: span ${nOwn + 1}"`}>`
+    // fill from the far left only when the line holds something of Alan's own —
+    // wg-only days keep their items in the normal column, next to their band
+    const spanLeft = !hasOwn && lineItems.some(x => !x.wg);
+    const detail = `<span class="detail"${spanLeft ? ` style="grid-column: span ${nOwn + 1}"` : ''}>`
       + lineItems.map(({ e, wg }) =>
         `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
       + '</span>';

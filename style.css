@@ -126,7 +126,7 @@ button.active { background: var(--ink); color: var(--card); }
   -webkit-line-clamp: var(--lines, 1);
   overflow: hidden;
 }
-.day .lane.on { background: color-mix(in srgb, var(--c) 14%, transparent); border-left: 2px solid var(--ci, var(--c)); }
+.day .lane.on { background: color-mix(in srgb, var(--c) 14%, var(--card)); border-left: 2px solid var(--ci, var(--c)); }
 .day .lane i { font-style: normal; color: var(--ci, var(--c)); font-weight: 600; padding: 1px 3px; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 /* a label writes sideways across the free cells to its right, like handwriting;
    --spillw = how far it may reach, in multiples of its own lane width */
@@ -150,7 +150,7 @@ button.active { background: var(--ink); color: var(--card); }
 .day .lane.on.bstart { border-top: 3px solid var(--card); }
 /* tbc in a title renders tentative: italic text, dashed lighter band */
 .evt.tbc, #popover p.tbc b, .lane.tbc i { font-style: italic; }
-.day .lane.on.tbc { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, transparent); }
+.day .lane.on.tbc { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
 /* shows ping red: band labels + a dot on the day number */
 .day .lane.showband i { color: var(--red); }
 .day.showday .num::after { content: '•'; color: var(--red); margin-left: 1px; }
@@ -158,8 +158,8 @@ button.active { background: var(--ink); color: var(--card); }
 /* wg overlay lanes: clearly "context", not your own schedule */
 .day .lane.wg {
   border-left: 2px dashed var(--ci, var(--c));
-  border-right: 1px dashed color-mix(in srgb, var(--ci, var(--c)) 55%, transparent);
-  background: color-mix(in srgb, var(--c) 22%, transparent);
+  border-right: 1px dashed color-mix(in srgb, var(--ci, var(--c)) 55%, var(--card));
+  background: color-mix(in srgb, var(--c) 22%, var(--card));
 }
 .day .lane.wg i { font-weight: 400; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 #popover .wgrow { opacity: .8; }
