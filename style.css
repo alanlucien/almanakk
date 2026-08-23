@@ -109,6 +109,11 @@ button.active { background: var(--ink); color: var(--card); }
 .day .lane { padding: 0; }
 .day .lane.on { background: color-mix(in srgb, var(--c) 14%, transparent); border-left: 2px solid var(--ci, var(--c)); }
 .day .lane i { font-style: normal; color: var(--ci, var(--c)); font-weight: 600; padding: 1px 3px; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* wg overlay lanes: clearly "context", not your own schedule */
+.day .lane.wg { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, transparent); }
+.day .lane.wg i { font-weight: 400; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+#popover .wgrow { opacity: .8; }
+#popover .wg-mark { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--muted); color: var(--muted); border-radius: 2px; padding: 0 3px; vertical-align: middle; }
 /* single-day details: always ONE line — joined with · , clipped with … ; tap the day for the full list */
 .day .detail { border-left: 1px dotted var(--rule); white-space: nowrap; text-overflow: ellipsis; align-self: center; width: 100%; }
 .day .detail .evt { font-weight: 400; display: inline; }

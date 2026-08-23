@@ -35,7 +35,7 @@ const state = {
   month: new Date().getMonth(), // 0-based, for month view
   events: [],      // {id, title, start, end (inclusive 'YYYY-MM-DD'), color, time?, gid?, calId?, src?}
   mode: 'demo',    // 'demo' | 'google'
-  hiddenCals: new Set(JSON.parse(localStorage.getItem('almanakk-hidden') || '[]')),
+  wg: localStorage.getItem('almanakk-wg') === '1', // overlay the tour-tagged calendars
   cities: localStorage.getItem('almanakk-cities') === '1',
   lang: localStorage.getItem('almanakk-lang') || 'no',
   detailed: false, // month view with every event on its own row
@@ -50,8 +50,16 @@ function tourCalIds() {
   if (stored) return stored.filter(id => all.some(c => c.id === id));
   return all.filter(c => /tour|turné|turne/i.test(c.name)).map(c => c.id);
 }
+// Tour-tagged calendars are never part of the normal view — they are an
+// overlay (the wg button), like the Cities column.
 function visibleEvents() {
-  return state.events.filter(e => !state.hiddenCals.has(e.calId));
+  const t = new Set(tourCalIds());
+  return state.events.filter(e => !t.has(e.calId));
+}
+function overlayEvents() {
+  if (!state.wg) return [];
+  const t = new Set(tourCalIds());
+  return state.events.filter(e => t.has(e.calId) && !e.time); // all-day only
 }
 
 /* ---------- date helpers (string keys, no timezone traps) ---------- */
@@ -118,25 +126,33 @@ function holidays(y) {
    the left; single-day events stack in one detail column on the right.     */
 
 const MAX_LANES = 4;
-function monthLayout(y, m, events) {
-  const first = fmt(new Date(y, m, 1));
-  const last = fmt(new Date(y, m, daysInMonth(y, m)));
-  const overlapping = events.filter(ev => ev.start <= last && ev.end >= first);
-  const spans = overlapping
-    .filter(ev => ev.end > ev.start)
-    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : (b.end < a.end ? -1 : 1)));
+function packLanes(spans, cap, base) {
   const laneEnds = [];
   for (const ev of spans) {
     let lane = laneEnds.findIndex(end => end < ev.start);
     if (lane === -1) lane = laneEnds.length;
-    ev._lane = Math.min(lane, MAX_LANES - 1);
-    laneEnds[ev._lane] = ev.end > (laneEnds[ev._lane] || '') ? ev.end : laneEnds[ev._lane];
+    ev._lane = base + Math.min(lane, cap - 1);
+    const li = Math.min(lane, cap - 1);
+    laneEnds[li] = ev.end > (laneEnds[li] || '') ? ev.end : laneEnds[li];
   }
+  return Math.min(cap, laneEnds.length);
+}
+const byStart = (a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : (b.end < a.end ? -1 : 1));
+
+function monthLayout(y, m, events, overlays) {
+  const first = fmt(new Date(y, m, 1));
+  const last = fmt(new Date(y, m, daysInMonth(y, m)));
+  const overlapping = events.filter(ev => ev.start <= last && ev.end >= first);
+  const spans = overlapping.filter(ev => ev.end > ev.start).sort(byStart);
+  const n = Math.max(1, packLanes(spans, MAX_LANES, 0));
+  // overlay (wg) events get their own lanes to the right of the normal ones
+  const ovl = (overlays || []).filter(ev => ev.start <= last && ev.end >= first).sort(byStart);
+  ovl.forEach(ev => { ev._wg = true; });
+  const nOvl = packLanes(ovl, 2, n);
   const details = overlapping
     .filter(ev => ev.end === ev.start)
     .sort((a, b) => ((a.time || '99') < (b.time || '99') ? -1 : 1));
-  // at least 1: repeat(0, …) is invalid CSS and would collapse the grid
-  return { spans, details, nLanes: Math.min(MAX_LANES, Math.max(1, laneEnds.length)) };
+  return { spans: spans.concat(ovl), details, nLanes: n + nOvl };
 }
 
 /* ---------- cities (derived from flight-looking events) ---------- */
@@ -169,6 +185,31 @@ function cityOn(ds, flights) {
   return city;
 }
 
+// Airport/metro codes -> city names (codes Alan actually flies, plus majors).
+const IATA_CITIES = {
+  OSL: 'Oslo', BGO: 'Bergen', TRD: 'Trondheim', SVG: 'Stavanger', KRS: 'Kristiansand', TOS: 'Tromsø', AES: 'Ålesund', BOO: 'Bodø',
+  CPH: 'København', ARN: 'Stockholm', STO: 'Stockholm', GOT: 'Göteborg', HEL: 'Helsinki', KEF: 'Reykjavík',
+  LHR: 'London', LGW: 'London', STN: 'London', LCY: 'London', LTN: 'London', LON: 'London',
+  CDG: 'Paris', ORY: 'Paris', PAR: 'Paris', AMS: 'Amsterdam', BRU: 'Brussel',
+  FRA: 'Frankfurt', MUC: 'München', DUS: 'Düsseldorf', BER: 'Berlin', TXL: 'Berlin', HAM: 'Hamburg', CGN: 'Köln', STR: 'Stuttgart',
+  ZRH: 'Zürich', GVA: 'Genève', VIE: 'Wien', PRG: 'Praha', WAW: 'Warszawa', BUD: 'Budapest', KRK: 'Kraków',
+  MXP: 'Milano', LIN: 'Milano', MIL: 'Milano', FCO: 'Roma', CIA: 'Roma', ROM: 'Roma', VCE: 'Venezia', NAP: 'Napoli', BLQ: 'Bologna', FLR: 'Firenze', TRN: 'Torino', PSA: 'Pisa',
+  ATH: 'Athen', SKG: 'Thessaloniki', IST: 'Istanbul', MAD: 'Madrid', BCN: 'Barcelona', LIS: 'Lisboa', OPO: 'Porto',
+  DUB: 'Dublin', EDI: 'Edinburgh', MAN: 'Manchester', MRS: 'Marseille', NCE: 'Nice', LYS: 'Lyon', TLS: 'Toulouse',
+  JFK: 'New York', EWR: 'New York', LGA: 'New York', NYC: 'New York', BOS: 'Boston', IAD: 'Washington', DCA: 'Washington',
+  ORD: 'Chicago', LAX: 'Los Angeles', SFO: 'San Francisco', MIA: 'Miami', YYZ: 'Toronto', YUL: 'Montreal',
+  EZE: 'Buenos Aires', AEP: 'Buenos Aires', GRU: 'São Paulo', GIG: 'Rio de Janeiro', SCL: 'Santiago', BOG: 'Bogotá', MEX: 'Mexico City', LIM: 'Lima',
+  NRT: 'Tokyo', HND: 'Tokyo', TYO: 'Tokyo', KIX: 'Osaka', ITM: 'Osaka', OSA: 'Osaka', NGO: 'Nagoya', FUK: 'Fukuoka', CTS: 'Sapporo', OKA: 'Okinawa',
+  ICN: 'Seoul', GMP: 'Seoul', PEK: 'Beijing', PKX: 'Beijing', PVG: 'Shanghai', SHA: 'Shanghai',
+  HKG: 'Hong Kong', HGK: 'Hong Kong', TPE: 'Taipei', BKK: 'Bangkok', DMK: 'Bangkok', USM: 'Koh Samui', HKT: 'Phuket',
+  SIN: 'Singapore', KUL: 'Kuala Lumpur', CGK: 'Jakarta', DPS: 'Bali', HAN: 'Hanoi', SGN: 'Ho Chi Minh',
+  DEL: 'Delhi', BOM: 'Mumbai', DXB: 'Dubai', DOH: 'Doha', AUH: 'Abu Dhabi', TLV: 'Tel Aviv', CAI: 'Kairo',
+  JNB: 'Johannesburg', CPT: 'Cape Town', SYD: 'Sydney', MEL: 'Melbourne', BNE: 'Brisbane', PER: 'Perth', AKL: 'Auckland',
+};
+function cityName(code) {
+  return IATA_CITIES[code] || code;
+}
+
 /* ---------- rendering ---------- */
 
 function esc(s) {
@@ -187,7 +228,7 @@ function inkColor(hex) {
 }
 
 function renderMonthEl(y, m) {
-  const { spans, details, nLanes } = monthLayout(y, m, visibleEvents());
+  const { spans, details, nLanes } = monthLayout(y, m, visibleEvents(), overlayEvents());
   const hol = holidays(y);
   const todayStr = fmt(new Date());
   const n = daysInMonth(y, m);
@@ -204,7 +245,7 @@ function renderMonthEl(y, m) {
     if (flights) {
       const city = cityOn(ds, flights);
       const show = city && (city !== prevCity || day === 1 || wi === 0);
-      cityCell = `<span class="city">${show ? esc(city) : ''}</span>`;
+      cityCell = `<span class="city">${show ? esc(cityName(city)) : ''}</span>`;
       prevCity = city;
     }
     // lane cells (projects/tours)
@@ -214,7 +255,7 @@ function renderMonthEl(y, m) {
       if (!ev) { laneCells += '<span class="lane"></span>'; continue; }
       // repeat the label at span start, month start and on Mondays
       const showLabel = ev.start === ds || day === 1 || wi === 0;
-      laneCells += `<span class="lane on" data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)}">`
+      laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''}" data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
     }
     // detail cell (single-day events, stacked)
@@ -296,13 +337,18 @@ async function addEvent(date, text) {
 function openDayPanel(row) {
   closePanel(true);
   const date = row.dataset.date;
-  const evs = visibleEvents().filter(e => e.start <= date && e.end >= date);
+  // the day panel always shows EVERYTHING on this day, incl. the full wg schedule
+  const tour = new Set(tourCalIds());
+  const evs = state.events
+    .filter(e => e.start <= date && e.end >= date)
+    .sort((a, b) => ((a.time || '') < (b.time || '') ? -1 : 1));
   const pop = document.createElement('div');
   pop.id = 'popover';
-  const city = state.cities ? cityOn(date, buildFlightIndex()) : null;
-  pop.innerHTML = `<p class="dim"><b>${date}</b>${city ? `<span class="city-tag">${esc(city)}</span>` : ''}</p>`
+  const city = cityOn(date, buildFlightIndex()); // always shown, independent of the Cities toggle
+  pop.innerHTML = `<p class="dim"><b>${date}</b>${city ? `<span class="city-tag">${esc(cityName(city))}</span>` : ''}</p>`
     + evs.map(e =>
-      `<p><b style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
+      `<p class="${tour.has(e.calId) ? 'wgrow' : ''}">${tour.has(e.calId) ? '<span class="wg-mark">wg</span> ' : ''}`
+      + `<b style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
       + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')
       + ` <button class="x" data-del="${e.id}">${L().del}</button></p>`).join('')
     + `<form class="qa"><input type="text" placeholder="${L().newPh}" autocomplete="off"><button type="submit" class="add">${L().add}</button></form>`;
@@ -403,21 +449,18 @@ function step(dir) {
   render();
 }
 
-// Tour chip: show/hide touring calendar(s). Cities chip: derived location column.
+// wg chip: overlay the tour-tagged calendars' all-day events. Cities chip: derived location column.
 function updateChips() {
-  const tourIds = tourCalIds();
   const tc = $('#tour-chip');
-  tc.hidden = tourIds.length === 0;
-  tc.classList.toggle('active', tourIds.some(id => !state.hiddenCals.has(id)));
+  tc.hidden = tourCalIds().length === 0;
+  tc.classList.toggle('active', state.wg);
   $('#cities-chip').classList.toggle('active', state.cities);
 }
 $('#tour-chip').addEventListener('click', async () => {
-  const tourIds = tourCalIds();
-  const anyVisible = tourIds.some(id => !state.hiddenCals.has(id));
-  tourIds.forEach(id => anyVisible ? state.hiddenCals.add(id) : state.hiddenCals.delete(id));
-  localStorage.setItem('almanakk-hidden', JSON.stringify([...state.hiddenCals]));
-  if (!anyVisible && state.mode === 'google' && window.gcalEnsureSelected) {
-    try { await window.gcalEnsureSelected(tourIds); } catch (e) { toast(e.message); }
+  state.wg = !state.wg;
+  localStorage.setItem('almanakk-wg', state.wg ? '1' : '0');
+  if (state.wg && state.mode === 'google' && window.gcalEnsureSelected) {
+    try { await window.gcalEnsureSelected(tourCalIds()); } catch (e) { toast(e.message); }
   }
   render();
   updateChips();
