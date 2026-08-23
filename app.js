@@ -338,14 +338,25 @@ function applyLang() {
 }
 
 // "8-12 Antigone" on a day in March -> span March 8–12.
+// "25-1 Antigone" (second number smaller) rolls into the next month.
 function parseRange(date, text) {
   const m = text.match(/^(\d{1,2})\s*[-–]\s*(\d{1,2})\s+(.+)$/);
   if (!m) return null;
   const [y, mo] = date.split('-').map(Number);
-  const a = Number(m[1]), b = Number(m[2]), last = daysInMonth(y, mo - 1);
-  if (a < 1 || b < a || b > last) return null;
+  const a = Number(m[1]), b = Number(m[2]);
+  if (a < 1 || a > daysInMonth(y, mo - 1) || b < 1) return null;
   const pad = x => String(x).padStart(2, '0');
-  return { start: `${y}-${pad(mo)}-${pad(a)}`, end: `${y}-${pad(mo)}-${pad(b)}`, title: m[3] };
+  const start = `${y}-${pad(mo)}-${pad(a)}`;
+  let end;
+  if (b >= a) {
+    if (b > daysInMonth(y, mo - 1)) return null;
+    end = `${y}-${pad(mo)}-${pad(b)}`;
+  } else {
+    const ny = mo === 12 ? y + 1 : y, nmo = mo === 12 ? 1 : mo + 1;
+    if (b > daysInMonth(ny, nmo - 1)) return null;
+    end = `${ny}-${pad(nmo)}-${pad(b)}`;
+  }
+  return { start, end, title: m[3] };
 }
 
 async function addEvent(date, text) {
