@@ -277,9 +277,12 @@ function renderMonthEl(y, m) {
       for (let lane = 0; lane < nLanes; lane++) {
         const ev = laneEvs[lane];
         if (!ev) { laneCells += '<span class="lane"></span>'; continue; }
-        // repeat the label at span start, month start and on Mondays;
-        // when everything to the right is empty, let it write across (spill)
-        const showLabel = ev.start === ds || day === 1 || wi === 0;
+        // label at span start, then every 14 days counted from it; the 1st of
+        // a month only gets a label when no 14-day beat lands in its first week.
+        // When everything to the right is empty, the label writes across (spill).
+        const offset = Math.round((parseDate(ds) - parseDate(ev.start)) / 864e5);
+        const untilNextBeat = (14 - (offset % 14)) % 14;
+        const showLabel = offset % 14 === 0 || (day === 1 && offset > 0 && untilNextBeat > 7);
         const spill = showLabel && infoEmpty && !todays.length && !wgTodays.length && laneEvs.slice(lane + 1).every(x => !x);
         // no sideways room -> wrap the label word-by-word down the band,
         // but never past the band's last day in this month (max 3 lines)
