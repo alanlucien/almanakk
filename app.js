@@ -61,9 +61,9 @@ function visibleEvents() {
 function overlayEvents() {
   if (!state.wg) return [];
   const t = new Set(tourCalIds());
-  // multi-day spans only: the overlay answers "when/where is wg on tour";
-  // single-day wg items live in the day panel instead
-  return state.events.filter(e => t.has(e.calId) && !e.time && e.end > e.start);
+  // Alan's decision 2026-08-23: show ALL all-day wg events in the overlay —
+  // multi-day tour spans AND single-day items (two columns when both exist)
+  return state.events.filter(e => t.has(e.calId) && !e.time);
 }
 
 /* ---------- date helpers (string keys, no timezone traps) ---------- */
