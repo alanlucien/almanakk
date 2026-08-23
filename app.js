@@ -2,8 +2,32 @@
 'use strict';
 
 const $ = s => document.querySelector(s);
-const MONTHS = ['JANUAR','FEBRUAR','MARS','APRIL','MAI','JUNI','JULI','AUGUST','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
-const WD = ['M','Ti','O','To','F','L','S']; // Monday-first
+
+const LANGS = {
+  no: {
+    months: ['JANUAR','FEBRUAR','MARS','APRIL','MAI','JUNI','JULI','AUGUST','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'],
+    wd: ['M','Ti','O','To','F','L','S'], // Monday-first
+    week: 'uke',
+    year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
+    signin: 'Logg inn med Google', cals: 'Kalendere',
+    added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender',
+    deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet',
+    newPh: 'Ny · «8-12 tekst» = flere dager · «13:00» = tid', add: 'Legg til', del: 'Slett',
+    printHead: 'Skriv ut %Y — A4 liggende', per3: '3 mnd/side', per6: '6 mnd/side', per12: 'Hele året på én side',
+  },
+  en: {
+    months: ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'],
+    wd: ['Mo','Tu','We','Th','Fr','Sa','Su'],
+    week: 'wk',
+    year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
+    signin: 'Sign in with Google', cals: 'Calendars',
+    added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar',
+    deleted: 'Deleted', undo: 'Undo', restored: 'Restored',
+    newPh: 'New · "8-12 text" = several days · "13:00" = timed', add: 'Add', del: 'Delete',
+    printHead: 'Print %Y — A4 landscape', per3: '3 months/page', per6: '6 months/page', per12: 'Whole year on one page',
+  },
+};
+const L = () => LANGS[state.lang] || LANGS.no;
 
 const state = {
   view: window.innerWidth < 700 ? 'month' : 'year',
@@ -13,6 +37,8 @@ const state = {
   mode: 'demo',    // 'demo' | 'google'
   hiddenCals: new Set(JSON.parse(localStorage.getItem('almanakk-hidden') || '[]')),
   cities: localStorage.getItem('almanakk-cities') === '1',
+  lang: localStorage.getItem('almanakk-lang') || 'no',
+  detailed: false, // month view with every event on its own row
 };
 
 function allCalendars() {
@@ -184,12 +210,12 @@ function renderMonthEl(y, m) {
     ).join('') + '</span>';
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
-      : (wi === 0 ? `<span class="info">uke ${isoWeek(d)}</span>` : '<span class="info"></span>');
+      : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
     rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''}" data-date="${ds}">`
-      + `<span class="num">${day}</span><span class="wd">${WD[wi]}</span>`
+      + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
       + cityCell + laneCells + detail + info + `</div>`;
   }
-  return `<section class="month ${state.cities ? 'cities' : ''}" style="--lanes:${nLanes}"><h2>${MONTHS[m]} <small>${y}</small></h2>${rows}</section>`;
+  return `<section class="month ${state.cities ? 'cities' : ''}" style="--lanes:${nLanes}"><h2>${L().months[m]} <small>${y}</small></h2>${rows}</section>`;
 }
 
 function render(group) {
@@ -207,13 +233,23 @@ function render(group) {
     app.innerHTML = html;
     $('#period-label').textContent = state.year;
   } else {
-    app.className = 'strip';
+    app.className = 'strip' + (state.detailed ? ' detailed' : '');
     app.innerHTML = renderMonthEl(state.year, state.month);
-    $('#period-label').textContent = MONTHS[state.month].charAt(0) + MONTHS[state.month].slice(1).toLowerCase() + ' ' + state.year;
+    $('#period-label').textContent = L().months[state.month].charAt(0) + L().months[state.month].slice(1).toLowerCase() + ' ' + state.year;
   }
   $('#view-year').classList.toggle('active', state.view === 'year');
-  $('#view-month').classList.toggle('active', state.view === 'month');
+  $('#view-month').classList.toggle('active', state.view === 'month' && !state.detailed);
+  $('#view-detail').classList.toggle('active', state.view === 'month' && state.detailed);
   updateChips();
+}
+
+function applyLang() {
+  $('#view-year').textContent = L().year;
+  $('#view-month').textContent = L().month;
+  $('#view-detail').textContent = L().detail;
+  $('#print').textContent = L().print;
+  $('#signin').textContent = L().signin;
+  $('#cal-picker summary').textContent = L().cals;
 }
 
 // "8-12 Antigone" on a day in March -> span March 8–12.
@@ -231,13 +267,13 @@ async function addEvent(date, text) {
   const range = parseRange(date, text);
   if (state.mode === 'google') {
     await window.gcalCreateEvent(range ? range.start : date, range ? range.end : date, range ? range.title : text);
-    toast('Lagret i Google Kalender');
+    toast(L().saved);
   } else if (ALMANAKK_CONFIG.clientId) {
     throw new Error('Logg inn med Google først for å legge til.');
   } else {
     DEMO_EVENTS.push(range ? { c: 'alan', t: range.title, s: range.start, e: range.end } : { c: 'alan', t: text, s: date });
     loadDemo();
-    toast('Lagt til (demo — lagres ikke)');
+    toast(L().added);
   }
 }
 
@@ -253,8 +289,8 @@ function openDayPanel(row) {
     + evs.map(e =>
       `<p><b style="color:${e.color}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
       + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')
-      + ` <button class="x" data-del="${e.id}">Slett</button></p>`).join('')
-    + `<form class="qa"><input type="text" placeholder="Ny · «8-12 tekst» = flere dager · «13:00» = tid" autocomplete="off"><button type="submit" class="add">Legg til</button></form>`;
+      + ` <button class="x" data-del="${e.id}">${L().del}</button></p>`).join('')
+    + `<form class="qa"><input type="text" placeholder="${L().newPh}" autocomplete="off"><button type="submit" class="add">${L().add}</button></form>`;
   document.body.appendChild(pop);
   const r = row.getBoundingClientRect();
   pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
@@ -276,7 +312,7 @@ function openDayPanel(row) {
     try {
       await deleteEvent(ev);
       closePanel();
-      toast('Slettet', { label: 'Angre', fn: () => undoDelete(ev) });
+      toast(L().deleted, { label: L().undo, fn: () => undoDelete(ev) });
     } catch (err) { toast(err.message); }
   });
 }
@@ -296,7 +332,7 @@ async function undoDelete(ev) {
     DEMO_EVENTS.push(ev.src);
     loadDemo();
   }
-  toast('Gjenopprettet');
+  toast(L().restored);
 }
 
 async function deleteEvent(ev) {
@@ -381,7 +417,14 @@ $('#cities-chip').addEventListener('click', () => {
 $('#prev').addEventListener('click', () => step(-1));
 $('#next').addEventListener('click', () => step(1));
 $('#view-year').addEventListener('click', () => { state.view = 'year'; render(); });
-$('#view-month').addEventListener('click', () => { state.view = 'month'; render(); });
+$('#view-month').addEventListener('click', () => { state.view = 'month'; state.detailed = false; render(); });
+$('#view-detail').addEventListener('click', () => { state.view = 'month'; state.detailed = true; render(); });
+$('#lang-chip').addEventListener('click', () => {
+  state.lang = state.lang === 'no' ? 'en' : 'no';
+  localStorage.setItem('almanakk-lang', state.lang);
+  applyLang();
+  render();
+});
 // Print: choose 3, 6 or 12 months per A4 landscape page.
 let printGroup = 3;
 $('#print').addEventListener('click', () => {
@@ -389,11 +432,11 @@ $('#print').addEventListener('click', () => {
   const pop = document.createElement('div');
   pop.id = 'popover';
   pop.style.cssText = 'top:60px;left:50%;transform:translateX(-50%)';
-  pop.innerHTML = `<p class="dim"><b>Skriv ut ${state.year} — A4 liggende</b></p>
+  pop.innerHTML = `<p class="dim"><b>${L().printHead.replace('%Y', state.year)}</b></p>
     <div class="actions">
-      <button data-g="3">3 mnd/side</button>
-      <button data-g="6">6 mnd/side</button>
-      <button data-g="12">Hele året på én side</button>
+      <button data-g="3">${L().per3}</button>
+      <button data-g="6">${L().per6}</button>
+      <button data-g="12">${L().per12}</button>
     </div>`;
   document.body.appendChild(pop);
   pop.addEventListener('click', e => {
@@ -450,4 +493,5 @@ if (!ALMANAKK_CONFIG.clientId) {
   b.hidden = false;
   b.textContent = 'Demo — viser eksempeldata fra arket. Legg inn Google clientId i config.js for å koble til Google Kalender.';
 }
+applyLang();
 loadDemo();

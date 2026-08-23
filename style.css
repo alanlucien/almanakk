@@ -172,6 +172,12 @@ main.strip { height: 100%; overflow-y: auto; }
   .quarter { grid-template-columns: 1fr; padding: 8px; }
 }
 
+/* ---------- "Detaljer" view: every event on its own row ---------- */
+
+.detailed .day .detail { white-space: normal; }
+.detailed .day .detail .evt { display: block; }
+.detailed .day .detail .evt + .evt::before { content: ''; }
+
 /* ---------- cities column (derived from flights) ---------- */
 
 .day .city {
