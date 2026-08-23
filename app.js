@@ -175,6 +175,17 @@ function esc(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// Google calendar colours can be very pale; darken until readable as text on the paper background.
+function inkColor(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return hex;
+  let [r, g, b] = [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16));
+  while (0.299 * r + 0.587 * g + 0.114 * b > 110) {
+    r = Math.round(r * 0.85); g = Math.round(g * 0.85); b = Math.round(b * 0.85);
+  }
+  return `rgb(${r},${g},${b})`;
+}
+
 function renderMonthEl(y, m) {
   const { spans, details, nLanes } = monthLayout(y, m, visibleEvents());
   const hol = holidays(y);
@@ -203,13 +214,13 @@ function renderMonthEl(y, m) {
       if (!ev) { laneCells += '<span class="lane"></span>'; continue; }
       // repeat the label at span start, month start and on Mondays
       const showLabel = ev.start === ds || day === 1 || wi === 0;
-      laneCells += `<span class="lane on" data-eid="${ev.id}" style="--c:${ev.color}">`
+      laneCells += `<span class="lane on" data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
     }
     // detail cell (single-day events, stacked)
     const todays = details.filter(e => e.start === ds);
     const detail = '<span class="detail">' + todays.map(e =>
-      `<b class="evt" data-eid="${e.id}" style="color:${e.color}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
+      `<b class="evt" data-eid="${e.id}" style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
     ).join('') + '</span>';
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
@@ -290,7 +301,7 @@ function openDayPanel(row) {
   pop.id = 'popover';
   pop.innerHTML = `<p class="dim"><b>${date}</b></p>`
     + evs.map(e =>
-      `<p><b style="color:${e.color}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
+      `<p><b style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
       + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')
       + ` <button class="x" data-del="${e.id}">${L().del}</button></p>`).join('')
     + `<form class="qa"><input type="text" placeholder="${L().newPh}" autocomplete="off"><button type="submit" class="add">${L().add}</button></form>`;
