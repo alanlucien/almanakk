@@ -327,11 +327,21 @@ function renderMonthEl(y, m) {
 
     // the day line: Alan's events first, wg items after; on a day without own
     // bands it starts at the far left and uses their width too
+    const lineItems = todays.map(e => ({ e, wg: false }))
+      .concat(wgTodays.map(e => ({ e, wg: true })))
+      .sort((a, b) => {
+        const k = x => {
+          const t = effTime(x.e) || '';
+          if (!t && !x.wg && !isShow(x.e)) return '0'; // own all-day headline first
+          if (isShow(x.e)) return '1' + t;             // shows trump, whichever calendar
+          return (x.wg ? '3' : '2') + t;               // own timed, then wg items
+        };
+        const ka = k(a), kb = k(b);
+        return ka < kb ? -1 : ka > kb ? 1 : 0;
+      });
     const detail = `<span class="detail"${hasOwn ? '' : ` style="grid-column: span ${nOwn + 1}"`}>`
-      + todays.map(e =>
-        `<b class="evt ${isTbc(e) ? 'tbc' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
-      + wgTodays.map(e =>
-        `<b class="evt wgd ${isTbc(e) ? 'tbc' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
+      + lineItems.map(({ e, wg }) =>
+        `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
       + '</span>';
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
