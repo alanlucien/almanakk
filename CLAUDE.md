@@ -57,6 +57,24 @@ The sheet is the layout reference and the initial data to import.
   event.
 - People subscribe per Google calendar (e.g. wg | Alan, private, wg touring).
 
+### Layout rules (each one is an explicit decision by Alan — don't "simplify")
+
+- Day line order: all-day headline first, then shows (red), then timed items.
+- Shows ping red: titles matching show/prem*/première/performance*/forest*/
+  visning/vorstellung render red (line, panel, band labels), are pinned right
+  after the headline so clipping never hides them, and the day number gets a
+  red dot when the day holds a show anywhere.
+- Band labels repeat on a 14-day beat from the span start (plus the 1st of a
+  month when no beat lands in its first week) — not on Mondays.
+- Labels prefer sideways: they spill across consecutive empty cells to the
+  right, carrying their band tint with them; they wrap word-by-word down the
+  band only when boxed in, onto at most half the band's remaining days (max
+  3 lines); otherwise clip with ….
+- Tour-tagged calendars (user-picked in the Kalendere panel) are an overlay,
+  not normal calendars: the wg button shows their multi-day spans as dashed
+  bands and their single-day items dimmed at the end of the day line.
+- Days with no bands start the detail line at the far left (full width).
+
 ## Deployment status (live since 2026-08-23)
 
 - Live at https://alanlucien.github.io/almanakk/ (GitHub Pages, repo
