@@ -327,24 +327,20 @@ function renderMonthEl(y, m) {
 
     // the day line: Alan's events first, wg items after; on a day without own
     // bands it starts at the far left and uses their width too
-    const lineItems = todays.map(e => ({ e, wg: false }))
-      .concat(wgTodays.map(e => ({ e, wg: true })))
-      .sort((a, b) => {
-        const k = x => {
-          const t = effTime(x.e) || '';
-          if (!t && !x.wg && !isShow(x.e)) return '0'; // own all-day headline first
-          if (isShow(x.e)) return '1' + t;             // shows trump, whichever calendar
-          return (x.wg ? '3' : '2') + t;               // own timed, then wg items
-        };
-        const ka = k(a), kb = k(b);
-        return ka < kb ? -1 : ka > kb ? 1 : 0;
-      });
-    // fill from the far left only when the line holds something of Alan's own —
-    // wg-only days keep their items in the normal column, next to their band
-    const spanLeft = !hasOwn && lineItems.some(x => !x.wg);
+    // two-sided day line: Alan's items flow from the left, wg's items flow
+    // from the right, hugging their band; each side clips independently
+    const ownLine = todays.slice().sort(detOrder);
+    const wgLine = wgTodays.slice().sort((a, b) => {
+      const k = e => { const t = effTime(e) || ''; return (isShow(e) ? '0' : (t ? '2' : '1')) + t; };
+      const ka = k(a), kb = k(b);
+      return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
+    // fill from the far left only when the line holds something of Alan's own
+    const spanLeft = !hasOwn && ownLine.length > 0;
+    const evtHtml = (e, wg) => `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`;
     const detail = `<span class="detail"${spanLeft ? ` style="grid-column: span ${nOwn + 1}"` : ''}>`
-      + lineItems.map(({ e, wg }) =>
-        `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
+      + (ownLine.length ? `<span class="dl-own">${ownLine.map(e => evtHtml(e, false)).join('')}</span>` : '')
+      + (wgLine.length ? `<span class="dl-wg">${wgLine.map(e => evtHtml(e, true)).join('')}</span>` : '')
       + '</span>';
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`

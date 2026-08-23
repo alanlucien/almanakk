@@ -165,7 +165,10 @@ button.active { background: var(--ink); color: var(--card); }
 #popover .wgrow { opacity: .8; }
 #popover .wg-mark { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--muted); color: var(--muted); border-radius: 2px; padding: 0 3px; vertical-align: middle; }
 /* single-day details: always ONE line — joined with · , clipped with … ; tap the day for the full list */
-.day .detail { border-left: 1px dotted var(--rule); white-space: nowrap; text-overflow: ellipsis; align-self: center; width: 100%; }
+.day .detail { border-left: 1px dotted var(--rule); align-self: center; width: 100%; display: flex; gap: 8px; }
+.day .detail .dl-own, .day .detail .dl-wg { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.day .detail .dl-own { flex: 1 1 auto; }
+.day .detail .dl-wg { flex: 0 1 auto; margin-left: auto; }
 .day .detail .evt { font-weight: 400; display: inline; }
 .day .detail .evt + .evt::before { content: ' · '; color: var(--muted); }
 .day .detail .evt.wgd { opacity: .55; } /* wg items: visibly "theirs", clipped first */
@@ -237,7 +240,8 @@ main.strip { height: 100%; overflow-y: auto; }
 
 /* ---------- "Detaljer" view: every event on its own row ---------- */
 
-.detailed .day .detail { white-space: normal; }
+.detailed .day .detail { display: block; }
+.detailed .day .detail .dl-own, .detailed .day .detail .dl-wg { white-space: normal; display: block; }
 .detailed .day .detail .evt { display: block; }
 .detailed .day .detail .evt + .evt::before { content: ''; }
 
@@ -287,7 +291,7 @@ main.strip { height: 100%; overflow-y: auto; }
   .month.cities .day { --pre: 2.6em 2.2em 6em; }
   .day > span { padding: 1px 2px; }
   /* on paper: every day the same height — details stay on one line */
-  .day .detail { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .day .detail { overflow: hidden; }
   .day .info { font-size: 5.5pt; }
   .month h2 { font-size: 9pt; }
   .day.today { outline: none; }
