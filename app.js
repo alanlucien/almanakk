@@ -11,7 +11,7 @@ const LANGS = {
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender',
-    deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet',
+    deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', citiesBtn: 'Byer',
     newPh: 'Ny · «8-12 tekst» = flere dager · «13:00» = tid', add: 'Legg til', del: 'Slett',
     printHead: 'Skriv ut %Y — A4 liggende', per3: '3 mnd/side', per6: '6 mnd/side', per12: 'Hele året på én side',
   },
@@ -22,7 +22,7 @@ const LANGS = {
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar',
-    deleted: 'Deleted', undo: 'Undo', restored: 'Restored',
+    deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', citiesBtn: 'Cities',
     newPh: 'New · "8-12 text" = several days · "13:00" = timed', add: 'Add', del: 'Delete',
     printHead: 'Print %Y — A4 landscape', per3: '3 months/page', per6: '6 months/page', per12: 'Whole year on one page',
   },
@@ -305,6 +305,7 @@ function applyLang() {
   $('#print').textContent = L().print;
   $('#signin').textContent = L().signin;
   $('#cal-picker summary').textContent = L().cals;
+  $('#cities-chip').textContent = L().citiesBtn;
 }
 
 // "8-12 Antigone" on a day in March -> span March 8–12.
@@ -350,6 +351,7 @@ function openDayPanel(row) {
       `<p class="${tour.has(e.calId) ? 'wgrow' : ''}">${tour.has(e.calId) ? '<span class="wg-mark">wg</span> ' : ''}`
       + `<b style="color:${inkColor(e.color)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
       + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')
+      + ` <button class="x" data-edit="${e.id}">${L().edit}</button>`
       + ` <button class="x" data-del="${e.id}">${L().del}</button></p>`).join('')
     + `<form class="qa"><input type="text" placeholder="${L().newPh}" autocomplete="off"><button type="submit" class="add">${L().add}</button></form>`;
   document.body.appendChild(pop);
@@ -366,6 +368,27 @@ function openDayPanel(row) {
     } catch (err) { toast(err.message); }
   });
   pop.addEventListener('click', async e => {
+    const editId = e.target.dataset.edit;
+    if (editId) {
+      const ev = state.events.find(x => String(x.id) === editId);
+      if (!ev) return;
+      const p = e.target.closest('p');
+      p.innerHTML = `<form class="qa"><input type="text" value="${esc(ev.title)}"><button type="submit" class="add">OK</button></form>`;
+      const input = p.querySelector('input');
+      input.focus();
+      input.select();
+      p.querySelector('form').addEventListener('submit', async se => {
+        se.preventDefault();
+        const t = input.value.trim();
+        if (!t || t === ev.title) return closePanel(true);
+        try {
+          await updateEventTitle(ev, t);
+          closePanel(true);
+          toast(L().updated);
+        } catch (err) { toast(err.message); }
+      });
+      return;
+    }
     const id = e.target.dataset.del;
     if (!id) return;
     const ev = state.events.find(x => String(x.id) === id);
@@ -394,6 +417,17 @@ async function undoDelete(ev) {
     loadDemo();
   }
   toast(L().restored);
+}
+
+async function updateEventTitle(ev, title) {
+  if (state.mode === 'google') {
+    await window.gcalUpdateEvent(ev, title);
+  } else if (ALMANAKK_CONFIG.clientId) {
+    throw new Error('Logg inn med Google først.');
+  } else {
+    ev.src.t = title;
+    loadDemo();
+  }
 }
 
 async function deleteEvent(ev) {
@@ -485,7 +519,8 @@ $('#lang-chip').addEventListener('click', () => {
 });
 // Print: choose 3, 6 or 12 months per A4 landscape page.
 let printGroup = 3;
-$('#print').addEventListener('click', () => {
+$('#print').addEventListener('click', e => {
+  e.stopPropagation(); // keep the document click-handler from instantly closing the menu
   closePanel(true);
   const pop = document.createElement('div');
   pop.id = 'popover';

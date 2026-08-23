@@ -244,6 +244,15 @@
     await window.gcalEnsureYear(state.year);
   };
 
+  window.gcalUpdateEvent = async function (ev, title) {
+    await api('calendars/' + encodeURIComponent(ev.calId) + '/events/' + encodeURIComponent(ev.gid), {}, {
+      method: 'PATCH', body: JSON.stringify({ summary: title }),
+    });
+    loadedYears = new Set();
+    rawEvents = [];
+    await window.gcalEnsureYear(state.year);
+  };
+
   window.gcalDeleteEvent = async function (ev) {
     const url = new URL('https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(ev.calId) + '/events/' + encodeURIComponent(ev.gid));
     const r = await fetch(url, { method: 'DELETE', headers: { Authorization: 'Bearer ' + accessToken } });

@@ -203,7 +203,7 @@ main.strip { height: 100%; overflow-y: auto; }
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.month.cities .day { grid-template-columns: 1.8em 1.7em 3.6em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5.2em; }
+.month.cities .day { grid-template-columns: 1.8em 1.7em 6em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5.2em; }
 
 #toast button {
   margin-left: 12px;
@@ -235,7 +235,7 @@ main.strip { height: 100%; overflow-y: auto; }
   .quarter:last-child { page-break-after: auto; }
   .month { border-color: #999; break-inside: avoid; }
   .day { font-size: 6.5pt; min-height: 5.7mm; border-bottom-color: #ccc; grid-template-columns: 2.6em 2.2em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 6em; }
-  .month.cities .day { grid-template-columns: 2.6em 2.2em 3.6em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 6em; }
+  .month.cities .day { grid-template-columns: 2.6em 2.2em 6em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 6em; }
   .day > span { padding: 1px 2px; }
   /* on paper: every day the same height — details stay on one line */
   .day .detail { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -244,12 +244,12 @@ main.strip { height: 100%; overflow-y: auto; }
   .day.today { outline: none; }
   /* 6 months per page */
   body.print-6 .day { font-size: 5pt; grid-template-columns: 2.4em 2em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5em; }
-  body.print-6 .month.cities .day { grid-template-columns: 2.4em 2em 3.2em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5em; }
+  body.print-6 .month.cities .day { grid-template-columns: 2.4em 2em 5em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5em; }
   body.print-6 .day .info { font-size: 4.2pt; }
   body.print-6 .month h2 { font-size: 6.5pt; letter-spacing: .2em; }
   /* the whole year on one classic sheet */
   body.print-12 .day { font-size: 3.8pt; grid-template-columns: 2.2em 1.9em repeat(var(--lanes, 1), minmax(0, 3fr)) minmax(0, 4fr) 4em; }
-  body.print-12 .month.cities .day { grid-template-columns: 2.2em 1.9em 3em repeat(var(--lanes, 1), minmax(0, 3fr)) minmax(0, 4fr) 4em; }
+  body.print-12 .month.cities .day { grid-template-columns: 2.2em 1.9em 4em repeat(var(--lanes, 1), minmax(0, 3fr)) minmax(0, 4fr) 4em; }
   body.print-12 .day .info { font-size: 3.2pt; }
   body.print-12 .month h2 { font-size: 5pt; letter-spacing: .1em; padding: 2px; }
   body.print-12 .day .lane i { padding: 0 1px; }
