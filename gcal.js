@@ -81,7 +81,15 @@
       document.querySelector('#signin').hidden = false;
       throw new Error('Innlogging utløpt — logg inn igjen.');
     }
-    if (!r.ok) throw new Error('Google API-feil ' + r.status);
+    if (!r.ok) {
+      let msg = 'Google API-feil ' + r.status;
+      try {
+        const body = await r.json();
+        if (body.error && body.error.message) msg = body.error.message;
+        if (/gmail/i.test(msg)) msg = 'Denne hendelsen er laget automatisk fra Gmail — Google tillater ikke å endre tittelen. Slett den og legg inn din egen i stedet.';
+      } catch (e) { /* keep the generic message */ }
+      throw new Error(msg);
+    }
     return r.json();
   }
 
