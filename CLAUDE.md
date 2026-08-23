@@ -57,6 +57,18 @@ The sheet is the layout reference and the initial data to import.
   with delete.
 - People subscribe per Google calendar (e.g. wg | Alan, private, wg touring).
 
+## Deployment status (live since 2026-08-23)
+
+- Live at https://alanlucien.github.io/almanakk/ (GitHub Pages, repo
+  alanlucien/almanakk, public — never commit personal schedule data).
+- OAuth client "Almanakk web" in Google Cloud project ALMANAKK
+  (winterguests.com org); consent screen audience: Internal. Authorized
+  origins: http://localhost:8123 and https://alanlucien.github.io.
+- Local dev: `python3 -m http.server 8123` (see .claude/launch.json).
+- Remaining roadmap: import old sheet into Google Calendar; share private
+  gmail calendar into wg account; English winter guests version; "where is
+  Alan" location strip from flights; custom domain.
+
 ## Constraints
 
 - Alan is not a professional developer: explain setup steps (Google Cloud,

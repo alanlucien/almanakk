@@ -158,10 +158,10 @@ main.strip { height: 100%; overflow-y: auto; }
 .strip .month {
   max-width: 560px; margin: 0 auto;
   border-left: none; border-right: none;
-  height: 100%;
+  min-height: 100%; /* fill the screen when sparse, grow + scroll when dense */
   display: flex; flex-direction: column;
 }
-.strip .day { flex: 1 1 auto; font-size: 13px; align-items: center; }
+.strip .day { flex: 1 0 auto; font-size: 13px; align-items: center; }
 .strip .day .lane { align-self: stretch; display: flex; align-items: center; }
 .strip .day .info { font-size: 11px; }
 
