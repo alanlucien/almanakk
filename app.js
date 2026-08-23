@@ -166,12 +166,12 @@ function monthLayout(y, m, events, overlays) {
   const details = overlapping
     .filter(ev => ev.end === ev.start)
     .sort(detOrder);
-  return { spans: spans.concat(ovl), details, nLanes: n + nOvl };
+  return { spans: spans.concat(ovl), details, nOwn: n, nOvl };
 }
 
 /* ---------- shows ping red ---------- */
 
-const SHOW_RE = /\b(show\w*|prem\w*|première|performance\w*|forest\w*|visning\w*|vorstellung\w*)\b/i;
+const SHOW_RE = /\b(show\w*|prem\w*|première|performance\w*|forest\w*|visning\w*|vorstellung\w*|matin[ée]\w*)\b/i;
 function isShow(ev) { return SHOW_RE.test(ev.title); }
 // day-line order: all-day headline first, then red shows, then the rest by time
 function detOrder(a, b) {
@@ -254,7 +254,7 @@ function inkColor(hex) {
 }
 
 function renderMonthEl(y, m) {
-  const { spans, details, nLanes } = monthLayout(y, m, visibleEvents(), overlayEvents());
+  const { spans, details, nOwn, nOvl } = monthLayout(y, m, visibleEvents(), overlayEvents());
   const wgDet = wgDetailEvents();
   const hol = holidays(y);
   const todayStr = fmt(new Date());
@@ -277,42 +277,50 @@ function renderMonthEl(y, m) {
     }
     const todays = details.filter(e => e.start === ds);
     const wgTodays = wgDet.filter(e => e.start === ds);
-    // lane cells (projects/tours)
-    const laneEvs = [];
-    for (let lane = 0; lane < nLanes; lane++) {
-      laneEvs[lane] = spans.find(e => e._lane === lane && e.start <= ds && e.end >= ds);
-    }
-    const infoEmpty = !h && wi !== 0;
-    const hasLanes = laneEvs.some(Boolean);
-    let laneCells = '';
-    if (hasLanes) {
-      for (let lane = 0; lane < nLanes; lane++) {
-        const ev = laneEvs[lane];
-        if (!ev) { laneCells += '<span class="lane"></span>'; continue; }
-        // label at span start, then every 14 days counted from it; the 1st of
-        // a month only gets a label when no 14-day beat lands in its first week
-        const offset = Math.round((parseDate(ds) - parseDate(ev.start)) / 864e5);
-        const untilNextBeat = (14 - (offset % 14)) % 14;
-        const showLabel = offset % 14 === 0 || (day === 1 && offset > 0 && untilNextBeat > 7);
-        // sideways first: spill across the consecutive EMPTY lane cells to the
-        // right (plus the detail area when that is empty too); wrap word-by-word
-        // down the band only when there is no sideways room at all
-        let freeRight = 0;
-        for (let l2 = lane + 1; l2 < nLanes; l2++) { if (!laneEvs[l2]) freeRight++; else break; }
-        const detailsFree = !todays.length && !wgTodays.length;
-        const spillK = 1 + freeRight + (detailsFree ? 1.7 : 0); // detail track ≈ 1.7 lane widths
-        const spill = showLabel && spillK > 1.05;
-        const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
-        // a label may spend at most half its band on text (and max 3 lines)
-        const lines = (showLabel && !spill) ? Math.max(1, Math.min(3, Math.floor((endInMonth - day + 1) / 2))) : 1;
-        laneCells += `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''} ${lines > 1 ? 'wrap' : ''} ${isShow(ev) ? 'showband' : ''}"`
-          + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--lines:${lines};--spillw:${Math.round(spillK * 100)}%">`
-          + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
+    const detailsFree = !todays.length && !wgTodays.length;
+    // lanes: Alan's projects left of the day line, wg context to its right
+    const ownEvs = [], wgEvs = [];
+    for (let l = 0; l < nOwn; l++) ownEvs[l] = spans.find(e => !e._wg && e._lane === l && e.start <= ds && e.end >= ds);
+    for (let k = 0; k < nOvl; k++) wgEvs[k] = spans.find(e => e._wg && e._lane === nOwn + k && e.start <= ds && e.end >= ds);
+    const hasOwn = ownEvs.some(Boolean);
+
+    // one lane cell; spillK = how many lane-widths the label may write across
+    const laneCell = (ev, spillK) => {
+      if (!ev) return '<span class="lane"></span>';
+      // label at span start, then every 14 days counted from it; the 1st of
+      // a month only gets a label when no 14-day beat lands in its first week
+      const offset = Math.round((parseDate(ds) - parseDate(ev.start)) / 864e5);
+      const untilNextBeat = (14 - (offset % 14)) % 14;
+      const showLabel = offset % 14 === 0 || (day === 1 && offset > 0 && untilNextBeat > 7);
+      const spill = showLabel && spillK > 1.05;
+      const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
+      // a label may spend at most half its band on text (and max 3 lines)
+      const lines = (showLabel && !spill) ? Math.max(1, Math.min(3, Math.floor((endInMonth - day + 1) / 2))) : 1;
+      return `<span class="lane on ${ev._wg ? 'wg' : ''} ${spill ? 'spill' : ''} ${lines > 1 ? 'wrap' : ''}`
+        + ` ${isShow(ev) ? 'showband' : ''} ${ev.start === ds ? 'bstart' : ''}"`
+        + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--lines:${lines};--spillw:${Math.round(spillK * 100)}%">`
+        + (showLabel ? `<i>${esc(ev.title)}</i>` : '') + '</span>';
+    };
+    const freeAfter = (arr, i) => {
+      let f = 0;
+      for (let j = i + 1; j < arr.length; j++) { if (!arr[j]) f++; else break; }
+      return f;
+    };
+    let ownCells = '';
+    if (hasOwn) {
+      for (let l = 0; l < nOwn; l++) {
+        const free = freeAfter(ownEvs, l);
+        // the detail area (≈1.75 lane widths) counts only when the free run reaches it
+        const bonus = (free === nOwn - 1 - l && detailsFree) ? 1.75 : 0;
+        ownCells += laneCell(ownEvs[l], 1 + free + bonus);
       }
     }
-    // detail cell (single-day events, one line): Alan's events first, wg items after;
-    // on a day without bands it starts at the far left and uses the full width
-    const detail = `<span class="detail"${hasLanes ? '' : ` style="grid-column: span ${nLanes + 1}"`}>`
+    let wgCells = '';
+    for (let k = 0; k < nOvl; k++) wgCells += laneCell(wgEvs[k], 1 + freeAfter(wgEvs, k));
+
+    // the day line: Alan's events first, wg items after; on a day without own
+    // bands it starts at the far left and uses their width too
+    const detail = `<span class="detail"${hasOwn ? '' : ` style="grid-column: span ${nOwn + 1}"`}>`
       + todays.map(e =>
         `<b class="evt" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`).join('')
       + wgTodays.map(e =>
@@ -321,12 +329,14 @@ function renderMonthEl(y, m) {
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
       : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
-    const showDay = todays.some(isShow) || wgTodays.some(isShow) || laneEvs.some(e => e && isShow(e));
+    const showDay = todays.some(isShow) || wgTodays.some(isShow)
+      || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
     rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
-      + cityCell + laneCells + detail + info + `</div>`;
+      + cityCell + ownCells + detail + wgCells + info + `</div>`;
   }
-  return `<section class="month ${state.cities ? 'cities' : ''}" style="--lanes:${nLanes}"><h2>${L().months[m]} <small>${y}</small></h2>${rows}</section>`;
+  return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}" style="--lanes:${nOwn};--wg:${nOvl}">`
+    + `<h2>${L().months[m]} <small>${y}</small></h2>${rows}</section>`;
 }
 
 function render(group) {

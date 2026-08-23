@@ -95,7 +95,12 @@ button.active { background: var(--ink); color: var(--card); }
 
 .day {
   display: grid;
-  grid-template-columns: 1.8em 1.7em repeat(var(--lanes, 0), minmax(0, 4fr)) minmax(0, 7fr) 5.2em;
+  --pre: 1.8em 1.7em;
+  --own: repeat(var(--lanes, 1), minmax(0, 4fr));
+  --det: minmax(0, 7fr);
+  --wgt: ;
+  --inf: 5.2em;
+  grid-template-columns: var(--pre) var(--own) var(--det) var(--wgt) var(--inf);
   border-bottom: 1px solid var(--rule);
   min-height: 1.5em;
   font-size: 12px;
@@ -134,13 +139,17 @@ button.active { background: var(--ink); color: var(--card); }
   max-width: var(--spillw, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
-  background: color-mix(in srgb, var(--c) 14%, transparent); /* tint travels with the text */
+  width: var(--spillw, 100%); /* tint fills whole cells, grid-aligned */
+  background: color-mix(in srgb, var(--c) 14%, transparent);
 }
 .day .lane.wg.spill i { background: color-mix(in srgb, var(--c) 22%, transparent); }
 
+/* a thin paper seam marks where one band ends and the next begins */
+.day .lane.on.bstart { border-top: 3px solid var(--card); }
 /* shows ping red: band labels + a dot on the day number */
 .day .lane.showband i { color: var(--red); }
 .day.showday .num::after { content: '•'; color: var(--red); margin-left: 1px; }
+.month.haswg .day { --wgt: repeat(var(--wg, 1), minmax(0, 3fr)); }
 /* wg overlay lanes: clearly "context", not your own schedule */
 .day .lane.wg {
   border-left: 2px dashed var(--ci, var(--c));
@@ -238,7 +247,7 @@ main.strip { height: 100%; overflow-y: auto; }
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.month.cities .day { grid-template-columns: 1.8em 1.7em 6em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5.2em; }
+.month.cities .day { --pre: 1.8em 1.7em 6em; }
 
 #toast button {
   margin-left: 12px;
@@ -269,8 +278,8 @@ main.strip { height: 100%; overflow-y: auto; }
   .quarter.g12 { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1.5mm; }
   .quarter:last-child { page-break-after: auto; }
   .month { border-color: #999; break-inside: avoid; }
-  .day { font-size: 6.5pt; min-height: 5.7mm; border-bottom-color: #ccc; grid-template-columns: 2.6em 2.2em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 6em; }
-  .month.cities .day { grid-template-columns: 2.6em 2.2em 6em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 6em; }
+  .day { font-size: 6.5pt; min-height: 5.7mm; border-bottom-color: #ccc; --pre: 2.6em 2.2em; --inf: 6em; }
+  .month.cities .day { --pre: 2.6em 2.2em 6em; }
   .day > span { padding: 1px 2px; }
   /* on paper: every day the same height — details stay on one line */
   .day .detail { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -278,13 +287,13 @@ main.strip { height: 100%; overflow-y: auto; }
   .month h2 { font-size: 9pt; }
   .day.today { outline: none; }
   /* 6 months per page */
-  body.print-6 .day { font-size: 5pt; grid-template-columns: 2.4em 2em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5em; }
-  body.print-6 .month.cities .day { grid-template-columns: 2.4em 2em 5em repeat(var(--lanes, 1), minmax(0, 4fr)) minmax(0, 7fr) 5em; }
+  body.print-6 .day { font-size: 5pt; --pre: 2.4em 2em; --inf: 5em; }
+  body.print-6 .month.cities .day { --pre: 2.4em 2em 5em; }
   body.print-6 .day .info { font-size: 4.2pt; }
   body.print-6 .month h2 { font-size: 6.5pt; letter-spacing: .2em; }
   /* the whole year on one classic sheet */
-  body.print-12 .day { font-size: 3.8pt; grid-template-columns: 2.2em 1.9em repeat(var(--lanes, 1), minmax(0, 3fr)) minmax(0, 4fr) 4em; }
-  body.print-12 .month.cities .day { grid-template-columns: 2.2em 1.9em 4em repeat(var(--lanes, 1), minmax(0, 3fr)) minmax(0, 4fr) 4em; }
+  body.print-12 .day { font-size: 3.8pt; --pre: 2.2em 1.9em; --inf: 4em; --own: repeat(var(--lanes, 1), minmax(0, 3fr)); --det: minmax(0, 4fr); }
+  body.print-12 .month.cities .day { --pre: 2.2em 1.9em 4em; }
   body.print-12 .day .info { font-size: 3.2pt; }
   body.print-12 .month h2 { font-size: 5pt; letter-spacing: .1em; padding: 2px; }
   body.print-12 .day .lane i { padding: 0 1px; }

@@ -7,6 +7,13 @@
   let accessToken = null;
   let tokenClient = null;
   let calendars = []; // {id, name, color, writable}
+
+  // Google's per-event colour palette (event.colorId 1-11); an event's own
+  // colour, set in any Google Calendar app, wins over the calendar colour.
+  const EVENT_COLORS = {
+    1: '#7986cb', 2: '#33b679', 3: '#8e24aa', 4: '#e67c73', 5: '#f6bf26',
+    6: '#f4511e', 7: '#039be5', 8: '#616161', 9: '#3f51b5', 10: '#0b8043', 11: '#d50000',
+  };
   let loadedYears = new Set();
   let rawEvents = []; // internal events from Google, all loaded years
 
@@ -159,7 +166,7 @@
             start = end = fmt(dt);
             time = String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
           }
-          rawEvents.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: byId[id].color });
+          rawEvents.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color });
         }
         pageToken = data.nextPageToken || '';
       } while (pageToken);
