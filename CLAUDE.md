@@ -47,14 +47,14 @@ The sheet is the layout reference and the initial data to import.
 - Sheet-style entries map to all-day events; multi-day runs (e.g. a show
   season) are single spanning events.
 - Layout is by kind, not fixed columns: multi-day spans (projects/tours) get
-  vertical lanes on the left, single-day events stack in a detail column on
-  the right, and colour = which Google calendar the event lives in. Rows may
-  grow taller on screen when a day is dense; in print, details join on one
-  line so day heights stay uniform.
-- Quick-add is the core interaction: tap a day, type text, enter → event
-  created. "8-12 tekst" makes a span (day 8–12 of that month); a time in the
-  text (e.g. "13:00") makes a timed event. Tap an existing event → popover
-  with delete.
+  vertical lanes on the left, single-day events share ONE detail line on the
+  right (joined with " · ", clipped with …), and colour = which Google
+  calendar the event lives in. One day = one line, always — the fixed rhythm
+  is the point; a dense day looks full but never grows fat.
+- Tap a day → panel with the day's full event list (delete per event) and the
+  quick-add field: type text, enter → event created. "8-12 tekst" makes a
+  span (day 8–12 of that month); a time in the text ("13:00") makes a timed
+  event.
 - People subscribe per Google calendar (e.g. wg | Alan, private, wg touring).
 
 ## Deployment status (live since 2026-08-23)

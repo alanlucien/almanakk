@@ -142,7 +142,7 @@ function renderMonthEl(y, m) {
 }
 
 function render() {
-  closePopover();
+  closePanel();
   const app = $('#app');
   if (state.view === 'year') {
     let html = '';
@@ -161,34 +161,6 @@ function render() {
   }
   $('#view-year').classList.toggle('active', state.view === 'year');
   $('#view-month').classList.toggle('active', state.view === 'month');
-}
-
-/* ---------- quick add ---------- */
-
-function openQuickAdd(row) {
-  closeQuickAdd();
-  const date = row.dataset.date;
-  const form = document.createElement('form');
-  form.className = 'quick-add';
-  form.innerHTML = `<input type="text" placeholder="${date} · «8-12 tekst» = flere dager · «13:00» = tidspunkt" autocomplete="off">`;
-  row.appendChild(form);
-  const input = form.querySelector('input');
-  input.focus();
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return closeQuickAdd();
-    try {
-      await addEvent(date, text);
-      closeQuickAdd();
-    } catch (err) {
-      toast(err.message);
-    }
-  });
-  input.addEventListener('blur', () => setTimeout(closeQuickAdd, 150));
-}
-function closeQuickAdd() {
-  document.querySelectorAll('.quick-add').forEach(f => f.remove());
 }
 
 // "8-12 Antigone" on a day in March -> span March 8–12.
@@ -216,35 +188,46 @@ async function addEvent(date, text) {
   }
 }
 
-/* ---------- event popover (view / delete) ---------- */
+/* ---------- day panel: tap a day -> full list + add field ---------- */
 
-function openPopover(target, ev) {
-  closePopover();
-  closeQuickAdd();
+function openDayPanel(row) {
+  closePanel();
+  const date = row.dataset.date;
+  const evs = state.events.filter(e => e.start <= date && e.end >= date);
   const pop = document.createElement('div');
   pop.id = 'popover';
-  const range = ev.start === ev.end ? ev.start : ev.start + ' – ' + ev.end;
-  pop.innerHTML = `
-    <p><b style="color:${ev.color}">${esc((ev.time ? ev.time + ' ' : '') + ev.title)}</b></p>
-    <p class="dim">${range}</p>
-    <div class="actions"><button data-act="delete">Slett</button><button data-act="close">Lukk</button></div>`;
+  pop.innerHTML = `<p class="dim"><b>${date}</b></p>`
+    + evs.map(e =>
+      `<p><b style="color:${e.color}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
+      + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')
+      + ` <button class="x" data-del="${e.id}">Slett</button></p>`).join('')
+    + `<form class="qa"><input type="text" placeholder="Ny · «8-12 tekst» = flere dager · «13:00» = tid" autocomplete="off"></form>`;
   document.body.appendChild(pop);
-  const r = target.getBoundingClientRect();
-  pop.style.left = Math.min(r.left, window.innerWidth - pop.offsetWidth - 8) + 'px';
-  pop.style.top = (r.bottom + 4 + pop.offsetHeight > window.innerHeight ? r.top - pop.offsetHeight - 4 : r.bottom + 4) + 'px';
+  const r = row.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+  pop.style.top = (r.bottom + 4 + pop.offsetHeight > window.innerHeight ? Math.max(8, r.top - pop.offsetHeight - 4) : r.bottom + 4) + 'px';
+  pop.querySelector('.qa').addEventListener('submit', async e => {
+    e.preventDefault();
+    const text = pop.querySelector('input').value.trim();
+    if (!text) return closePanel();
+    try {
+      await addEvent(date, text);
+      closePanel();
+    } catch (err) { toast(err.message); }
+  });
   pop.addEventListener('click', async e => {
-    const act = e.target.dataset.act;
-    if (act === 'close') closePopover();
-    if (act === 'delete') {
-      try {
-        await deleteEvent(ev);
-        closePopover();
-        toast('Slettet');
-      } catch (err) { toast(err.message); }
-    }
+    const id = e.target.dataset.del;
+    if (!id) return;
+    const ev = state.events.find(x => String(x.id) === id);
+    if (!ev) return;
+    try {
+      await deleteEvent(ev);
+      closePanel();
+      toast('Slettet');
+    } catch (err) { toast(err.message); }
   });
 }
-function closePopover() {
+function closePanel() {
   const p = $('#popover');
   if (p) p.remove();
 }
@@ -308,19 +291,17 @@ window.addEventListener('afterprint', () => {
   if (viewBeforePrint) { state.view = viewBeforePrint; viewBeforePrint = null; render(); }
 });
 
-// Tap an event -> popover; tap empty day space -> quick-add.
+// Tap a day -> panel with the day's full list + add field.
 $('#app').addEventListener('click', e => {
-  if (e.target.closest('.quick-add') || e.target.closest('#popover')) return;
-  const evEl = e.target.closest('[data-eid]');
-  if (evEl) {
-    const ev = state.events.find(x => String(x.id) === evEl.dataset.eid);
-    if (ev) return openPopover(evEl, ev);
-  }
+  if (e.target.closest('#popover')) return;
   const row = e.target.closest('.day');
-  if (row) openQuickAdd(row);
+  if (row) openDayPanel(row);
 });
 document.addEventListener('click', e => {
-  if (!e.target.closest('#popover') && !e.target.closest('[data-eid]')) closePopover();
+  if (!e.target.closest('#popover') && !e.target.closest('.day')) closePanel();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePanel();
 });
 
 // Swipe between months in strip view.
