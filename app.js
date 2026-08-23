@@ -348,6 +348,8 @@ function renderMonthEl(y, m) {
       .sort((a, b) => {
         const k = x => {
           const t = effTime(x.e) || '';
+          // Detaljer view: pure running order (pinning exists only where clipping exists)
+          if (state.detailed) return t ? '1' + t : '0';
           if (!t && !x.wg && !isShow(x.e)) return '0';
           if (isShow(x.e)) return '1' + t;
           return (x.wg ? '3' : '2') + t;
