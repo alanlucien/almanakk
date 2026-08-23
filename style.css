@@ -155,7 +155,7 @@ button.active { background: var(--ink); color: var(--card); }
 /* shows ping red: band labels + a dot on the day number */
 .day .lane.showband i { color: var(--red); }
 .day.showday .num::after { content: '•'; color: var(--red); margin-left: 1px; }
-.month.haswg .day { --wgt: repeat(var(--wg, 1), minmax(0, 3fr)); }
+.month.haswg .day { --wgt: repeat(var(--wg, 1), minmax(0, 3fr)) minmax(0, 4fr); }
 /* wg overlay lanes: clearly "context", not your own schedule */
 .day .lane.wg {
   border-left: 2px dashed var(--ci, var(--c));
@@ -166,10 +166,8 @@ button.active { background: var(--ink); color: var(--card); }
 #popover .wgrow { opacity: .8; }
 #popover .wg-mark { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--muted); color: var(--muted); border-radius: 2px; padding: 0 3px; vertical-align: middle; }
 /* single-day details: always ONE line — joined with · , clipped with … ; tap the day for the full list */
-.day .detail { border-left: 1px dotted var(--rule); align-self: center; width: 100%; display: flex; gap: 8px; }
-.day .detail .dl-own, .day .detail .dl-wg { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.day .detail .dl-own { flex: 1 1 auto; }
-.day .detail .dl-wg { flex: 0 1 auto; margin-left: auto; }
+.day .detail { border-left: 1px dotted var(--rule); align-self: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day .detail.wgdet { border-left: none; }
 .day .detail .evt { font-weight: 400; display: inline; }
 .day .detail .evt + .evt::before { content: ' · '; color: var(--muted); }
 .day .detail .evt.wgd { opacity: .55; } /* wg items: visibly "theirs", clipped first */
@@ -241,8 +239,7 @@ main.strip { height: 100%; overflow-y: auto; }
 
 /* ---------- "Detaljer" view: every event on its own row ---------- */
 
-.detailed .day .detail { display: block; }
-.detailed .day .detail .dl-own, .detailed .day .detail .dl-wg { white-space: normal; display: block; }
+.detailed .day .detail { white-space: normal; }
 .detailed .day .detail .evt { display: block; }
 .detailed .day .detail .evt + .evt::before { content: ''; }
 

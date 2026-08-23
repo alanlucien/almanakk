@@ -339,13 +339,15 @@ function renderMonthEl(y, m) {
       const ka = k(a), kb = k(b);
       return ka < kb ? -1 : ka > kb ? 1 : 0;
     });
-    // fill from the far left only when the line holds something of Alan's own
-    const spanLeft = !hasOwn && ownLine.length > 0;
+    // with no own bands, the line always absorbs the own-lane columns
+    // (otherwise the whole row would shift into the wrong grid tracks)
     const evtHtml = (e, wg) => `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`;
-    const detail = `<span class="detail"${spanLeft ? ` style="grid-column: span ${nOwn + 1}"` : ''}>`
-      + (ownLine.length ? `<span class="dl-own">${ownLine.map(e => evtHtml(e, false)).join('')}</span>` : '')
-      + (wgLine.length ? `<span class="dl-wg">${wgLine.map(e => evtHtml(e, true)).join('')}</span>` : '')
+    const detail = `<span class="detail"${hasOwn ? '' : ` style="grid-column: span ${nOwn + 1}"`}>`
+      + ownLine.map(e => evtHtml(e, false)).join('')
       + '</span>';
+    // wg day-items live to the RIGHT of the wg bands (band left of its items,
+    // same rule as Alan's own side), in their own slot before the uke column
+    const wgDetail = nOvl ? `<span class="detail wgdet">${wgLine.map(e => evtHtml(e, true)).join('')}</span>` : '';
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
       : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
@@ -353,7 +355,7 @@ function renderMonthEl(y, m) {
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
     rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
-      + cityCell + ownCells + detail + wgCells + info + `</div>`;
+      + cityCell + ownCells + detail + wgCells + wgDetail + info + `</div>`;
   }
   return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}" style="--lanes:${nOwn};--wg:${nOvl}">`
     + `<h2>${L().months[m]} <small>${y}</small></h2>${rows}</section>`;
