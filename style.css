@@ -115,7 +115,11 @@ button.active { background: var(--ink); color: var(--card); }
 .day .lane.spill { overflow: visible; }
 .day .lane.spill i { position: absolute; z-index: 1; width: max-content; max-width: 72%; }
 /* wg overlay lanes: clearly "context", not your own schedule */
-.day .lane.wg { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, transparent); }
+.day .lane.wg {
+  border-left: 2px dashed var(--ci, var(--c));
+  border-right: 1px dashed color-mix(in srgb, var(--ci, var(--c)) 55%, transparent);
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+}
 .day .lane.wg i { font-weight: 400; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 #popover .wgrow { opacity: .8; }
 #popover .wg-mark { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--muted); color: var(--muted); border-radius: 2px; padding: 0 3px; vertical-align: middle; }
