@@ -47,6 +47,8 @@ button {
   color: var(--ink);
 }
 button.active { background: var(--ink); color: var(--card); }
+#lang-chip { display: inline-flex; align-items: center; padding: 5px 8px; }
+#lang-chip svg { display: block; }
 
 #cal-picker { position: relative; }
 #cal-picker summary { cursor: pointer; padding: 3px 10px; background: var(--card); border: 1px solid var(--rule-strong); border-radius: 3px; list-style: none; }

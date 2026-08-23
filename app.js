@@ -533,7 +533,10 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#popover') && !e.target.closest('.day')) closePanel();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closePanel(true);
+  if (e.key === 'Escape') return closePanel(true);
+  if (e.target.tagName === 'INPUT') return; // don't navigate while typing
+  if (e.key === 'ArrowLeft') step(-1);
+  if (e.key === 'ArrowRight') step(1);
 });
 
 // Swipe between months in strip view.
