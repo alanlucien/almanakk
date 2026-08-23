@@ -61,7 +61,9 @@ function visibleEvents() {
 function overlayEvents() {
   if (!state.wg) return [];
   const t = new Set(tourCalIds());
-  return state.events.filter(e => t.has(e.calId) && !e.time); // all-day only
+  // multi-day spans only: the overlay answers "when/where is wg on tour";
+  // single-day wg items live in the day panel instead
+  return state.events.filter(e => t.has(e.calId) && !e.time && e.end > e.start);
 }
 
 /* ---------- date helpers (string keys, no timezone traps) ---------- */
