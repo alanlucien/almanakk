@@ -302,8 +302,8 @@ function renderMonthEl(y, m) {
       const showLabel = offset % 14 === 0 || (day === 1 && offset > 0 && untilNextBeat > 7);
       const canSpill = spillK > 1.05;
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
-      // a label may spend at most half its band on text (and max 3 lines)
-      const lines = (showLabel && !canSpill) ? Math.max(1, Math.min(3, Math.floor((endInMonth - day + 1) / 2))) : 1;
+      // a wrapped label may use up to 3 lines, but never more than the band has days
+      const lines = (showLabel && !canSpill) ? Math.max(1, Math.min(3, endInMonth - day + 1)) : 1;
       // continuation rows carry an invisible copy of the title, so the band
       // stays text-wide wherever the row is free and snaps back where it isn't
       const txt = showLabel ? `<i>${esc(ev.title)}</i>`
