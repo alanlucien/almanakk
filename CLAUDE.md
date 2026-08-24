@@ -153,6 +153,15 @@ Layout conversations (previews first, Alan decides from pictures):
   Show before building.
 - L3 Header congestion (iPhone 13 mini): fold Skriv ut/språk/Kalendere/A+
   into one ⋯ menu; keep ‹›, view switch, wg, Cities direct. Sketch options.
+- L4 wg single-day items INSIDE their band: on a day covered by a wg tour
+  band from the same calendar, that day's wg items render in the band cell
+  (tiny wg style, clipped, full text in day panel) instead of at the end of
+  the day line — they are details OF the tour, and the day line frees up for
+  Alan's events from the left. Open: what happens on 14-day-beat label days
+  (label wins, item clips after? item falls back to day line?); do wg shows
+  stay pinned red on the day line or move in-band (red dot stays either way);
+  fall back to current end-of-line placement when no covering band. Preview
+  together with L1 — same real-estate conversation.
 
 ## Constraints
 
