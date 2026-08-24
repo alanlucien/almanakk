@@ -99,6 +99,61 @@ The sheet is the layout reference and the initial data to import.
   custom domain (almanakk.winterguests.com); iPhone widget (needs native
   wrapper).
 
+## Feedback backlog (2026-08-24 — Alan: "for later", tackle one by one)
+
+Bugs (diagnosed by reading, not yet verified on device):
+- B1 Cities not updating. Three suspected causes in buildFlightIndex/flightDest
+  (app.js): (a) flights in tour-tagged calendars are excluded because the index
+  uses visibleEvents(); (b) "Fly til Bergen" captures "til" as the destination —
+  regex only skips English "to"; (c) before the first flight of the loaded year
+  the city is blank (prior year not loaded). Fix (a)+(b) first, then re-test.
+- B2 "Innlogging utløpt" — GIS access tokens last ~1h, no refresh token in a
+  pure browser flow. Plan: silent re-request (prompt:'') on load/before
+  expiry/on 401, fall back to the button. May not work on iOS PWA (ITP).
+- B3 iPhone 16 month view hides day 31. Suspect: home-screen PWA, last row
+  under the home indicator; .strip month fills exactly 100dvh so nothing
+  scrolls. Try padding-bottom: env(safe-area-inset-bottom). Verify on device.
+
+Quick wins (small, want Alan's one-line answers first):
+- Q1 Green weekends: classic almanakk. Which: green Saturday numbers, a green
+  rule between weeks (under Sunday), or both? Show samples.
+- Q2 Undo (Angre) after edit, same as after delete.
+- Q3 Day panel: separate all-day events from timed ones (one box, grouped).
+- Q4 Flights render as "LON-BGO 17:50" in year/month views (flight-looking
+  events keep their time even in compact views).
+
+One design piece — per-event edit sheet (tap an event row in the day panel →
+row expands; no more Endre/Slett buttons on every row). Hosts: title edit,
+- E1 declutter buttons; E2 change event colour (Google colorId 1–11, palette
+  already in gcal.js); E3 move event to another calendar (events.move API);
+- E4 extend/convert to multiday or timed↔all-day (PATCH start/end; gotcha:
+  must explicitly null dateTime when converting). Delete moves in here too.
+
+Cities cluster:
+- C1 Move cities column far right into the info column (same tiny-caps style).
+  Open: collision with "uke"/holiday on Sundays — join with " · " and clip, or
+  city wins? Frees the left 6em → more room for the day line.
+- C2 Tap city in day panel to set it manually; holds until next flight/manual
+  change. Proposed storage: real all-day marker events ("→ Roma") in a small
+  dedicated calendar (syncs, visible in Google, no hidden state). Override
+  semantics: pure date order — latest marker-or-flight on/before the day wins,
+  regardless of booking order. Needs Alan's yes on the marker convention.
+- C3 Flight email ingestion, Alan's flights only. Options: (1) Google's own
+  Gmail→Calendar events (maybe already on; zero new parts); (2) TripIt —
+  forward bookings to plans@tripit.com, subscribe to its iCal feed as a
+  calendar; (3) Flighty calendar feed (paid, best data); (4) DIY Apps Script.
+  Recommend trying 1, then 2. Parser must match the feed's title format.
+
+Layout conversations (previews first, Alan decides from pictures):
+- L1 Dynamic day line: start the detail line right after the last occupied
+  band lane that day (May 1 screenshot: clipped item beside empty lanes).
+  Same territory as PARKED item 1 — Alan's items may flow left, wg items
+  NEVER. Variants to preview: always dynamic / only when clipping / as-is.
+- L2 Reading-glasses toggle (A/A+): bump calendar font ~12→14px, persisted.
+  Show before building.
+- L3 Header congestion (iPhone 13 mini): fold Skriv ut/språk/Kalendere/A+
+  into one ⋯ menu; keep ‹›, view switch, wg, Cities direct. Sketch options.
+
 ## Constraints
 
 - Alan is not a professional developer: explain setup steps (Google Cloud,
