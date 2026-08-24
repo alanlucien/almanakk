@@ -172,7 +172,11 @@ function monthLayout(y, m, events, overlays) {
 /* ---------- shows ping red ---------- */
 
 const SHOW_RE = /\b(show\w*|prem\w*|première|performance\w*|forest\w*|visning\w*|vorstellung\w*|matin[ée]\w*)\b/i;
-function isShow(ev) { return SHOW_RE.test(ev.title); }
+function isShow(ev) {
+  // "show call" (also show-call/showcall) is the meeting time, not a performance
+  const t = ev.title.replace(/show[\s-]*call/gi, '');
+  return SHOW_RE.test(t);
+}
 // an event's time for ordering: the real clock time, or one written in the title
 function effTime(e) {
   if (e.time) return e.time;
