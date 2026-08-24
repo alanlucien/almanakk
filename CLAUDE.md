@@ -83,9 +83,21 @@ The sheet is the layout reference and the initial data to import.
   (winterguests.com org); consent screen audience: Internal. Authorized
   origins: http://localhost:8123 and https://alanlucien.github.io.
 - Local dev: `python3 -m http.server 8123` (see .claude/launch.json).
-- Remaining roadmap: import old sheet into Google Calendar; share private
-  gmail calendar into wg account; English winter guests version; "where is
-  Alan" location strip from flights; custom domain.
+- DONE: old sheet imported (import.html, tag sheet-2026-2027); ANTIGONE
+  2027 PDF imported (?set=antigone); private gmail calendar shared in.
+- PARKED (Alan aborted after previews — revisit fresh, with pictures):
+  1) June left-space: Alan's line items should flow left into empty lane
+     columns; wg items must NEVER move left, anchored right against their
+     band. A two-sided-line preview existed and was aborted 2026-08-24;
+     discuss again before building anything.
+  2) Timezone auto-translate: wg events created from Norway carry Oslo
+     times; idea is to display them in the tour city's local time using
+     the Cities column knowledge. Editorial workaround: set the event's
+     time zone in Google when creating tour events.
+- Remaining roadmap: English winter guests version (colleagues' URL);
+  automatic flight feed (Flighty/TripIt) + "where is Alan" page for family;
+  custom domain (almanakk.winterguests.com); iPhone widget (needs native
+  wrapper).
 
 ## Constraints
 
