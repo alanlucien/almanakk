@@ -101,18 +101,21 @@ The sheet is the layout reference and the initial data to import.
 
 ## Feedback backlog (2026-08-24 — Alan: "for later", tackle one by one)
 
-Bugs (diagnosed by reading, not yet verified on device):
-- B1 Cities not updating. Three suspected causes in buildFlightIndex/flightDest
-  (app.js): (a) flights in tour-tagged calendars are excluded because the index
-  uses visibleEvents(); (b) "Fly til Bergen" captures "til" as the destination —
-  regex only skips English "to"; (c) before the first flight of the loaded year
-  the city is blank (prior year not loaded). Fix (a)+(b) first, then re-test.
-- B2 "Innlogging utløpt" — GIS access tokens last ~1h, no refresh token in a
-  pure browser flow. Plan: silent re-request (prompt:'') on load/before
-  expiry/on 401, fall back to the button. May not work on iOS PWA (ITP).
-- B3 iPhone 16 month view hides day 31. Suspect: home-screen PWA, last row
-  under the home indicator; .strip month fills exactly 100dvh so nothing
-  scrolls. Try padding-bottom: env(safe-area-inset-bottom). Verify on device.
+Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
+- B1 DONE (a)+(b): the flight index now scans all loaded events (tour-tagged
+  calendars included) and flightDest understands "Fly til Bergen" / "Fly fra
+  Oslo til Bergen" (the word after til/to wins; bare "Fly fra Oslo" gives no
+  city rather than a wrong one). Verified in-browser on demo data. Still open:
+  (c) January is blank until the first flight of the year — needs prior-year
+  loading, do only if it bites.
+- B2 DONE: silent token renewal (prompt:'') on load when the saved token is
+  stale, ~5 min before expiry, and once on any 401 before giving up; the
+  sign-in button remains the fallback. Verified with a stubbed GIS+API flow
+  (expired token -> silent T1 -> 401 -> silent T2 -> retried OK). iOS PWA may
+  still refuse the silent path (ITP) — then it degrades to today's behaviour.
+- B3 DONE (probable fix): .strip .month got padding-bottom:
+  env(safe-area-inset-bottom) so day 31 clears the home indicator in the
+  home-screen PWA. CSS-only; MUST be verified on the iPhone 16.
 
 Quick wins (small, want Alan's one-line answers first):
 - Q1 Green weekends: classic almanakk. Which: green Saturday numbers, a green
