@@ -222,6 +222,8 @@ main.strip { height: 100%; overflow-y: auto; }
   border-left: none; border-right: none;
   min-height: 100%; /* fill the screen when sparse, grow + scroll when dense */
   display: flex; flex-direction: column;
+  /* home-screen PWA: keep the last day above the iPhone home indicator */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 .strip .day { flex: 1 0 auto; font-size: 13px; align-items: center; }
 .strip .day .lane { align-self: stretch; display: flex; align-items: center; }
