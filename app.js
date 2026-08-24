@@ -201,13 +201,18 @@ function flightDest(title) {
     const codes = chain[0].split(/[^A-Z]+/).filter(Boolean);
     return codes[codes.length - 1];
   }
-  const to = title.match(/\b(?:fly|flight)\s+(?:to\s+)?([A-ZÆØÅa-zæøå][A-Za-zæøåÆØÅ]{2,})/i);
-  if (to) return to[1];
+  // "Fly til Bergen" / "Fly fra Oslo til Bergen": the word after til/to wins
+  const via = title.match(/\b(?:fly|flight)\b[^.,;]*?\b(?:til|to)\s+([A-ZÆØÅa-zæøå][A-Za-zæøåÆØÅ]{2,})/i);
+  if (via) return via[1];
+  const plain = title.match(/\b(?:fly|flight)\s+([A-ZÆØÅa-zæøå][A-Za-zæøåÆØÅ]{2,})/i);
+  if (plain && !/^(?:til|to|fra|from)$/i.test(plain[1])) return plain[1];
   return null;
 }
 function buildFlightIndex() {
+  // flights count wherever they live — incl. tour-tagged calendars, which
+  // visibleEvents() hides from the normal view
   const flights = [];
-  for (const ev of visibleEvents()) {
+  for (const ev of state.events) {
     const dest = flightDest(ev.title);
     if (dest) flights.push({ date: ev.start, time: ev.time || '99', dest });
   }
