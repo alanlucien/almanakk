@@ -25,6 +25,7 @@
       client_id: ALMANAKK_CONFIG.clientId,
       scope: 'https://www.googleapis.com/auth/calendar',
       callback: onToken,
+      error_callback: onTokenError,
     });
     const btn = document.querySelector('#signin');
     btn.hidden = false;
@@ -33,6 +34,7 @@
     const saved = JSON.parse(localStorage.getItem(TOKEN_KEY) || 'null');
     if (saved && saved.exp > Date.now()) {
       accessToken = saved.t;
+      scheduleRefresh(saved.exp);
       bootGoogle();
       return;
     }
@@ -45,16 +47,49 @@
       b.hidden = false;
       b.textContent = 'Viser sist synkroniserte data — logg inn for å oppdatere og skrive.';
     }
+    // Signed in before: try to renew silently (no popup while the Google
+    // session lives; iOS PWA may refuse — then the button stays the fallback).
+    if (saved) silentToken().catch(() => {});
   };
 
+  // One silent renewal at a time; concurrent callers share the same promise.
+  let pendingToken = null;
+  function silentToken() {
+    if (pendingToken) return pendingToken.promise;
+    let resolve, reject;
+    const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+    pendingToken = { promise, resolve, reject };
+    try { tokenClient.requestAccessToken({ prompt: '' }); }
+    catch (e) { pendingToken = null; return Promise.reject(e); }
+    return promise;
+  }
+
+  let refreshTimer = null;
+  // Renew ~5 min before the token dies, while the app is open.
+  function scheduleRefresh(expMs) {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => silentToken().catch(() => {}),
+      Math.max(expMs - Date.now() - 5 * 60e3, 60e3));
+  }
+
   async function onToken(resp) {
-    if (resp.error) { toastErr('Innlogging feilet: ' + resp.error); return; }
+    if (resp.error) {
+      if (pendingToken) { pendingToken.reject(new Error(resp.error)); pendingToken = null; }
+      else toastErr('Innlogging feilet: ' + resp.error);
+      return;
+    }
     accessToken = resp.access_token;
-    localStorage.setItem(TOKEN_KEY, JSON.stringify({
-      t: resp.access_token,
-      exp: Date.now() + (Number(resp.expires_in || 3600) - 60) * 1000,
-    }));
-    bootGoogle();
+    const exp = Date.now() + (Number(resp.expires_in || 3600) - 60) * 1000;
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ t: resp.access_token, exp }));
+    scheduleRefresh(exp);
+    const silent = !!pendingToken;
+    if (pendingToken) { pendingToken.resolve(); pendingToken = null; }
+    // a silent renewal mid-session only swaps the token; everything is loaded
+    if (!silent || state.mode !== 'google') bootGoogle();
+  }
+
+  function onTokenError(err) {
+    if (pendingToken) { pendingToken.reject(new Error((err && err.type) || 'token_error')); pendingToken = null; }
   }
 
   async function bootGoogle() {
@@ -77,6 +112,16 @@
       headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
     });
     if (r.status === 401) {
+      // token died mid-session: renew silently and retry once
+      if (!opts._retried) {
+        try { await silentToken(); }
+        catch (e) {
+          accessToken = null;
+          document.querySelector('#signin').hidden = false;
+          throw new Error('Innlogging utløpt — logg inn igjen.');
+        }
+        return api(path, params, { ...opts, _retried: true });
+      }
       accessToken = null;
       document.querySelector('#signin').hidden = false;
       throw new Error('Innlogging utløpt — logg inn igjen.');
