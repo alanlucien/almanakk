@@ -220,7 +220,9 @@
             start = end = ev.start.dateTime.slice(0, 10);
             time = ev.start.dateTime.slice(11, 16);
           }
-          rawEvents.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color });
+          // eventType 'fromGmail' = auto-scraped from an email; may well be
+          // someone else's flight (cc'd itinerary), so it never moves the city pin
+          rawEvents.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color, fromGmail: ev.eventType === 'fromGmail' });
         }
         pageToken = data.nextPageToken || '';
       } while (pageToken);

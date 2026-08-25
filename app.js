@@ -213,6 +213,9 @@ function buildFlightIndex() {
   // visibleEvents() hides from the normal view
   const flights = [];
   for (const ev of state.events) {
+    // Gmail-scraped events are skipped: a cc'd itinerary is often someone
+    // else's flight, and a wrong city is worse than no city
+    if (ev.fromGmail) continue;
     const dest = flightDest(ev.title);
     if (dest) flights.push({ date: ev.start, time: ev.time || '99', dest });
   }

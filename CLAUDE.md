@@ -147,10 +147,17 @@ Cities cluster:
   Gmail→Calendar events (maybe already on; zero new parts); (2) TripIt —
   forward bookings to plans@tripit.com, subscribe to its iCal feed as a
   calendar; (3) Flighty calendar feed (paid, best data); (4) DIY Apps Script.
-  Alan chose (2026-08-25): check option 1 first. Strong evidence it is ALREADY
-  on — the Gmail-locked-event error message in gcal.js exists because Alan hit
-  a real Gmail-auto event (commit 78debdf). So the work is likely just: find
-  those events, learn their title format, teach flightDest to read it.
+  Option 1 REJECTED by Alan (2026-08-25) and the reason is decisive: he books
+  flights for the company and is cc'd on itineraries, so Gmail scrapes OTHER
+  people's flights into his calendar — the city pin would lie. Since May 2024
+  the Calendar API marks these with eventType 'fromGmail', so the app now
+  stores that flag and buildFlightIndex skips them (verified: a cc'd "Flight
+  to Berlin" no longer moves the city). They still render as events; they just
+  never move the pin.
+  Remaining choice for an automatic source — both are curated, i.e. only what
+  Alan puts in: (2) TripIt, forward bookings to plans@tripit.com, subscribe to
+  its iCal feed as a calendar; (3) Flighty (paid, best data, live delays).
+  Either way, tick it as its own calendar so it stays separable.
   Parser must match the feed's title format.
 
 Layout conversations (previews first, Alan decides from pictures):
