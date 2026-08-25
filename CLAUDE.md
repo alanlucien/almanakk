@@ -36,7 +36,9 @@ The sheet is the layout reference and the initial data to import.
 ## Domain conventions (Norwegian)
 
 - Weekday letters: M, Ti, O, To, F, L, S (Monday-first weeks).
-- Week numbers: ISO 8601 ("uke 41"), shown on Sundays/right column.
+- Week numbers: ISO 8601 ("uke 41"), shown on MONDAYS in the right column —
+  the week starts Monday in a Scandinavian calendar, so the number belongs
+  on the Monday (Alan, 2026-08-25; an earlier "Sundays" note here was wrong).
 - Sundays and Norwegian public holidays render red. Holiday names in
   Norwegian (Skjærtorsdag, 1. Juledag, 17. mai, advent Sundays...).
 - Week numbers, weekday letters, and holidays are computed/derived — never
