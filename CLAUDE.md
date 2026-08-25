@@ -141,9 +141,17 @@ row expands; no more Endre/Slett buttons on every row). Hosts: title edit,
   must explicitly null dateTime when converting). Delete moves in here too.
 
 Cities cluster:
-- C1 Move cities column far right into the info column (same tiny-caps style).
-  Open: collision with "uke"/holiday on Sundays — join with " · " and clip, or
-  city wins? Frees the left 6em → more room for the day line.
+- C1 DONE (2026-08-25, Alan picked "D+" from previews): the left 6em cities
+  column is gone; the city rides in the right info column in tiny caps and
+  shows only when it CHANGES, plus the 1st of each month so a month with no
+  flights still states where you are. On a Monday it shares the cell with the
+  week number as "PARIS 42" — the word "uke" is dropped when they share, and
+  the info column widens (5.2em -> 8.2em) so nothing clips. A holiday keeps the
+  cell (the flight itself is on the day line that day). Verified: no clipped
+  info cells in month, year, or print-3. Long holiday names still clip in
+  print-6/12 — PRE-EXISTING, worse with cities off, unrelated to this.
+  Open, only if Alan wants it: drop the word "uke" on ordinary Mondays too
+  (currently "uke 43" alone, "PARIS 42" when shared).
 - C2 APPROVED (Alan, 2026-08-25): tap the city in the day panel to set it
   manually. Storage = real all-day marker events "→ Roma" in a dedicated
   calendar (syncs, visible in Google, no hidden state). Override semantics:

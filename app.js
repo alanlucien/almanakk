@@ -311,11 +311,13 @@ function renderMonthEl(y, m) {
     const wi = weekdayIdx(d);
     const h = hol[ds];
     const red = wi === 6 || (h && h.red);
-    let cityCell = '';
+    // Cities live in the info column on the right (Alan, 2026-08-25) and show
+    // only when you move — plus the 1st, so every month block states where you
+    // are even when nothing moves that month.
+    let cityTxt = '';
     if (flights) {
       const city = cityOn(ds, flights);
-      const show = city && (city !== prevCity || day === 1 || wi === 0);
-      cityCell = `<span class="city">${show ? esc(cityName(city)) : ''}</span>`;
+      if (city && (city !== prevCity || day === 1)) cityTxt = cityName(city);
       prevCity = city;
     }
     const todays = details.filter(e => e.start === ds);
@@ -399,14 +401,20 @@ function renderMonthEl(y, m) {
     const detail = `<span class="detail"${(hasOwn || hasWgBand) ? '' : ` style="grid-column: span ${nOwn + nOvl + 1}"`}>`
       + lineItems.map(({ e, wg }) => evtHtml(e, wg)).join('')
       + '</span>';
+    // One cell, one line: a holiday keeps it (the flight is on the day line
+    // anyway); otherwise the city, sharing Mondays with the week number as
+    // "PARIS 42" — no "uke" when they share, so nothing has to clip.
+    const cty = `<span class="cty">${esc(cityTxt)}</span>`;
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
-      : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
+      : cityTxt
+        ? `<span class="info">${cty}${wi === 0 ? ' ' + isoWeek(d) : ''}</span>`
+        : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
     rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
-      + cityCell + ownCells + wgCells + detail + info + `</div>`;
+      + ownCells + wgCells + detail + info + `</div>`;
   }
   return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}" style="--lanes:${nOwn};--wg:${nOvl}">`
     + `<h2>${L().months[m]} <small>${y}</small></h2>${rows}</section>`;
