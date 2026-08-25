@@ -194,13 +194,33 @@ const isTbc = ev => /\btbc\b/i.test(ev.title);
 
 /* ---------- cities (derived from flight-looking events) ---------- */
 
-// "OSL–LHR 14:55" / "BKK-PAR-MARSEILLE" -> last leg; "Fly Oslo" / "Flight to Helsinki (AY 62)" -> name.
+// A leg is stripped of times, flight numbers, brackets and a leading "Fly".
+function cleanLeg(s) {
+  return s.replace(/\([^)]*\)/g, ' ')
+    .replace(/\b\d{1,2}[:.]\d{2}\b/g, ' ')
+    .replace(/\b[A-Z]{2}\s?\d{1,4}\b/g, ' ')
+    .replace(/\s+/g, ' ').trim()
+    .replace(/^(?:fly|flight|reise|tog|train)\s+/i, '').trim();
+}
+// A leg only counts as a place if we recognise it: a 3-letter airport code
+// (any case) or a city name we know. Everything else — "Meet Ellen",
+// "afternoon" — is deliberately NOT a place, so ordinary titles with a dash
+// are never mistaken for flights.
+function placeOf(s) {
+  if (!s) return null;
+  if (/^[A-Za-zÆØÅæøå]{3}$/.test(s) && IATA_CITIES[s.toUpperCase()]) return s.toUpperCase();
+  return CITY_BY_NAME[s.toLowerCase()] || null;
+}
+// "OSL–LHR 14:55" / "Osl - Beijing" / "BKK-PAR-MRS" -> last leg;
+// "Fly til Bergen" / "Flight to Helsinki (AY 62)" -> the name after til/to.
 function flightDest(title) {
-  const chain = title.match(/\b[A-Z]{3}(?:\s*[-–—>→]+\s*[A-Z]{3})+\b/);
-  if (chain) {
-    const codes = chain[0].split(/[^A-Z]+/).filter(Boolean);
-    return codes[codes.length - 1];
+  let dest = null, run = 0, prev = null;
+  for (const part of title.split(/\s*(?:[-–—]+|[>→]+)\s*/)) {
+    const place = placeOf(cleanLeg(part));
+    if (place) { run++; if (run >= 2) dest = place; prev = place; }
+    else { run = 0; prev = null; }
   }
+  if (dest) return dest;
   // "Fly til Bergen" / "Fly fra Oslo til Bergen": the word after til/to wins
   const via = title.match(/\b(?:fly|flight)\b[^.,;]*?\b(?:til|to)\s+([A-ZÆØÅa-zæøå][A-Za-zæøåÆØÅ]{2,})/i);
   if (via) return via[1];
@@ -251,6 +271,10 @@ const IATA_CITIES = {
   DEL: 'Delhi', BOM: 'Mumbai', DXB: 'Dubai', DOH: 'Doha', AUH: 'Abu Dhabi', TLV: 'Tel Aviv', CAI: 'Kairo',
   JNB: 'Johannesburg', CPT: 'Cape Town', SYD: 'Sydney', MEL: 'Melbourne', BNE: 'Brisbane', PER: 'Perth', AKL: 'Auckland',
 };
+// name (lowercase) -> proper name, so "beijing" / "Oslo" resolve like codes do
+const CITY_BY_NAME = {};
+for (const n of Object.values(IATA_CITIES)) CITY_BY_NAME[n.toLowerCase()] = n;
+
 function cityName(code) {
   return IATA_CITIES[code] || code;
 }

@@ -102,12 +102,18 @@ The sheet is the layout reference and the initial data to import.
 ## Feedback backlog (2026-08-24 — Alan: "for later", tackle one by one)
 
 Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
-- B1 DONE (a)+(b): the flight index now scans all loaded events (tour-tagged
-  calendars included) and flightDest understands "Fly til Bergen" / "Fly fra
-  Oslo til Bergen" (the word after til/to wins; bare "Fly fra Oslo" gives no
-  city rather than a wrong one). Verified in-browser on demo data. Still open:
-  (c) January is blank until the first flight of the year — needs prior-year
-  loading, do only if it bites.
+- B1 DONE, three rounds. (a) the flight index scans all loaded events
+  (tour-tagged calendars included); (b) "Fly til Bergen" / "Fly fra Oslo til
+  Bergen" parse right; (c) 2026-08-25, from Alan's September screenshot: his
+  real titles are "Osl - Beijing" — mixed case, city name, no fly keyword —
+  and were invisible, so the pin sat on LONDON all month. flightDest now reads
+  dash-separated legs where BOTH sides resolve to a place (3-letter IATA code
+  in any case, or a known city name), so "Osl - Beijing", "Beijing - Paris",
+  "SK 4103 Oslo - Bergen" all work while "Meet Ellen - afternoon", "Prosjekt
+  A - B", "Jury duty" stay non-flights. 20-case test table in the commit.
+  Still open: January is blank until the year's first flight (needs prior-year
+  loading, do only if it bites); city names outside IATA_CITIES are unknown —
+  add codes/names as Alan hits them.
 - B2 DONE: silent token renewal (prompt:'') on load when the saved token is
   stale, ~5 min before expiry, and once on any 401 before giving up; the
   sign-in button remains the fallback. Verified with a stubbed GIS+API flow
