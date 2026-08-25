@@ -136,16 +136,22 @@ Cities cluster:
 - C1 Move cities column far right into the info column (same tiny-caps style).
   Open: collision with "uke"/holiday on Sundays — join with " · " and clip, or
   city wins? Frees the left 6em → more room for the day line.
-- C2 Tap city in day panel to set it manually; holds until next flight/manual
-  change. Proposed storage: real all-day marker events ("→ Roma") in a small
-  dedicated calendar (syncs, visible in Google, no hidden state). Override
-  semantics: pure date order — latest marker-or-flight on/before the day wins,
-  regardless of booking order. Needs Alan's yes on the marker convention.
+- C2 APPROVED (Alan, 2026-08-25): tap the city in the day panel to set it
+  manually. Storage = real all-day marker events "→ Roma" in a dedicated
+  calendar (syncs, visible in Google, no hidden state). Override semantics:
+  pure date order — the latest marker-or-flight on/before a day wins, whatever
+  the booking order. Open before building: which calendar holds the markers
+  (auto-create "Almanakk byer" vs. an existing one) — creating a calendar in
+  Alan's Google account needs his explicit go.
 - C3 Flight email ingestion, Alan's flights only. Options: (1) Google's own
   Gmail→Calendar events (maybe already on; zero new parts); (2) TripIt —
   forward bookings to plans@tripit.com, subscribe to its iCal feed as a
   calendar; (3) Flighty calendar feed (paid, best data); (4) DIY Apps Script.
-  Recommend trying 1, then 2. Parser must match the feed's title format.
+  Alan chose (2026-08-25): check option 1 first. Strong evidence it is ALREADY
+  on — the Gmail-locked-event error message in gcal.js exists because Alan hit
+  a real Gmail-auto event (commit 78debdf). So the work is likely just: find
+  those events, learn their title format, teach flightDest to read it.
+  Parser must match the feed's title format.
 
 Layout conversations (previews first, Alan decides from pictures):
 - L1 Dynamic day line: start the detail line right after the last occupied
