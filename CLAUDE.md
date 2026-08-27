@@ -142,9 +142,12 @@ row expands; no more Endre/Slett buttons on every row). Hosts: title edit,
 
 Cities cluster:
 - C1 DONE (2026-08-25, Alan picked "D+" from previews): the left 6em cities
-  column is gone; the city rides in the right info column in tiny caps and
-  shows only when it CHANGES, plus the 1st of each month so a month with no
-  flights still states where you are. On a Monday it shares the cell with the
+  column is gone; the city rides in the right info column in tiny caps. It
+  shows when it CHANGES, on the 1st of a month, and repeats EVERY WEEK on the
+  row below the week number (Tuesday — Alan, 2026-08-25), so the week number
+  keeps Monday to itself and you always know where you are; the Tuesday repeat
+  is skipped when the city already stood on yesterday's row, so a Monday
+  landing never doubles. On a Monday it shares the cell with the
   week number as "PARIS 42" — the word "uke" is dropped when they share, and
   the info column widens (5.2em -> 8.2em) so nothing clips. A holiday keeps the
   cell (the flight itself is on the day line that day). Verified: no clipped

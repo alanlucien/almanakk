@@ -304,6 +304,7 @@ function renderMonthEl(y, m) {
   const n = daysInMonth(y, m);
   const flights = state.cities ? buildFlightIndex() : null;
   let prevCity = null;
+  let cityShown = false; // did the city actually stand on yesterday's row?
   let rows = '';
   for (let day = 1; day <= n; day++) {
     const d = new Date(y, m, day);
@@ -311,14 +312,18 @@ function renderMonthEl(y, m) {
     const wi = weekdayIdx(d);
     const h = hol[ds];
     const red = wi === 6 || (h && h.red);
-    // Cities live in the info column on the right (Alan, 2026-08-25) and show
-    // only when you move — plus the 1st, so every month block states where you
-    // are even when nothing moves that month.
+    // Cities live in the info column on the right (Alan, 2026-08-25): on the
+    // day you move, on the 1st so every month block states it, and repeated
+    // every week on the row BELOW the week number (Tuesday) — so the week
+    // number keeps Monday to itself and you always know where you are.
     let cityTxt = '';
     if (flights) {
       const city = cityOn(ds, flights);
-      if (city && (city !== prevCity || day === 1)) cityTxt = cityName(city);
+      // skip the weekly repeat when the city already stood on yesterday's row
+      const repeat = wi === 1 && !cityShown;
+      if (city && (city !== prevCity || day === 1 || repeat)) cityTxt = cityName(city);
       prevCity = city;
+      cityShown = !!cityTxt && !h; // a holiday keeps the cell, so nothing showed
     }
     const todays = details.filter(e => e.start === ds);
     const wgTodays = wgDet.filter(e => e.start === ds);
