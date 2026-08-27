@@ -19,8 +19,35 @@
 
   const TOKEN_KEY = 'almanakk-token';
 
+  // index.html calls gcalReady from the GIS script's onload, but that can lose
+  // the race with this file (nothing would ever call it) or never fire at all
+  // (blocked, offline). Poll, then say so plainly instead of showing a dead app.
+  // Last synced events live in localStorage, so the calendar still reads even
+  // with no token and no network. Returns true if anything was shown.
+  function showCached(msg) {
+    const cached = JSON.parse(localStorage.getItem('almanakk-events') || 'null');
+    const b = document.querySelector('#banner');
+    if (cached && cached.length) { state.events = cached; render(); }
+    b.hidden = false;
+    b.textContent = msg;
+    return !!(cached && cached.length);
+  }
+
+  let gisWaited = 0;
+  const gisPoll = setInterval(() => {
+    if (window.google && window.google.accounts) return window.gcalReady();
+    if ((gisWaited += 400) < 8000) return;
+    clearInterval(gisPoll);
+    if (!ALMANAKK_CONFIG.clientId) return;
+    // no Google sign-in available at all: show what we last synced and say why
+    showCached('Fikk ikke lastet Google-innlogging — viser sist synkroniserte '
+      + 'data. Sjekk nettet og last siden på nytt.');
+  }, 400);
+
   window.gcalReady = function () {
     if (!ALMANAKK_CONFIG.clientId) return; // demo mode
+    if (tokenClient) return;               // the onload attribute and the poll below both call this
+    clearInterval(gisPoll);
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: ALMANAKK_CONFIG.clientId,
       scope: 'https://www.googleapis.com/auth/calendar',
@@ -39,29 +66,34 @@
       return;
     }
     // Otherwise: show last-synced events right away (works offline too).
-    const cached = JSON.parse(localStorage.getItem('almanakk-events') || 'null');
-    if (cached && cached.length) {
-      state.events = cached;
-      render();
-      const b = document.querySelector('#banner');
-      b.hidden = false;
-      b.textContent = 'Viser sist synkroniserte data — logg inn for å oppdatere og skrive.';
-    }
+    showCached('Viser sist synkroniserte data — logg inn for å oppdatere og skrive.');
     // Signed in before: try to renew silently (no popup while the Google
     // session lives; iOS PWA may refuse — then the button stays the fallback).
     if (saved) silentToken().catch(() => {});
   };
 
   // One silent renewal at a time; concurrent callers share the same promise.
+  // ALWAYS time-bounded: on iOS the silent path can be swallowed without ever
+  // calling back, and a promise that never settles would freeze the boot.
   let pendingToken = null;
   function silentToken() {
     if (pendingToken) return pendingToken.promise;
     let resolve, reject;
     const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
     pendingToken = { promise, resolve, reject };
+    pendingToken.timer = setTimeout(() => settleToken(new Error('silent_timeout')), 8000);
     try { tokenClient.requestAccessToken({ prompt: '' }); }
-    catch (e) { pendingToken = null; return Promise.reject(e); }
+    catch (e) { settleToken(e); }
     return promise;
+  }
+  // settle the pending silent request exactly once; err = null means success
+  function settleToken(err) {
+    if (!pendingToken) return false;
+    const p = pendingToken;
+    pendingToken = null;
+    clearTimeout(p.timer);
+    if (err) p.reject(err); else p.resolve();
+    return true;
   }
 
   let refreshTimer = null;
@@ -74,22 +106,20 @@
 
   async function onToken(resp) {
     if (resp.error) {
-      if (pendingToken) { pendingToken.reject(new Error(resp.error)); pendingToken = null; }
-      else toastErr('Innlogging feilet: ' + resp.error);
+      if (!settleToken(new Error(resp.error))) toastErr('Innlogging feilet: ' + resp.error);
       return;
     }
     accessToken = resp.access_token;
     const exp = Date.now() + (Number(resp.expires_in || 3600) - 60) * 1000;
     localStorage.setItem(TOKEN_KEY, JSON.stringify({ t: resp.access_token, exp }));
     scheduleRefresh(exp);
-    const silent = !!pendingToken;
-    if (pendingToken) { pendingToken.resolve(); pendingToken = null; }
+    const silent = settleToken(null);
     // a silent renewal mid-session only swaps the token; everything is loaded
     if (!silent || state.mode !== 'google') bootGoogle();
   }
 
   function onTokenError(err) {
-    if (pendingToken) { pendingToken.reject(new Error((err && err.type) || 'token_error')); pendingToken = null; }
+    settleToken(new Error((err && err.type) || 'token_error'));
   }
 
   async function bootGoogle() {
@@ -101,7 +131,13 @@
       loadedYears = new Set();
       rawEvents = [];
       await window.gcalEnsureYear(state.year);
-    } catch (e) { toastErr(e.message); }
+    } catch (e) {
+      // never end up with no data AND no way to sign in
+      document.querySelector('#signin').hidden = false;
+      const cached = JSON.parse(localStorage.getItem('almanakk-events') || 'null');
+      if (cached && cached.length && !state.events.length) { state.events = cached; render(); }
+      toastErr(e.message);
+    }
   }
 
   async function api(path, params, opts = {}) {

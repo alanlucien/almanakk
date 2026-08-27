@@ -116,6 +116,19 @@ Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
   Still open: January is blank until the year's first flight (needs prior-year
   loading, do only if it bites); city names outside IATA_CITIES are unknown —
   add codes/names as Alan hits them.
+- B2 REGRESSION then fixed (2026-08-25). Alan's live app came up EMPTY with no
+  sign-in and no Kalendere button. Two boot paths could dead-end: (1) the
+  silent renewal promise never settled if GIS swallowed the request (iOS/ITP),
+  freezing bootGoogle with the sign-in button already hidden; (2) if the GIS
+  script never loaded, index.html's `window.gcalReady && gcalReady()` guard
+  meant NOTHING ever ran — no button, no explanation (this pre-dated B2 and is
+  the likelier cause of Alan's screenshot, since his wg/Byer toggles were also
+  off, i.e. localStorage had been cleared). Now: silentToken is 8s-bounded and
+  settles exactly once; a failed boot always re-shows the sign-in button; a
+  poll calls gcalReady whenever GIS turns up (also fixing the script-order
+  race) and after 8s falls back to cached events plus a plain-language banner.
+  Four boot paths tested in a browser, incl. "GIS accepts the request and never
+  calls back". LESSON: never hide the only way in behind an unbounded promise.
 - B2 DONE: silent token renewal (prompt:'') on load when the saved token is
   stale, ~5 min before expiry, and once on any 401 before giving up; the
   sign-in button remains the fallback. Verified with a stubbed GIS+API flow
