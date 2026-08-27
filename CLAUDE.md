@@ -134,9 +134,15 @@ Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
   sign-in button remains the fallback. Verified with a stubbed GIS+API flow
   (expired token -> silent T1 -> 401 -> silent T2 -> retried OK). iOS PWA may
   still refuse the silent path (ITP) — then it degrades to today's behaviour.
-- B3 DONE (probable fix): .strip .month got padding-bottom:
-  env(safe-area-inset-bottom) so day 31 clears the home indicator in the
-  home-screen PWA. CSS-only; MUST be verified on the iPhone 16.
+- B3 DONE (2026-08-25, second round after Alan's screenshot): the strip month
+  is sized to fill the viewport exactly, so the last row sat flush against the
+  screen edge — Safari's floating toolbar overlays it, and .day:last-child has
+  no bottom border, so a tour band running through the last days bled into the
+  edge and read as broken. Now: padding-bottom is
+  calc(env(safe-area-inset-bottom) + 12px) (covers the PWA home indicator AND
+  Safari's toolbar) and .strip .day:last-child gets a closing rule, so the
+  month visibly ends. Verified 30- and 31-day months at 375px and 393px: last
+  day fully visible with a 13px gap, nothing scrolls.
 
 - B4 DONE (2026-08-25): the Kalendere dropdown ran off the LEFT edge on the
   phone. #cal-list was anchored right:0 to the button, and the wrapped header
