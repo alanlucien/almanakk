@@ -230,6 +230,16 @@ main.strip { height: 100%; overflow-y: auto; }
 .strip .day .info { font-size: 11px; }
 
 @media (max-width: 720px) {
+  /* the header wraps, so the Kalendere button can sit at the far left — anchor
+     the panel to the screen instead of the button, or it runs off the edge */
+  #cal-picker { position: static; }
+  #cal-list {
+    left: 8px; right: 8px; top: 100%;
+    min-width: 0;
+    max-height: 65vh; overflow-y: auto;
+  }
+  #cal-list .cal-row { grid-template-columns: 2.2em 2.2em 2.6em 1em minmax(0, 1fr); }
+  #cal-list .nm { overflow: hidden; text-overflow: ellipsis; }
   header { flex-wrap: wrap; padding: 4px 8px; gap: 4px 8px; }
   header nav { flex-wrap: wrap; gap: 4px; }
   header h1 { font-size: 13px; letter-spacing: .2em; flex-basis: auto; }

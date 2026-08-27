@@ -138,6 +138,13 @@ Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
   env(safe-area-inset-bottom) so day 31 clears the home indicator in the
   home-screen PWA. CSS-only; MUST be verified on the iPhone 16.
 
+- B4 DONE (2026-08-25): the Kalendere dropdown ran off the LEFT edge on the
+  phone. #cal-list was anchored right:0 to the button, and the wrapped header
+  puts that button at the far left. On <=720px the panel now spans the screen
+  (left/right 8px, anchored to the header), scrolls at 65vh, and clips long
+  calendar names. Verified 375px / 393px / desktop. Pre-existing, not from the
+  cities work.
+
 Quick wins (small, want Alan's one-line answers first):
 - Q1 Green weekends: classic almanakk. Which: green Saturday numbers, a green
   rule between weeks (under Sunday), or both? Show samples.
