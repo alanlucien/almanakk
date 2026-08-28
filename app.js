@@ -323,7 +323,13 @@ function buildFlightIndex() {
     const dest = cityMarker(ev.title) || flightDest(ev.title);
     if (dest) flights.push({ date: ev.start, time: ev.time || '99', dest, tbc: isTbc(ev) });
   }
-  flights.sort((a, b) => (a.date === b.date ? (a.time < b.time ? -1 : 1) : (a.date < b.date ? -1 : 1)));
+  // Date first. Within a day a BOOKING outranks a PLAN — "-Roma tbc" is a guess
+  // and a real flight that day replaces it — then by time, so the last leg of a
+  // travel day wins. cityOn takes the last match, so the winner sorts last.
+  flights.sort((a, b) =>
+    a.date !== b.date ? (a.date < b.date ? -1 : 1)
+      : a.tbc !== b.tbc ? (a.tbc ? -1 : 1)
+        : (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
   return flights;
 }
 // the latest move on or before this day — {dest, tbc} — or null
