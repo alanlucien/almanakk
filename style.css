@@ -127,7 +127,10 @@ button.active { background: var(--ink); color: var(--card); }
   overflow: hidden;
 }
 .day .lane.on { background: color-mix(in srgb, var(--c) 14%, var(--card)); border-left: 2px solid var(--ci, var(--c)); }
-.day .lane i { font-style: normal; color: var(--ci, var(--c)); font-weight: 600; padding: 1px 3px; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* line-height/padding kept tight: on a phone a row can be ~21px, and a taller
+   label box gets clipped by the row or covered by the next one — a band label
+   sliced through the middle of its letters */
+.day .lane i { font-style: normal; color: var(--ci, var(--c)); font-weight: 600; padding: 0 3px; line-height: 1.3; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 /* a label writes sideways across the free cells to its right, like handwriting;
    --spillw = how far it may reach, in multiples of its own lane width */
 .day .lane.spill { overflow: visible; }
@@ -147,8 +150,9 @@ button.active { background: var(--ink); color: var(--card); }
 .day .lane.wg.spill i { background: color-mix(in srgb, var(--c) 22%, var(--card)); }
 
 .day .lane i.ghost { color: transparent; user-select: none; }
-/* a thin paper seam marks where one band ends and the next begins */
-.day .lane.on.bstart { border-top: 3px solid var(--card); }
+/* a thin paper seam marks where one band ends and the next begins — drawn as
+   an inset shadow, NOT a border, so it never pushes the label down out of the row */
+.day .lane.on.bstart { box-shadow: inset 0 3px 0 var(--card); }
 /* tbc in a title renders tentative: italic text, dashed lighter band */
 .evt.tbc, #popover p.tbc b, .lane.tbc i { font-style: italic; }
 .day .lane.on.tbc { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, var(--card)); }

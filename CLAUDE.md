@@ -144,6 +144,14 @@ Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
   month visibly ends. Verified 30- and 31-day months at 375px and 393px: last
   day fully visible with a 13px gap, nothing scrolls.
 
+- B5 DONE (2026-08-25): band labels were sliced through the middle of their
+  letters on the phone ("PARIS" on Alan's 29 Sept). Cause: the 3px paper seam
+  at a band start was a border-top, which pushed the absolutely-positioned
+  label DOWN, and with the label's own 1px padding the box outgrew a ~21px
+  phone row — so it was clipped by the lane or covered by the next row's band
+  background. The seam is now an inset box-shadow (no layout cost) and labels
+  use padding 0 3px / line-height 1.3. Measured at 5 viewport sizes: no label
+  overflows its row anywhere. Affected ALL short rows, not just month ends.
 - B4 DONE (2026-08-25): the Kalendere dropdown ran off the LEFT edge on the
   phone. #cal-list was anchored right:0 to the button, and the wrapped header
   puts that button at the far left. On <=720px the panel now spans the screen
