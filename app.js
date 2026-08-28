@@ -280,9 +280,12 @@ const hasFlightWord = t => /\b(?:fly|flight)\b/i.test(t);
 // planned before anything is booked. The text after the arrow is taken as-is,
 // so a small town with no airport code works exactly the same.
 function cityMarker(title) {
-  const m = title.match(/^\s*(?:-+\s*>?|→|=>)\s*([^,(]+?)\s*(?:\btbc\b.*)?$/i);
-  if (!m || !m[1] || /^\d/.test(m[1])) return null;
-  return m[1].trim();
+  // an optional clock time may lead or trail: "14:00 -Voss" / "-Voss 14:00",
+  // which is how you say a move happened AFTER a flight the same day
+  const m = title.match(/^\s*(?:\d{1,2}[:.]\d{2}\s+)?(?:-+\s*>?|→|=>)\s*([^,(]+?)\s*(?:\btbc\b.*)?$/i);
+  if (!m || !m[1] || /^\d/.test(m[1])) return null;   // "-8 Antigone" is a span, not a move
+  const name = m[1].replace(/\b\d{1,2}[:.]\d{2}\b/g, ' ').replace(/\s+/g, ' ').trim();
+  return name || null;
 }
 // Compact views read a flight as its route: "OSL-PAR-HKG" -> "Oslo → Hong Kong".
 function flightRoute(title) {

@@ -235,6 +235,14 @@ Cities cluster:
   answer run to run. Verified: tbc+timed, tbc+all-day, either load order, and a
   two-leg day (Oslo→København→Bangkok = Bangkok). Guards verified:
   "-8 Antigone" is not a marker (that is the span syntax) and a bare "-" isn't.
+  A marker may carry a clock time, leading or trailing ("14:00 -Voss", "-Voss
+  14:00"), which is how you say a move happened AFTER a flight the same day:
+  fly OSL-BGO at 09:00, drive on to Voss at 14:00, and the day ends in Voss.
+  Without a time a marker sorts last among equals, so it wins the day.
+  tbc is therefore NOT redundant (Alan asked, 2026-08-25): it does two separate
+  jobs — it SHOWS planned vs booked (italic), and it is what lets a booking
+  outrank a plan. Drop it and a car-trip marker would beat a flight it should
+  not, or a flight would beat an afternoon drive it should not.
   When a booking takes over a planned move that day, the day panel says so on
   that row — "· erstattet av fly" / "· replaced by flight" — next to the Slett
   button, so a stale placeholder is noticed rather than going quiet. Nothing is
