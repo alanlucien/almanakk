@@ -215,6 +215,8 @@ function showLabel(title) {
 }
 // Year and month views show the GIST; Detaljer and the day panel keep the full title.
 function compactTitle(e) {
+  const mark = cityMarker(e.title);
+  if (mark) return '→ ' + mark;
   return flightRoute(e.title) || showLabel(e.title) || e.title;
 }
 function evInk(e) { return isShow(e) ? 'var(--red)' : inkColor(e.color); }
@@ -250,10 +252,35 @@ function flightLegs(title) {
   }
   return best.length >= 2 ? best : [];
 }
+// Every place named anywhere in the title, in order — "Flight Oslo → Germany
+// (Wuppertal trip)" -> ['Oslo','Wuppertal']. Two-word names are tried first.
+function placesIn(title) {
+  const words = title.replace(/[()[\],.;:]/g, ' ').split(/\s+/).filter(Boolean);
+  const found = [];
+  for (let i = 0; i < words.length; i++) {
+    const two = placeOf(words[i] + ' ' + (words[i + 1] || ''));
+    if (two) { found.push(two); i++; continue; }
+    const one = placeOf(words[i]);
+    if (one) found.push(one);
+  }
+  return found;
+}
+const hasFlightWord = t => /\b(?:fly|flight)\b/i.test(t);
+// A manual move: "-Roma", "->Roma", "→ Roma" — for trains, drives and trips
+// planned before anything is booked. The text after the arrow is taken as-is,
+// so a small town with no airport code works exactly the same.
+function cityMarker(title) {
+  const m = title.match(/^\s*(?:-+\s*>?|→|=>)\s*([^,(]+?)\s*(?:\btbc\b.*)?$/i);
+  if (!m || !m[1] || /^\d/.test(m[1])) return null;
+  return m[1].trim();
+}
 // Compact views read a flight as its route: "OSL-PAR-HKG" -> "Oslo → Hong Kong".
 function flightRoute(title) {
-  const legs = flightLegs(title);
-  if (!legs.length) return null;
+  let legs = flightLegs(title);
+  // "Flight Oslo → Germany (Wuppertal trip)": the legs don't both resolve, but
+  // the title names places — only trusted when it actually says fly/flight.
+  if (legs.length < 2 && hasFlightWord(title)) legs = placesIn(title);
+  if (legs.length < 2) return null;
   return cityLabel(legs[0]) + ' → ' + cityLabel(legs[legs.length - 1]);
 }
 // "OSL–LHR 14:55" / "Osl - Beijing" / "BKK-PAR-MRS" -> last leg;
@@ -261,6 +288,11 @@ function flightRoute(title) {
 function flightDest(title) {
   const legs = flightLegs(title);
   if (legs.length) return legs[legs.length - 1];
+  // a flight title naming several places: the LAST one is where you end up
+  if (hasFlightWord(title)) {
+    const named = placesIn(title);
+    if (named.length >= 2) return named[named.length - 1];
+  }
   // "Fly til Bergen" / "Fly fra Oslo til Bergen": the word after til/to wins
   const via = title.match(/\b(?:fly|flight)\b[^.,;]*?\b(?:til|to)\s+([A-ZÆØÅa-zæøå][A-Za-zæøåÆØÅ]{2,})/i);
   if (via) return via[1];
@@ -276,18 +308,19 @@ function buildFlightIndex() {
     // Gmail-scraped events are skipped: a cc'd itinerary is often someone
     // else's flight, and a wrong city is worse than no city
     if (ev.fromGmail) continue;
-    const dest = flightDest(ev.title);
-    if (dest) flights.push({ date: ev.start, time: ev.time || '99', dest });
+    const dest = cityMarker(ev.title) || flightDest(ev.title);
+    if (dest) flights.push({ date: ev.start, time: ev.time || '99', dest, tbc: isTbc(ev) });
   }
   flights.sort((a, b) => (a.date === b.date ? (a.time < b.time ? -1 : 1) : (a.date < b.date ? -1 : 1)));
   return flights;
 }
+// the latest move on or before this day — {dest, tbc} — or null
 function cityOn(ds, flights) {
-  let city = null;
+  let hit = null;
   for (const f of flights) {
-    if (f.date <= ds) city = f.dest; else break;
+    if (f.date <= ds) hit = f; else break;
   }
-  return city;
+  return hit;
 }
 
 // Airport/metro codes -> city names (codes Alan actually flies, plus majors).
@@ -315,6 +348,20 @@ const IATA_CITIES = {
 const CITY_BY_NAME = {};
 for (const n of Object.values(IATA_CITIES)) CITY_BY_NAME[n.toLowerCase()] = n;
 
+// Places with no airport code of their own — tour towns and drives. Add to
+// this list as Alan hits ones the calendar doesn't know.
+const EXTRA_PLACES = [
+  'Wuppertal', 'Mainz', 'Essen', 'Bochum', 'Dortmund', 'Leipzig', 'Dresden', 'Hannover',
+  'Nürnberg', 'Bremen', 'Freiburg', 'Karlsruhe', 'Mannheim', 'Wiesbaden', 'Bonn', 'Münster',
+  'Kassel', 'Heidelberg', 'Darmstadt', 'Aachen', 'Augsburg', 'Weimar', 'Halle', 'Bochum',
+  'Avignon', 'Aix-en-Provence', 'Montpellier', 'Grenoble', 'Nantes', 'Rennes', 'Strasbourg',
+  'Lausanne', 'Bern', 'Basel', 'Luzern', 'Salzburg', 'Graz', 'Linz', 'Innsbruck',
+  'Bergamo', 'Brescia', 'Modena', 'Parma', 'Ferrara', 'Ravenna', 'Perugia', 'Siena',
+  'Lillehammer', 'Hamar', 'Tønsberg', 'Sandefjord', 'Fredrikstad', 'Drammen', 'Larvik',
+  'Skien', 'Arendal', 'Molde', 'Røros', 'Voss', 'Geilo', 'Hemsedal', 'Lofoten',
+  'Gent', 'Antwerpen', 'Brugge', 'Rotterdam', 'Utrecht', 'Groningen', 'Maastricht',
+  'Aarhus', 'Odense', 'Malmö', 'Uppsala', 'Tampere', 'Turku', 'Tallinn', 'Riga', 'Vilnius',
+];
 function cityName(code) {
   return IATA_CITIES[code] || code;
 }
@@ -326,6 +373,7 @@ const CODE_BY_NAME = {};
 for (const [code, name] of Object.entries(IATA_CITIES)) {
   if (!CODE_BY_NAME[name]) CODE_BY_NAME[name] = code;
 }
+for (const n of EXTRA_PLACES) CITY_BY_NAME[n.toLowerCase()] = n;
 Object.assign(CODE_BY_NAME, METRO);
 function cityCode(place) {
   if (IATA_CITIES[place]) return place;          // already a code
@@ -373,13 +421,17 @@ function renderMonthEl(y, m) {
     // day you move, on the 1st so every month block states it, and repeated
     // every week on the row BELOW the week number (Tuesday) — so the week
     // number keeps Monday to itself and you always know where you are.
-    let cityTxt = '';
+    let cityTxt = '', cityTbc = false;
     if (flights) {
-      const city = cityOn(ds, flights);
+      const move = cityOn(ds, flights);
+      const city = move && move.dest;
       // Monday belongs to the week number — never a city there (Alan, 2026-08-25).
       // Otherwise: on the day you move, and repeated weekly on Tuesday.
       const repeat = wi === 1 && !cityShown;
-      if (city && wi !== 0 && (city !== prevCity || repeat)) cityTxt = cityLabel(city);
+      if (city && wi !== 0 && (city !== prevCity || repeat)) {
+        cityTxt = cityLabel(city);
+        cityTbc = !!move.tbc; // planned, not booked: reads italic
+      }
       prevCity = city;
       cityShown = !!cityTxt && !h; // a holiday keeps the cell, so nothing showed
     }
@@ -470,7 +522,7 @@ function renderMonthEl(y, m) {
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''} ${h.name.length > 11 ? 'long' : ''} ${h.name.length > 15 ? 'xlong' : ''}">${esc(h.name)}</span>`
       : cityTxt
-        ? `<span class="info"><span class="cty ${cityTxt.length > 8 ? 'long' : ''}">${esc(cityTxt)}</span></span>`
+        ? `<span class="info"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}">${esc(cityTxt)}</span></span>`
         : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
@@ -569,8 +621,9 @@ function openDayPanel(row) {
     });
   const pop = document.createElement('div');
   pop.id = 'popover';
-  const city = cityOn(date, buildFlightIndex()); // the panel always spells it out in full
-  pop.innerHTML = `<p class="dim"><b>${date}</b>${city ? `<span class="city-tag">${esc(cityName(city))}</span>` : ''}</p>`
+  const move = cityOn(date, buildFlightIndex()); // the panel always spells it out in full
+  const city = move && cityName(move.dest);
+  pop.innerHTML = `<p class="dim"><b>${date}</b>${city ? `<span class="city-tag ${move.tbc ? 'tbc' : ''}">${esc(city)}</span>` : ''}</p>`
     + evs.map(e =>
       `<p class="${tour.has(e.calId) ? 'wgrow' : ''} ${isTbc(e) ? 'tbc' : ''}">${tour.has(e.calId) ? '<span class="wg-mark">wg</span> ' : ''}`
       + `<b style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`

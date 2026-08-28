@@ -212,13 +212,22 @@ Cities cluster:
   print-6/12 — PRE-EXISTING, worse with cities off, unrelated to this.
   Open, only if Alan wants it: drop the word "uke" on ordinary Mondays too
   (currently "uke 43" alone, "PARIS 42" when shared).
-- C2 APPROVED (Alan, 2026-08-25): tap the city in the day panel to set it
-  manually. Storage = real all-day marker events "→ Roma" in a dedicated
-  calendar (syncs, visible in Google, no hidden state). Override semantics:
-  pure date order — the latest marker-or-flight on/before a day wins, whatever
-  the booking order. Open before building: which calendar holds the markers
-  (auto-create "Almanakk byer" vs. an existing one) — creating a calendar in
-  Alan's Google account needs his explicit go.
+- C2 DONE (2026-08-25) and NO new calendar was needed. A manual move is just
+  an ordinary event titled "-Roma" (also "->Roma", "→ Roma"), in ANY calendar;
+  the day line renders it "→ Roma". The text after the arrow is taken as-is, so
+  towns with no airport code work. Add "tbc" ("-Roma tbc") and the move is
+  tentative: the city renders ITALIC in the info column and the day panel,
+  which is how a planned trip is told apart from a booked flight until a real
+  flight feed exists. Override semantics unchanged: pure date order, the latest
+  move on/before a day wins whatever the booking order. Guards verified:
+  "-8 Antigone" is not a marker (that is the span syntax) and a bare "-" isn't.
+- Flight titles that name a country plus a city (Alan's "11:15 Flight Oslo →
+  Germany (Wuppertal trip)"): when the dash/arrow legs don't both resolve, the
+  parser falls back to any places named ANYWHERE in the title, including inside
+  brackets — but ONLY when the title says fly/flight, so "Middag med
+  Oslo-venner" still moves nothing. Reads "Oslo → Wuppertal".
+- EXTRA_PLACES in app.js lists towns with no airport code (Wuppertal, Mainz,
+  Lillehammer...). Add to it as Alan hits places the calendar doesn't know.
 - C3 Flight email ingestion, Alan's flights only. Options: (1) Google's own
   Gmail→Calendar events (maybe already on; zero new parts); (2) TripIt —
   forward bookings to plans@tripit.com, subscribe to its iCal feed as a

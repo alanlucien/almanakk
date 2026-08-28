@@ -154,7 +154,9 @@ button.active { background: var(--ink); color: var(--card); }
    an inset shadow, NOT a border, so it never pushes the label down out of the row */
 .day .lane.on.bstart { box-shadow: inset 0 3px 0 var(--card); }
 /* tbc in a title renders tentative: italic text, dashed lighter band */
-.evt.tbc, #popover p.tbc b, .lane.tbc i { font-style: italic; }
+/* tbc anywhere means tentative — including a planned move, so a city set by a
+   trip that isn't booked yet reads italic */
+.evt.tbc, #popover p.tbc b, .lane.tbc i, .info .cty.tbc, #popover .city-tag.tbc { font-style: italic; }
 .day .lane.on.tbc { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
 /* shows ping red: band labels + a dot on the day number */
 .day .lane.showband i { color: var(--red); }
