@@ -114,22 +114,8 @@ button.active { background: var(--ink); color: var(--card); }
 .day.red .num, .day.red .wd { color: var(--red); }
 /* project/tour lanes: tinted band, label at span start / month start / Mondays */
 .day .lane { padding: 0; position: relative; }
-/* multi-line band label: wraps at word boundaries, flows down over the band */
-.day .lane.wrap { overflow: visible; }
-.day .lane.wrap i {
-  position: absolute;
-  left: 0; right: 0; top: 0;
-  /* NEVER taller than its own row: an overflowing label hangs into the next
-     day, where that day's band background can cover it — a word sliced through
-     the middle. Chromium paints it on top, iOS Safari does not. */
-  max-height: 100%;
-  z-index: 1;
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--lines, 1);
-  overflow: hidden;
-}
+/* a band label is always ONE line in its own row; a long title is written
+   down the band one word per row instead of overflowing into the next day */
 .day .lane.on { background: color-mix(in srgb, var(--c) 14%, var(--card)); border-left: 2px solid var(--ci, var(--c)); }
 /* line-height/padding kept tight: on a phone a row can be ~21px, and a taller
    label box gets clipped by the row or covered by the next one — a band label

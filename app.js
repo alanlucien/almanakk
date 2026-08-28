@@ -457,6 +457,8 @@ function renderMonthEl(y, m) {
   const flights = state.cities ? buildFlightIndex() : null;
   let prevCity = null;
   let cityShown = false; // did the city actually stand on yesterday's row?
+  // a title too long for its lane is written DOWN the band, one word per row
+  const wrapPlan = {}; // event id -> { from: day, words: [...] }
   let rows = '';
   for (let day = 1; day <= n; day++) {
     const d = new Date(y, m, day);
@@ -502,15 +504,29 @@ function renderMonthEl(y, m) {
       const showLabel = offset % 14 === 0 || (day === 1 && offset > 0 && untilNextBeat > 7);
       const canSpill = spillK > 1.05;
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
-      // a wrapped label may use up to 3 lines, but never more than the band has days
-      const lines = (showLabel && !canSpill) ? Math.max(1, Math.min(3, endInMonth - day + 1)) : 1;
+      const words = ev.title.split(/\s+/).filter(Boolean);
+      // Boxed in with a multi-word title: write it down the band, ONE WORD PER
+      // ROW. Each row then holds whole text of its own, so nothing hangs into
+      // the next day where it could be clipped or painted over — the bug Alan
+      // hit three times when this was one tall box instead.
+      if (showLabel) {
+        if (!canSpill && words.length > 1 && endInMonth > day) {
+          wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
+        } else {
+          delete wrapPlan[ev.id];
+        }
+      }
+      const plan = wrapPlan[ev.id];
+      const step = plan ? day - plan.from : -1;
+      let txt;
+      if (showLabel) txt = `<i>${esc(plan ? plan.words[0] : ev.title)}</i>`;
+      else if (plan && step > 0 && step < plan.words.length) txt = `<i>${esc(plan.words[step])}</i>`;
       // continuation rows carry an invisible copy of the title, so the band
       // stays text-wide wherever the row is free and snaps back where it isn't
-      const txt = showLabel ? `<i>${esc(ev.title)}</i>`
-        : (canSpill ? `<i class="ghost">${esc(ev.title)}</i>` : '');
-      return `<span class="lane on ${ev._wg ? 'wg' : ''} ${canSpill ? 'spill' : ''} ${lines > 1 ? 'wrap' : ''}`
+      else txt = canSpill ? `<i class="ghost">${esc(ev.title)}</i>` : '';
+      return `<span class="lane on ${ev._wg ? 'wg' : ''} ${canSpill ? 'spill' : ''}`
         + ` ${isShow(ev) ? 'showband' : ''} ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
-        + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--lines:${lines};--spillw:${Math.round(spillK * 100)}%">`
+        + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--spillw:${Math.round(spillK * 100)}%">`
         + txt + '</span>';
     };
     const freeAfter = (arr, i) => {

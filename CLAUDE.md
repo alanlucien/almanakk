@@ -69,9 +69,13 @@ The sheet is the layout reference and the initial data to import.
 - Band labels repeat on a 14-day beat from the span start (plus the 1st of a
   month when no beat lands in its first week) — not on Mondays.
 - Labels prefer sideways: they spill across consecutive empty cells to the
-  right, carrying their band tint with them; they wrap word-by-word down the
-  band only when boxed in, onto at most half the band's remaining days (max
-  3 lines); otherwise clip with ….
+  right, carrying their band tint with them. Boxed in with a multi-word title,
+  the title is written DOWN the band ONE WORD PER ROW (max 3 rows, never past
+  the band's end) — "ANTIGONE HK" reads ANTIGONE / HK on consecutive days.
+  Each row holds whole text of its own, so no label can hang into the next day
+  and be clipped or painted over; a single long word still clips with ….
+  (Rewritten 2026-08-28: this was one tall multi-line box, which caused three
+  separate "sliced word" reports — see B6/B7.)
 - Tour-tagged calendars (user-picked in the Kalendere panel) are an overlay,
   not normal calendars: the wg button shows their multi-day spans as dashed
   bands and their single-day items dimmed at the end of the day line.
@@ -151,6 +155,13 @@ Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
   month visibly ends. Verified 30- and 31-day months at 375px and 393px: last
   day fully visible with a 13px gap, nothing scrolls.
 
+- B7 DONE (2026-08-28), the third and final slicing report ("ANTIGONE HK", the
+  second line cut in half): B6's max-height stopped the label being COVERED but
+  left a partial second line — a 2-line box clamped to a 1-line row shows line 1
+  plus a sliver of line 2. Fixed at the root: a boxed-in multi-word title is no
+  longer one tall box. Each day's band cell now carries ONE WORD of the title
+  (see Layout rules), so overflow is impossible by construction rather than by
+  CSS clamping. The .wrap CSS and --lines are gone.
 - B6 DONE (2026-08-25), the slicing Alan still saw after B5: a band label that
   WRAPS (long title, no room to spill sideways) built a 2-3 line box ~34px tall
   inside a ~21px row. The overflow hangs into the next day, where that day's
