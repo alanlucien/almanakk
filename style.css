@@ -265,10 +265,14 @@ main.strip { height: 100%; overflow-y: auto; }
 
 /* ---------- cities column (derived from flights) ---------- */
 
-/* the city rides in the info column, tiny caps, sharing Mondays with the
-   week number ("PARIS 42"); the column widens so neither ever clips */
+/* the city rides in the info column in tiny caps; a long name steps down a
+   size rather than widen the column or clip (Alan, 2026-08-25) */
 .day .info .cty { text-transform: uppercase; letter-spacing: .05em; }
-.month.cities .day { --inf: 8.2em; }
+.day .info .cty.long { font-size: .85em; letter-spacing: .02em; }
+/* a long holiday name steps down too, rather than clipping ("K. himmelfartsdag") */
+.day .info.long { font-size: .8em; letter-spacing: -.01em; }
+.day .info.long.xlong { font-size: .72em; }
+.month.cities .day { --inf: 6.4em; }
 
 #toast button {
   margin-left: 12px;
@@ -300,7 +304,7 @@ main.strip { height: 100%; overflow-y: auto; }
   .quarter:last-child { page-break-after: auto; }
   .month { border-color: #999; break-inside: avoid; }
   .day { font-size: 6.5pt; min-height: 5.7mm; border-bottom-color: #ccc; --pre: 2.6em 2.2em; --inf: 6em; }
-  .month.cities .day { --inf: 8.4em; }
+  .month.cities .day { --inf: 6.6em; }
   .day > span { padding: 1px 2px; }
   /* on paper: every day the same height — details stay on one line */
   .day .detail { overflow: hidden; }
@@ -309,12 +313,12 @@ main.strip { height: 100%; overflow-y: auto; }
   .day.today { outline: none; }
   /* 6 months per page */
   body.print-6 .day { font-size: 5pt; --pre: 2.4em 2em; --inf: 5em; }
-  body.print-6 .month.cities .day { --inf: 7em; }
+  body.print-6 .month.cities .day { --inf: 5.6em; }
   body.print-6 .day .info { font-size: 4.2pt; }
   body.print-6 .month h2 { font-size: 6.5pt; letter-spacing: .2em; }
   /* the whole year on one classic sheet */
   body.print-12 .day { font-size: 3.8pt; --pre: 2.2em 1.9em; --inf: 4em; --own: repeat(var(--lanes, 1), minmax(0, 3fr)); --det: minmax(0, 4fr); }
-  body.print-12 .month.cities .day { --inf: 5.6em; }
+  body.print-12 .month.cities .day { --inf: 4.6em; }
   body.print-12 .day .info { font-size: 3.2pt; }
   body.print-12 .month h2 { font-size: 5pt; letter-spacing: .1em; padding: 2px; }
   body.print-12 .day .lane i { padding: 0 1px; }

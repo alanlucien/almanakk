@@ -175,6 +175,24 @@ row expands; no more Endre/Slett buttons on every row). Hosts: title edit,
   must explicitly null dateTime when converting). Delete moves in here too.
 
 Cities cluster:
+- C1 FINAL (Alan, 2026-08-25, after seeing it live): Monday is the week
+  number's alone — NEVER a city there, even when the city changes that day (it
+  then appears on the Tuesday repeat). Cities show on Tuesday and on any
+  non-Monday day the city changes. No combined "PARIS 42" form any more. The
+  info column narrowed 8.2em -> 6.4em; long city names and long holiday names
+  step down a font size instead of clipping or widening; "K. himmelfartsdag"
+  -> "Kr. himmelfart" and "n. Søn. i advent" -> "n. advent" (standard almanakk
+  abbreviations) so nothing clips in month/year/print-3. print-6 and print-12
+  still clip the longest holiday names — PRE-EXISTING at 5pt/3.8pt type.
+- Compact titles (Alan, 2026-08-25) — year and month views show the GIST;
+  Detaljer and the day panel always keep the full title:
+  * a flight reads as its route, "OSL-PAR-HKG" -> "Oslo → Hong Kong" (only
+    when 2+ legs resolve to places, so "Fly til Bergen" keeps its title).
+    OPEN: city names vs airport codes — Alan to pick from the two previews.
+  * a performance reads as production + number: "Antigone performance 2" and
+    "second show Antigone" both -> "Antigone 2" (English + Norwegian ordinals);
+    if nothing but the keyword remains ("Performance 2") the title is kept.
+    13-case test table in the commit.
 - C1 DONE (2026-08-25, Alan picked "D+" from previews): the left 6em cities
   column is gone; the city rides in the right info column in tiny caps. It
   shows when it CHANGES, on the 1st of a month, and repeats EVERY WEEK on the

@@ -121,13 +121,13 @@ function holidays(y) {
   put(off(E, 1), '2. Påskedag', true);
   put(new Date(y, 4, 1), '1. mai', true);
   put(new Date(y, 4, 17), '17. mai', true);
-  put(off(E, 39), 'K. himmelfartsdag', true);
+  put(off(E, 39), 'Kr. himmelfart', true);
   put(off(E, 49), '1. Pinsedag', true);
   put(off(E, 50), '2. Pinsedag', true);
   put(new Date(y, 5, 23), 'St.Hansaften');
   const dec24 = new Date(y, 11, 24);
   const advent4 = off(dec24, -dec24.getDay()); // Sunday on/before Dec 24
-  for (let n = 1; n <= 4; n++) put(off(advent4, (n - 4) * 7), n + '. Søn. i advent');
+  for (let n = 1; n <= 4; n++) put(off(advent4, (n - 4) * 7), n + '. advent');
   put(dec24, 'Julaften');
   put(new Date(y, 11, 25), '1. Juledag', true);
   put(new Date(y, 11, 26), '2. Juledag', true);
@@ -189,6 +189,33 @@ function detOrder(a, b) {
   const ka = k(a), kb = k(b);
   return ka < kb ? -1 : ka > kb ? 1 : 0;
 }
+// A performance reads as its production and which one it is:
+// "Antigone performance 2" / "second show Antigone" -> "Antigone 2".
+const SHOW_WORDS = /\b(?:shows?|performances?|forestilling\w*|visning\w*|vorstellung\w*|prem[\wèéêë]*|matin[ée]\w*|forest\w*)\b/gi;
+const ORDINALS = {
+  first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10,
+  første: 1, andre: 2, tredje: 3, fjerde: 4, femte: 5, sjette: 6, sjuende: 7, syvende: 7, åttende: 8, niende: 9, tiende: 10,
+};
+function showLabel(title) {
+  if (!isShow({ title })) return null;
+  let t = title, num = null;
+  const digit = t.match(/(?:^|[^\d])(\d{1,2})(?!\d)/); // 1–2 digits: a count, not a year
+  if (digit) { num = digit[1]; t = t.replace(digit[0], digit[0].replace(digit[1], ' ')); }
+  else {
+    t = t.replace(/\b([a-zæøåA-ZÆØÅ]+)\b/g, w => {
+      const n = ORDINALS[w.toLowerCase()];
+      if (n && num === null) { num = String(n); return ' '; }
+      return w;
+    });
+  }
+  const name = t.replace(SHOW_WORDS, ' ').replace(/[-–—:·,]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!name) return null; // nothing but the word "Performance" — keep the original
+  return num ? name + ' ' + num : name;
+}
+// Year and month views show the GIST; Detaljer and the day panel keep the full title.
+function compactTitle(e) {
+  return flightRoute(e.title) || showLabel(e.title) || e.title;
+}
 function evInk(e) { return isShow(e) ? 'var(--red)' : inkColor(e.color); }
 const isTbc = ev => /\btbc\b/i.test(ev.title);
 
@@ -211,16 +238,28 @@ function placeOf(s) {
   if (/^[A-Za-zÆØÅæøå]{3}$/.test(s) && IATA_CITIES[s.toUpperCase()]) return s.toUpperCase();
   return CITY_BY_NAME[s.toLowerCase()] || null;
 }
+// The longest run of consecutive legs that ALL resolve to places:
+// "SK 4103 Oslo - Bergen" -> ['Oslo','Bergen'], "Meet Ellen - afternoon" -> [].
+function flightLegs(title) {
+  let best = [], run = [];
+  for (const part of title.split(/\s*(?:[-–—]+|[>→]+)\s*/)) {
+    const place = placeOf(cleanLeg(part));
+    if (place) { run.push(place); if (run.length > best.length) best = run.slice(); }
+    else run = [];
+  }
+  return best.length >= 2 ? best : [];
+}
+// Compact views read a flight as its route: "OSL-PAR-HKG" -> "Oslo → Hong Kong".
+function flightRoute(title) {
+  const legs = flightLegs(title);
+  if (!legs.length) return null;
+  return cityName(legs[0]) + ' → ' + cityName(legs[legs.length - 1]);
+}
 // "OSL–LHR 14:55" / "Osl - Beijing" / "BKK-PAR-MRS" -> last leg;
 // "Fly til Bergen" / "Flight to Helsinki (AY 62)" -> the name after til/to.
 function flightDest(title) {
-  let dest = null, run = 0, prev = null;
-  for (const part of title.split(/\s*(?:[-–—]+|[>→]+)\s*/)) {
-    const place = placeOf(cleanLeg(part));
-    if (place) { run++; if (run >= 2) dest = place; prev = place; }
-    else { run = 0; prev = null; }
-  }
-  if (dest) return dest;
+  const legs = flightLegs(title);
+  if (legs.length) return legs[legs.length - 1];
   // "Fly til Bergen" / "Fly fra Oslo til Bergen": the word after til/to wins
   const via = title.match(/\b(?:fly|flight)\b[^.,;]*?\b(?:til|to)\s+([A-ZÆØÅa-zæøå][A-Za-zæøåÆØÅ]{2,})/i);
   if (via) return via[1];
@@ -319,9 +358,10 @@ function renderMonthEl(y, m) {
     let cityTxt = '';
     if (flights) {
       const city = cityOn(ds, flights);
-      // skip the weekly repeat when the city already stood on yesterday's row
+      // Monday belongs to the week number — never a city there (Alan, 2026-08-25).
+      // Otherwise: on the day you move, and repeated weekly on Tuesday.
       const repeat = wi === 1 && !cityShown;
-      if (city && (city !== prevCity || day === 1 || repeat)) cityTxt = cityName(city);
+      if (city && wi !== 0 && (city !== prevCity || repeat)) cityTxt = cityName(city);
       prevCity = city;
       cityShown = !!cityTxt && !h; // a holiday keeps the cell, so nothing showed
     }
@@ -401,19 +441,18 @@ function renderMonthEl(y, m) {
         return ka < kb ? -1 : ka > kb ? 1 : 0;
       });
     // compact views show WHAT (no clock prefix); Detaljer view and the day box show WHEN
-    const evtHtml = (e, wg) => `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">${esc(((state.detailed && e.time) ? e.time + ' ' : '') + e.title)}</b>`;
+    const evtHtml = (e, wg) => `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">`
+      + esc(state.detailed ? (e.time ? e.time + ' ' : '') + e.title : compactTitle(e)) + '</b>';
     // a day without any band absorbs all lane columns (keeps the grid aligned)
     const detail = `<span class="detail"${(hasOwn || hasWgBand) ? '' : ` style="grid-column: span ${nOwn + nOvl + 1}"`}>`
       + lineItems.map(({ e, wg }) => evtHtml(e, wg)).join('')
       + '</span>';
-    // One cell, one line: a holiday keeps it (the flight is on the day line
-    // anyway); otherwise the city, sharing Mondays with the week number as
-    // "PARIS 42" — no "uke" when they share, so nothing has to clip.
-    const cty = `<span class="cty">${esc(cityTxt)}</span>`;
+    // One cell, one line, one thing in it: a holiday, else the week number on
+    // Monday, else the city. Long names step down a size rather than clip.
     const info = h
-      ? `<span class="info ${h.red ? 'red' : ''}">${esc(h.name)}</span>`
+      ? `<span class="info ${h.red ? 'red' : ''} ${h.name.length > 11 ? 'long' : ''} ${h.name.length > 15 ? 'xlong' : ''}">${esc(h.name)}</span>`
       : cityTxt
-        ? `<span class="info">${cty}${wi === 0 ? ' ' + isoWeek(d) : ''}</span>`
+        ? `<span class="info"><span class="cty ${cityTxt.length > 8 ? 'long' : ''}">${esc(cityTxt)}</span></span>`
         : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
