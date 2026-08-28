@@ -227,8 +227,13 @@ Cities cluster:
   towns with no airport code work. Add "tbc" ("-Roma tbc") and the move is
   tentative: the city renders ITALIC in the info column and the day panel,
   which is how a planned trip is told apart from a booked flight until a real
-  flight feed exists. Override semantics unchanged: pure date order, the latest
-  move on/before a day wins whatever the booking order. Guards verified:
+  flight feed exists. Override semantics: date first; within ONE day a BOOKING
+  outranks a PLAN (a real flight replaces "-Roma tbc" that day), then by time so
+  the last leg of a travel day still wins. Until 2026-08-25 this was date+time
+  only, so a tbc marker (no time, sorted last) BEAT a timed flight, and against
+  an all-day flight the winner depended on load order — same data, different
+  answer run to run. Verified: tbc+timed, tbc+all-day, either load order, and a
+  two-leg day (Oslo→København→Bangkok = Bangkok). Guards verified:
   "-8 Antigone" is not a marker (that is the span syntax) and a bare "-" isn't.
 - Flight titles that name a country plus a city (Alan's "11:15 Flight Oslo →
   Germany (Wuppertal trip)"): when the dash/arrow legs don't both resolve, the
