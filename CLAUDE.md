@@ -144,6 +144,15 @@ Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
   month visibly ends. Verified 30- and 31-day months at 375px and 393px: last
   day fully visible with a 13px gap, nothing scrolls.
 
+- B6 DONE (2026-08-25), the slicing Alan still saw after B5: a band label that
+  WRAPS (long title, no room to spill sideways) built a 2-3 line box ~34px tall
+  inside a ~21px row. The overflow hangs into the next day, where that day's
+  band background can paint over it — Chromium happens to paint the label on
+  top, iOS Safari does not, which is why it looked broken on his phone and
+  never on mine. Every label now carries max-height:100% (and spill labels are
+  centred in the row), so no label can be taller than its own row on any
+  browser. A boxed-in long title clips with … instead of wrapping. If Alan
+  wants real wrapping back, it must be built so the box aligns to whole rows.
 - B5 DONE (2026-08-25): band labels were sliced through the middle of their
   letters on the phone ("PARIS" on Alan's 29 Sept). Cause: the 3px paper seam
   at a band start was a border-top, which pushed the absolutely-positioned
@@ -255,10 +264,36 @@ Cities cluster:
   stores that flag and buildFlightIndex skips them (verified: a cc'd "Flight
   to Berlin" no longer moves the city). They still render as events; they just
   never move the pin.
-  Remaining choice for an automatic source — both are curated, i.e. only what
-  Alan puts in: (2) TripIt, forward bookings to plans@tripit.com, subscribe to
-  its iCal feed as a calendar; (3) Flighty (paid, best data, live delays).
-  Either way, tick it as its own calendar so it stays separable.
+  TripIt/Flighty REJECTED too (Alan, 2026-08-25) and the reason is again
+  decisive: both are curated, i.e. they need him to forward or add the flight,
+  and "I don't always read the mails before travelling" — so the flight would
+  be missing exactly when it matters. An automatic source is therefore the only
+  one that fits how he works.
+
+  PARKED, ready to build: a GOOGLE APPS SCRIPT flight importer.
+  - Runs on Google's servers inside Alan's own account (script.google.com), on
+    a time trigger (~every 15 min). Nothing installed, nothing on his devices.
+  - Two Gmail accounts: Apps Script runs as ONE account, so either run a copy
+    in each (both writing to the same calendar, shared with "make changes"), or
+    auto-forward airline mail from the second account to the first.
+  - Writes to its own "Flights" calendar, so it stays separable in Kalendere
+    and can be told apart from Alan's own typed events.
+  - THE HARD PART is "mine only": Alan books for the company and is cc'd on
+    itineraries, so his name appearing is NOT sufficient. Rules: his name must
+    be in the passenger block; skip where he is only in cc; skip multi-passenger
+    itineraries that don't list him; when unsure, do nothing rather than guess.
+  - MUST be idempotent: label each processed Gmail message (or record the PNR
+    on the event) and never reprocess. That is what makes a deleted event stay
+    deleted — a naive script would resurrect it on the next run.
+  - Deleted by mistake: Google Calendar keeps a per-calendar Trash for ~30 days,
+    so it can be restored there; worst case re-run against the original mail.
+  - Weekly digest mail of what it added, because when an airline changes its
+    template the script goes quiet rather than erroring.
+  - BUILD IN TWO STAGES: first a DRY RUN that writes nothing and just mails
+    "here is what I would have created", run for a week or two against real
+    mail, so the name rule is measured before anything is written.
+  - Still needed from Alan: the two Gmail addresses, and a yes to the calendar
+    name.
   Parser must match the feed's title format.
 
 Layout conversations (previews first, Alan decides from pictures):
