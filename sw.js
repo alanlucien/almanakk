@@ -2,9 +2,9 @@
    Event data offline comes from localStorage (see gcal.js), not from here. */
 'use strict';
 
-const CACHE = 'almanakk-v1';
+const CACHE = 'almanakk-v2';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'gcal.js', 'config.js',
-  'demo-data.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+  'demo-data.js', 'airports.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

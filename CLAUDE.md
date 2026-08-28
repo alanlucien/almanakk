@@ -228,6 +228,18 @@ Cities cluster:
   Oslo-venner" still moves nothing. Reads "Oslo → Wuppertal".
 - EXTRA_PLACES in app.js lists towns with no airport code (Wuppertal, Mainz,
   Lillehammer...). Add to it as Alan hits places the calendar doesn't know.
+- airports.js (2026-08-25) holds the FULL IATA table — 7743 codes -> city, from
+  the open mwgg/Airports dataset, ~140KB (gzips to ~45KB), cached by the service
+  worker. It is a FALLBACK only: the curated IATA_CITIES in app.js always wins,
+  so Norwegian spellings survive (Tromsø not Tromso, Ålesund not Alesund). It
+  matches CODES ONLY and only when written in capitals, so a three-letter word
+  in an ordinary title can never become a destination. ALIASES maps English
+  spellings to the calendar's ("Copenhagen" -> "København"), because airline
+  mail and Alan's own titles disagree. Regenerate: curl the dataset, keep
+  entries with a 3-letter IATA and a city, strip "(...)" suffixes.
+- A one-legged flight also reads as a move: "19:35 Flight to Copenhagen
+  (SK 2869)" -> "→ København" in month/year views (full title in Detaljer and
+  the day panel, as always).
 - C3 Flight email ingestion, Alan's flights only. Options: (1) Google's own
   Gmail→Calendar events (maybe already on; zero new parts); (2) TripIt —
   forward bookings to plans@tripit.com, subscribe to its iCal feed as a

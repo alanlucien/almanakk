@@ -217,7 +217,14 @@ function showLabel(title) {
 function compactTitle(e) {
   const mark = cityMarker(e.title);
   if (mark) return '→ ' + mark;
-  return flightRoute(e.title) || showLabel(e.title) || e.title;
+  const route = flightRoute(e.title);
+  if (route) return route;
+  // one-legged flights ("19:35 Flight to Copenhagen (SK 2869)") read as a move
+  if (hasFlightWord(e.title)) {
+    const named = placesIn(e.title);
+    if (named.length === 1) return '→ ' + cityLabel(named[0]);
+  }
+  return showLabel(e.title) || e.title;
 }
 function evInk(e) { return isShow(e) ? 'var(--red)' : inkColor(e.color); }
 const isTbc = ev => /\btbc\b/i.test(ev.title);
@@ -239,6 +246,9 @@ function cleanLeg(s) {
 function placeOf(s) {
   if (!s) return null;
   if (/^[A-Za-zÆØÅæøå]{3}$/.test(s) && IATA_CITIES[s.toUpperCase()]) return s.toUpperCase();
+  // the full airport table only matches a code written as a code, in capitals,
+  // so an ordinary three-letter word can never become a destination
+  if (/^[A-Z]{3}$/.test(s) && window.AIRPORTS && AIRPORTS[s]) return s;
   return CITY_BY_NAME[s.toLowerCase()] || null;
 }
 // The longest run of consecutive legs that ALL resolve to places:
@@ -294,10 +304,12 @@ function flightDest(title) {
     if (named.length >= 2) return named[named.length - 1];
   }
   // "Fly til Bergen" / "Fly fra Oslo til Bergen": the word after til/to wins
+  // resolve through the place tables so the column and the day line agree
+  // ("Copenhagen" and "København" are the same city)
   const via = title.match(/\b(?:fly|flight)\b[^.,;]*?\b(?:til|to)\s+([A-ZÆØÅa-zæøå][A-Za-zæøåÆØÅ]{2,})/i);
-  if (via) return via[1];
+  if (via) return placeOf(via[1]) || via[1];
   const plain = title.match(/\b(?:fly|flight)\s+([A-ZÆØÅa-zæøå][A-Za-zæøåÆØÅ]{2,})/i);
-  if (plain && !/^(?:til|to|fra|from)$/i.test(plain[1])) return plain[1];
+  if (plain && !/^(?:til|to|fra|from)$/i.test(plain[1])) return placeOf(plain[1]) || plain[1];
   return null;
 }
 function buildFlightIndex() {
@@ -363,7 +375,7 @@ const EXTRA_PLACES = [
   'Aarhus', 'Odense', 'Malmö', 'Uppsala', 'Tampere', 'Turku', 'Tallinn', 'Riga', 'Vilnius',
 ];
 function cityName(code) {
-  return IATA_CITIES[code] || code;
+  return IATA_CITIES[code] || (window.AIRPORTS && AIRPORTS[code]) || code;
 }
 // name -> code, so the Byer button can read either way. Multi-airport cities
 // prefer their metro code (London -> LON, not LHR).
@@ -374,6 +386,18 @@ for (const [code, name] of Object.entries(IATA_CITIES)) {
   if (!CODE_BY_NAME[name]) CODE_BY_NAME[name] = code;
 }
 for (const n of EXTRA_PLACES) CITY_BY_NAME[n.toLowerCase()] = n;
+// English spellings, because airline mail says "Copenhagen" where the calendar
+// says "København". Both resolve to the same place.
+const ALIASES = {
+  Copenhagen: 'København', Gothenburg: 'Göteborg', Vienna: 'Wien', Prague: 'Praha',
+  Warsaw: 'Warszawa', Munich: 'München', Cologne: 'Köln', Rome: 'Roma', Milan: 'Milano',
+  Naples: 'Napoli', Florence: 'Firenze', Venice: 'Venezia', Turin: 'Torino',
+  Lisbon: 'Lisboa', Athens: 'Athen', Moscow: 'Moskva', Geneva: 'Genève', Zurich: 'Zürich',
+  Brussels: 'Brussel', Cairo: 'Kairo', Reykjavik: 'Reykjavík', Bucharest: 'Bucuresti',
+  Krakow: 'Kraków', Gothenburg2: 'Göteborg', Tromso: 'Tromsø', Alesund: 'Ålesund',
+  Bodo: 'Bodø', Kristiansund: 'Kristiansund', Trondheim: 'Trondheim',
+};
+for (const [en, no] of Object.entries(ALIASES)) CITY_BY_NAME[en.toLowerCase()] = no;
 Object.assign(CODE_BY_NAME, METRO);
 function cityCode(place) {
   if (IATA_CITIES[place]) return place;          // already a code
