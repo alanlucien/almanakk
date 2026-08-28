@@ -375,7 +375,8 @@ const EXTRA_PLACES = [
   'Aarhus', 'Odense', 'Malmö', 'Uppsala', 'Tampere', 'Turku', 'Tallinn', 'Riga', 'Vilnius',
 ];
 function cityName(code) {
-  return IATA_CITIES[code] || (window.AIRPORTS && AIRPORTS[code]) || code;
+  const no = IATA_CITIES[code] || (window.AIRPORTS && AIRPORTS[code]) || code;
+  return state.lang === 'en' ? (EXONYM_EN[no] || no) : no;
 }
 // name -> code, so the Byer button can read either way. Multi-airport cities
 // prefer their metro code (London -> LON, not LHR).
@@ -386,18 +387,21 @@ for (const [code, name] of Object.entries(IATA_CITIES)) {
   if (!CODE_BY_NAME[name]) CODE_BY_NAME[name] = code;
 }
 for (const n of EXTRA_PLACES) CITY_BY_NAME[n.toLowerCase()] = n;
-// English spellings, because airline mail says "Copenhagen" where the calendar
-// says "København". Both resolve to the same place.
-const ALIASES = {
-  Copenhagen: 'København', Gothenburg: 'Göteborg', Vienna: 'Wien', Prague: 'Praha',
-  Warsaw: 'Warszawa', Munich: 'München', Cologne: 'Köln', Rome: 'Roma', Milan: 'Milano',
-  Naples: 'Napoli', Florence: 'Firenze', Venice: 'Venezia', Turin: 'Torino',
-  Lisbon: 'Lisboa', Athens: 'Athen', Moscow: 'Moskva', Geneva: 'Genève', Zurich: 'Zürich',
-  Brussels: 'Brussel', Cairo: 'Kairo', Reykjavik: 'Reykjavík', Bucharest: 'Bucuresti',
-  Krakow: 'Kraków', Gothenburg2: 'Göteborg', Tromso: 'Tromsø', Alesund: 'Ålesund',
-  Bodo: 'Bodø', Kristiansund: 'Kristiansund', Trondheim: 'Trondheim',
+// Cities whose NAME differs by language — Roma/Rome, København/Copenhagen.
+// Ålesund and Tromsø are not here: they are the same word in both, just spelt
+// properly. Both spellings always resolve; only the display follows the flag.
+const EXONYM_EN = {
+  'København': 'Copenhagen', 'Göteborg': 'Gothenburg', 'Wien': 'Vienna', 'Praha': 'Prague',
+  'Warszawa': 'Warsaw', 'München': 'Munich', 'Köln': 'Cologne', 'Roma': 'Rome',
+  'Milano': 'Milan', 'Napoli': 'Naples', 'Firenze': 'Florence', 'Venezia': 'Venice',
+  'Torino': 'Turin', 'Lisboa': 'Lisbon', 'Athen': 'Athens', 'Moskva': 'Moscow',
+  'Genève': 'Geneva', 'Zürich': 'Zurich', 'Brussel': 'Brussels', 'Kairo': 'Cairo',
+  'Kraków': 'Krakow', 'Praia': 'Praia',
 };
-for (const [en, no] of Object.entries(ALIASES)) CITY_BY_NAME[en.toLowerCase()] = no;
+for (const [no, en] of Object.entries(EXONYM_EN)) {
+  CITY_BY_NAME[en.toLowerCase()] = no;   // "Venice" in a title finds Venezia
+  CITY_BY_NAME[no.toLowerCase()] = no;
+}
 Object.assign(CODE_BY_NAME, METRO);
 function cityCode(place) {
   if (IATA_CITIES[place]) return place;          // already a code

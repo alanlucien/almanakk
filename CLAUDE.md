@@ -235,7 +235,11 @@ Cities cluster:
   matches CODES ONLY and only when written in capitals, so a three-letter word
   in an ordinary title can never become a destination. ALIASES maps English
   spellings to the calendar's ("Copenhagen" -> "København"), because airline
-  mail and Alan's own titles disagree. Regenerate: curl the dataset, keep
+  mail and Alan's own titles disagree. EXONYM_EN (2026-08-25) makes the DISPLAY
+  follow the language button: Roma/Rome, København/Copenhagen, Venezia/Venice,
+  Wien/Vienna, München/Munich... Ålesund and Tromsø are deliberately NOT in it
+  — they are the same word in both languages (Alan). Either spelling always
+  resolves in a title, whichever language is showing. Regenerate: curl the dataset, keep
   entries with a 3-letter IATA and a city, strip "(...)" suffixes.
 - A one-legged flight also reads as a move: "19:35 Flight to Copenhagen
   (SK 2869)" -> "→ København" in month/year views (full title in Detaljer and
