@@ -235,6 +235,10 @@ Cities cluster:
   answer run to run. Verified: tbc+timed, tbc+all-day, either load order, and a
   two-leg day (Oslo→København→Bangkok = Bangkok). Guards verified:
   "-8 Antigone" is not a marker (that is the span syntax) and a bare "-" isn't.
+  When a booking takes over a planned move that day, the day panel says so on
+  that row — "· erstattet av fly" / "· replaced by flight" — next to the Slett
+  button, so a stale placeholder is noticed rather than going quiet. Nothing is
+  deleted automatically: the marker still describes the days before the flight.
 - Flight titles that name a country plus a city (Alan's "11:15 Flight Oslo →
   Germany (Wuppertal trip)"): when the dash/arrow legs don't both resolve, the
   parser falls back to any places named ANYWHERE in the title, including inside

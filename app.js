@@ -11,7 +11,7 @@ const LANGS = {
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender',
-    deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', citiesBtn: 'Byer', codesBtn: 'Koder',
+    deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', citiesBtn: 'Byer', codesBtn: 'Koder', replaced: 'erstattet av fly',
     tourHint: 'Huk av «Tour» på turnékalenderne under Kalendere først.',
     newPh: 'Ny · «8-12 tekst» = flere dager · «13:00» = tid', add: 'Legg til', del: 'Slett',
     printHead: 'Skriv ut %Y — A4 liggende', per3: '3 mnd/side', per6: '6 mnd/side', per12: 'Hele året på én side',
@@ -23,7 +23,7 @@ const LANGS = {
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar',
-    deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', citiesBtn: 'Cities', codesBtn: 'Codes',
+    deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', citiesBtn: 'Cities', codesBtn: 'Codes', replaced: 'replaced by flight',
     tourHint: 'Tick "Tour" on the touring calendars under Calendars first.',
     newPh: 'New · "8-12 text" = several days · "13:00" = timed', add: 'Add', del: 'Delete',
     printHead: 'Print %Y — A4 landscape', per3: '3 months/page', per6: '6 months/page', per12: 'Whole year on one page',
@@ -655,12 +655,18 @@ function openDayPanel(row) {
     });
   const pop = document.createElement('div');
   pop.id = 'popover';
-  const move = cityOn(date, buildFlightIndex()); // the panel always spells it out in full
+  const idx = buildFlightIndex();
+  const move = cityOn(date, idx); // the panel always spells it out in full
   const city = move && cityName(move.dest);
+  // a planned move ("-Roma tbc") that a real booking has taken over that day:
+  // say so here, where the delete button already is, rather than let it go quiet
+  const booked = idx.some(f => f.date === date && !f.tbc);
+  const superseded = e => booked && isTbc(e) && cityMarker(e.title);
   pop.innerHTML = `<p class="dim"><b>${date}</b>${city ? `<span class="city-tag ${move.tbc ? 'tbc' : ''}">${esc(city)}</span>` : ''}</p>`
     + evs.map(e =>
       `<p class="${tour.has(e.calId) ? 'wgrow' : ''} ${isTbc(e) ? 'tbc' : ''}">${tour.has(e.calId) ? '<span class="wg-mark">wg</span> ' : ''}`
       + `<b style="color:${evInk(e)}">${esc((e.time ? e.time + ' ' : '') + e.title)}</b>`
+      + (superseded(e) ? ` <span class="dim">· ${L().replaced}</span>` : '')
       + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')
       + ` <button class="x" data-edit="${e.id}">${L().edit}</button>`
       + ` <button class="x" data-del="${e.id}">${L().del}</button></p>`).join('')
