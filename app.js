@@ -253,10 +253,20 @@ function placeOf(s) {
 }
 // The longest run of consecutive legs that ALL resolve to places:
 // "SK 4103 Oslo - Bergen" -> ['Oslo','Bergen'], "Meet Ellen - afternoon" -> [].
+// A leg, allowing for a booking reference glued to the city name:
+// "YLHNAI Oslo - Bergen". Only tried when the leg does not resolve as it
+// stands, so "PARIS" and other real names are never mistaken for a reference.
+function legPlace(part) {
+  const s = cleanLeg(part);
+  const direct = placeOf(s);
+  if (direct) return direct;
+  const m = s.match(/^[A-Z][A-Z0-9]{4,7}\s+(.+)$/);
+  return m ? placeOf(m[1]) : null;
+}
 function flightLegs(title) {
   let best = [], run = [];
   for (const part of title.split(/\s*(?:[-–—]+|[>→]+)\s*/)) {
-    const place = placeOf(cleanLeg(part));
+    const place = legPlace(part);
     if (place) { run.push(place); if (run.length > best.length) best = run.slice(); }
     else run = [];
   }

@@ -113,6 +113,13 @@ Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
   in any case, or a known city name), so "Osl - Beijing", "Beijing - Paris",
   "SK 4103 Oslo - Bergen" all work while "Meet Ellen - afternoon", "Prosjekt
   A - B", "Jury duty" stay non-flights. 20-case test table in the commit.
+  (d) 2026-08-28, from Alan's March screenshot: "21:50 YLHNAI Oslo - Bergen"
+  moved nothing — a 6-letter booking reference glued to the origin ("YLHNAI
+  Oslo") stops the leg resolving, so the whole flight was invisible while
+  "SK 4103 Oslo - Bergen" worked (airline+number IS stripped by cleanLeg).
+  legPlace now retries a leg without a leading reference-looking token
+  (5-8 uppercase alphanumerics), but ONLY when the leg failed as it stands, so
+  real names like "MARSEILLE" are never treated as a reference.
   Still open: January is blank until the year's first flight (needs prior-year
   loading, do only if it bites); city names outside IATA_CITIES are unknown —
   add codes/names as Alan hits them.
