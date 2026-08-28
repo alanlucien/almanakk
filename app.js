@@ -11,7 +11,7 @@ const LANGS = {
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender',
-    deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', citiesBtn: 'Byer',
+    deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', citiesBtn: 'Byer', codesBtn: 'Koder',
     tourHint: 'Huk av «Tour» på turnékalenderne under Kalendere først.',
     newPh: 'Ny · «8-12 tekst» = flere dager · «13:00» = tid', add: 'Legg til', del: 'Slett',
     printHead: 'Skriv ut %Y — A4 liggende', per3: '3 mnd/side', per6: '6 mnd/side', per12: 'Hele året på én side',
@@ -23,7 +23,7 @@ const LANGS = {
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar',
-    deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', citiesBtn: 'Cities',
+    deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', citiesBtn: 'Cities', codesBtn: 'Codes',
     tourHint: 'Tick "Tour" on the touring calendars under Calendars first.',
     newPh: 'New · "8-12 text" = several days · "13:00" = timed', add: 'Add', del: 'Delete',
     printHead: 'Print %Y — A4 landscape', per3: '3 months/page', per6: '6 months/page', per12: 'Whole year on one page',
@@ -38,7 +38,8 @@ const state = {
   events: [],      // {id, title, start, end (inclusive 'YYYY-MM-DD'), color, time?, gid?, calId?, src?}
   mode: 'demo',    // 'demo' | 'google'
   wg: localStorage.getItem('almanakk-wg') === '1', // overlay the tour-tagged calendars
-  cities: localStorage.getItem('almanakk-cities') === '1',
+  cities: true, // always shown; the button switches how they read
+  cityCodes: localStorage.getItem('almanakk-citycodes') === '1', // OSL vs Oslo
   lang: localStorage.getItem('almanakk-lang') || 'no',
   detailed: false, // month view with every event on its own row
 };
@@ -253,7 +254,7 @@ function flightLegs(title) {
 function flightRoute(title) {
   const legs = flightLegs(title);
   if (!legs.length) return null;
-  return cityName(legs[0]) + ' → ' + cityName(legs[legs.length - 1]);
+  return cityLabel(legs[0]) + ' → ' + cityLabel(legs[legs.length - 1]);
 }
 // "OSL–LHR 14:55" / "Osl - Beijing" / "BKK-PAR-MRS" -> last leg;
 // "Fly til Bergen" / "Flight to Helsinki (AY 62)" -> the name after til/to.
@@ -317,6 +318,23 @@ for (const n of Object.values(IATA_CITIES)) CITY_BY_NAME[n.toLowerCase()] = n;
 function cityName(code) {
   return IATA_CITIES[code] || code;
 }
+// name -> code, so the Byer button can read either way. Multi-airport cities
+// prefer their metro code (London -> LON, not LHR).
+const METRO = { London: 'LON', Paris: 'PAR', Milano: 'MIL', Roma: 'ROM', Stockholm: 'STO',
+  'New York': 'NYC', Tokyo: 'TYO', Osaka: 'OSA', Berlin: 'BER', Washington: 'IAD' };
+const CODE_BY_NAME = {};
+for (const [code, name] of Object.entries(IATA_CITIES)) {
+  if (!CODE_BY_NAME[name]) CODE_BY_NAME[name] = code;
+}
+Object.assign(CODE_BY_NAME, METRO);
+function cityCode(place) {
+  if (IATA_CITIES[place]) return place;          // already a code
+  return CODE_BY_NAME[place] || place;           // no code known: the name stands
+}
+// How a place reads right now — full name, or airport code (the Byer button).
+function cityLabel(place) {
+  return state.cityCodes ? cityCode(place) : cityName(place);
+}
 
 /* ---------- rendering ---------- */
 
@@ -361,7 +379,7 @@ function renderMonthEl(y, m) {
       // Monday belongs to the week number — never a city there (Alan, 2026-08-25).
       // Otherwise: on the day you move, and repeated weekly on Tuesday.
       const repeat = wi === 1 && !cityShown;
-      if (city && wi !== 0 && (city !== prevCity || repeat)) cityTxt = cityName(city);
+      if (city && wi !== 0 && (city !== prevCity || repeat)) cityTxt = cityLabel(city);
       prevCity = city;
       cityShown = !!cityTxt && !h; // a holiday keeps the cell, so nothing showed
     }
@@ -496,7 +514,7 @@ function applyLang() {
   $('#print').textContent = L().print;
   $('#signin').textContent = L().signin;
   $('#cal-picker summary').textContent = L().cals;
-  $('#cities-chip').textContent = L().citiesBtn;
+  $('#cities-chip').textContent = state.cityCodes ? L().codesBtn : L().citiesBtn;
 }
 
 // "8-12 Antigone" on a day in March -> span March 8–12.
@@ -551,7 +569,7 @@ function openDayPanel(row) {
     });
   const pop = document.createElement('div');
   pop.id = 'popover';
-  const city = cityOn(date, buildFlightIndex()); // always shown, independent of the Cities toggle
+  const city = cityOn(date, buildFlightIndex()); // the panel always spells it out in full
   pop.innerHTML = `<p class="dim"><b>${date}</b>${city ? `<span class="city-tag">${esc(cityName(city))}</span>` : ''}</p>`
     + evs.map(e =>
       `<p class="${tour.has(e.calId) ? 'wgrow' : ''} ${isTbc(e) ? 'tbc' : ''}">${tour.has(e.calId) ? '<span class="wg-mark">wg</span> ' : ''}`
@@ -694,7 +712,8 @@ function updateChips() {
   const tc = $('#tour-chip');
   tc.hidden = false;
   tc.classList.toggle('active', state.wg && tourCalIds().length > 0);
-  $('#cities-chip').classList.toggle('active', state.cities);
+  // not on/off any more: it says which way cities are reading right now
+  $('#cities-chip').textContent = state.cityCodes ? L().codesBtn : L().citiesBtn;
 }
 $('#tour-chip').addEventListener('click', async () => {
   if (!tourCalIds().length) {
@@ -712,8 +731,8 @@ $('#tour-chip').addEventListener('click', async () => {
   updateChips();
 });
 $('#cities-chip').addEventListener('click', () => {
-  state.cities = !state.cities;
-  localStorage.setItem('almanakk-cities', state.cities ? '1' : '0');
+  state.cityCodes = !state.cityCodes;
+  localStorage.setItem('almanakk-citycodes', state.cityCodes ? '1' : '0');
   render();
   updateChips();
 });

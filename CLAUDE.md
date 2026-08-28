@@ -188,7 +188,12 @@ Cities cluster:
   Detaljer and the day panel always keep the full title:
   * a flight reads as its route, "OSL-PAR-HKG" -> "Oslo → Hong Kong" (only
     when 2+ legs resolve to places, so "Fly til Bergen" keeps its title).
-    OPEN: city names vs airport codes — Alan to pick from the two previews.
+    Alan picked NAMES as default (2026-08-25). The Byer button is no longer an
+    on/off for the cities column (they are always on now) — it switches the
+    reading between names and airport codes ("Marseille → Frankfurt" /
+    "MRS → FRA"), in the day line AND the info column, persisted. The day panel
+    always spells the city out in full. A city with no known code keeps its
+    name in codes mode.
   * a performance reads as production + number: "Antigone performance 2" and
     "second show Antigone" both -> "Antigone 2" (English + Norwegian ordinals);
     if nothing but the keyword remains ("Performance 2") the title is kept.
