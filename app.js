@@ -265,7 +265,9 @@ function legPlace(part) {
 }
 function flightLegs(title) {
   let best = [], run = [];
-  for (const part of title.split(/\s*(?:[-–—]+|[>→]+)\s*/)) {
+  // "BGO-OSL tbc" is the same route as "BGO-OSL", just not booked yet
+  const bare = title.replace(/\btbc\b/gi, ' ').trim();
+  for (const part of bare.split(/\s*(?:[-–—]+|[>→]+)\s*/)) {
     const place = legPlace(part);
     if (place) { run.push(place); if (run.length > best.length) best = run.slice(); }
     else run = [];
@@ -504,7 +506,8 @@ function renderMonthEl(y, m) {
       const showLabel = offset % 14 === 0 || (day === 1 && offset > 0 && untilNextBeat > 7);
       const canSpill = spillK > 1.05;
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
-      const words = ev.title.split(/\s+/).filter(Boolean);
+      // punctuation-only tokens would waste a whole row on "-" or "|"
+      const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));
       // Boxed in with a multi-word title: write it down the band, ONE WORD PER
       // ROW. Each row then holds whole text of its own, so nothing hangs into
       // the next day where it could be clipped or painted over — the bug Alan
@@ -519,11 +522,12 @@ function renderMonthEl(y, m) {
       const plan = wrapPlan[ev.id];
       const step = plan ? day - plan.from : -1;
       let txt;
-      if (showLabel) txt = `<i>${esc(plan ? plan.words[0] : ev.title)}</i>`;
-      else if (plan && step > 0 && step < plan.words.length) txt = `<i>${esc(plan.words[step])}</i>`;
+      const label = (t, cls) => `<i class="${cls || ''}"><span>${esc(t)}</span></i>`;
+      if (showLabel) txt = label(plan ? plan.words[0] : ev.title);
+      else if (plan && step > 0 && step < plan.words.length) txt = label(plan.words[step]);
       // continuation rows carry an invisible copy of the title, so the band
       // stays text-wide wherever the row is free and snaps back where it isn't
-      else txt = canSpill ? `<i class="ghost">${esc(ev.title)}</i>` : '';
+      else txt = canSpill ? label(ev.title, 'ghost') : '';
       return `<span class="lane on ${ev._wg ? 'wg' : ''} ${canSpill ? 'spill' : ''}`
         + ` ${isShow(ev) ? 'showband' : ''} ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--spillw:${Math.round(spillK * 100)}%">`

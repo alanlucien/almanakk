@@ -120,21 +120,21 @@ button.active { background: var(--ink); color: var(--card); }
 /* line-height/padding kept tight: on a phone a row can be ~21px, and a taller
    label box gets clipped by the row or covered by the next one — a band label
    sliced through the middle of its letters */
-.day .lane i { font-style: normal; color: var(--ci, var(--c)); font-weight: 600; padding: 0 3px; line-height: 1.3; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-height: 100%; }
+.day .lane i { font-style: normal; color: var(--ci, var(--c)); font-weight: 600; padding: 0 3px; line-height: 1.3; display: block; overflow: hidden; max-height: 100%; }
+.day .lane i span { display: block; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 /* a label writes sideways across the free cells to its right, like handwriting;
    --spillw = how far it may reach, in multiples of its own lane width */
 .day .lane.spill { overflow: visible; }
 .day .lane.spill i {
   position: absolute;
-  /* centred in the row and clamped to it, so no font metric can push it out */
-  left: 0; top: 50%; transform: translateY(-50%);
-  max-height: 100%;
+  /* fills the row exactly: a box only as tall as its text leaves paper above
+     and below, which reads as stripes down a band. Text centred inside. */
+  left: 0; top: 0; bottom: 0;
+  display: flex; align-items: center;
   z-index: 1;
-  white-space: nowrap;
   width: max-content; /* grow past the anchor cell, exactly as far as the words */
   max-width: var(--spillw, 100%);
   overflow: hidden;
-  text-overflow: ellipsis;
   /* tint hugs the text; mixed with the paper so it never double-darkens the band */
   background: color-mix(in srgb, var(--c) 14%, var(--card));
   padding-right: 4px;

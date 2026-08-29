@@ -155,6 +155,18 @@ Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
   month visibly ends. Verified 30- and 31-day months at 375px and 393px: last
   day fully visible with a 13px gap, nothing scrolls.
 
+- B8 DONE (2026-08-28), three from one screenshot:
+  (a) STRIPES down a band. The tinted bar that carries a spilled label to the
+  right was only as tall as its TEXT (~17px) inside a ~24px row, so paper showed
+  above and below it on every continuation row. The label text now sits in an
+  inner span and the tinted box fills the row exactly (top:0;bottom:0, flex
+  centred) — the band reads as one solid block again. B6's centring made this
+  more obvious but the gaps pre-dated it.
+  (b) "BGO-OSL tbc" rendered raw instead of "Bergen → Oslo": the trailing tbc
+  broke the leg parse. flightLegs strips tbc before splitting — same route,
+  still italic because isTbc reads the original title.
+  (c) writing a title down the band wasted a row on punctuation: "Hotel - Oslo"
+  put a lone "-" on the second day. Punctuation-only tokens are skipped.
 - B7 DONE (2026-08-28), the third and final slicing report ("ANTIGONE HK", the
   second line cut in half): B6's max-height stopped the label being COVERED but
   left a partial second line — a 2-line box clamped to a 1-line row shows line 1
