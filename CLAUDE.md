@@ -147,6 +147,15 @@ Bugs (fixed 2026-08-24 while Alan slept; B1/B3 need a device re-test):
   race) and after 8s falls back to cached events plus a plain-language banner.
   Four boot paths tested in a browser, incl. "GIS accepts the request and never
   calls back". LESSON: never hide the only way in behind an unbounded promise.
+- B2 THIRD ROUND (2026-08-29): Alan got "popup window blocked" on every load.
+  The silent renewal is mine: Safari blocks the cross-site storage it needs, so
+  GIS falls back to opening a window, and Safari flags it. A visible warning is
+  worse than the stale token it avoids. CAN_SILENT is now false on Safari and
+  on anything running on iOS (all iOS browsers are Safari underneath): no
+  renewal on load, no pre-expiry timer, no 401 retry — the sign-in button is
+  the way in there, and it is always showing. Chrome/desktop keeps the silent
+  path. Verified: iPhone UA makes zero token requests on load; desktop still
+  renews; all four boot paths unchanged.
 - B2 DONE: silent token renewal (prompt:'') on load when the saved token is
   stale, ~5 min before expiry, and once on any 401 before giving up; the
   sign-in button remains the fallback. Verified with a stubbed GIS+API flow

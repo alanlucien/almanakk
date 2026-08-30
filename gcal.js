@@ -19,6 +19,15 @@
 
   const TOKEN_KEY = 'almanakk-token';
 
+  // Safari (and every browser on iOS, which is Safari underneath) blocks the
+  // cross-site storage the silent token path needs, so Google falls back to
+  // opening a window — which the browser then flags as a BLOCKED POPUP on load.
+  // A visible warning is worse than the stale token it was meant to avoid, so
+  // there we skip the silent path entirely and let the sign-in button do it.
+  const ua = navigator.userAgent;
+  const CAN_SILENT = !(/iPad|iPhone|iPod/.test(ua)
+    || (/^((?!chrome|android).)*safari/i.test(ua)));
+
   // index.html calls gcalReady from the GIS script's onload, but that can lose
   // the race with this file (nothing would ever call it) or never fire at all
   // (blocked, offline). Poll, then say so plainly instead of showing a dead app.
@@ -67,9 +76,9 @@
     }
     // Otherwise: show last-synced events right away (works offline too).
     showCached('Viser sist synkroniserte data — logg inn for å oppdatere og skrive.');
-    // Signed in before: try to renew silently (no popup while the Google
-    // session lives; iOS PWA may refuse — then the button stays the fallback).
-    if (saved) silentToken().catch(() => {});
+    // Signed in before: renew silently where the browser allows it. On Safari
+    // the sign-in button is the only way, and it is already showing.
+    if (saved && CAN_SILENT) silentToken().catch(() => {});
   };
 
   // One silent renewal at a time; concurrent callers share the same promise.
@@ -100,6 +109,7 @@
   // Renew ~5 min before the token dies, while the app is open.
   function scheduleRefresh(expMs) {
     clearTimeout(refreshTimer);
+    if (!CAN_SILENT) return; // would surface as a blocked popup mid-session
     refreshTimer = setTimeout(() => silentToken().catch(() => {}),
       Math.max(expMs - Date.now() - 5 * 60e3, 60e3));
   }
@@ -149,7 +159,7 @@
     });
     if (r.status === 401) {
       // token died mid-session: renew silently and retry once
-      if (!opts._retried) {
+      if (!opts._retried && CAN_SILENT) {
         try { await silentToken(); }
         catch (e) {
           accessToken = null;
