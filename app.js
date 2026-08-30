@@ -3,6 +3,14 @@
 
 const $ = s => document.querySelector(s);
 
+// Which build is actually running — read from this script's own ?v=, so there
+// is one source of truth (index.html) and no doubt about what a phone is on.
+// Shown at the bottom of the Kalendere panel.
+const BUILD = (() => {
+  try { return new URL(document.currentScript.src).searchParams.get('v') || 'dev'; }
+  catch (e) { return 'dev'; }
+})();
+
 const LANGS = {
   no: {
     months: ['JANUAR','FEBRUAR','MARS','APRIL','MAI','JUNI','JULI','AUGUST','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'],

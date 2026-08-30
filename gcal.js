@@ -222,7 +222,8 @@
           ${c.writable ? '' : 'disabled'} ${c.id === tgt ? 'checked' : ''}>
         <input type="checkbox" class="tourtag" data-id="${c.id}" ${tour.has(c.id) ? 'checked' : ''} title="Telles som turné (Tour-knappen)">
         <span class="dot"></span><span class="nm">${c.name}</span>
-      </div>`).join('');
+      </div>`).join('') +
+      `<div class="cal-build">bygg ${BUILD}</div>`;
     document.querySelector('#cal-list').onchange = async e => {
       if (e.target.classList.contains('tourtag')) {
         const ids = [...document.querySelectorAll('#cal-list .tourtag:checked')].map(i => i.dataset.id);

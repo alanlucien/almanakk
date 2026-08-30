@@ -61,6 +61,8 @@ button.active { background: var(--ink); color: var(--card); }
 #cal-list .cal-row { display: grid; grid-template-columns: 2.2em 2.2em 2.6em 1em 1fr; gap: 4px; align-items: center; white-space: nowrap; }
 #cal-list .cal-head { font-size: 10px; color: var(--muted); letter-spacing: .05em; }
 #cal-list .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c, #999); display: inline-block; }
+/* which build this device is running — settles "is the fix live yet?" */
+#cal-list .cal-build { font-size: 10px; color: var(--muted); letter-spacing: .05em; margin-top: 6px; border-top: 1px solid var(--rule); padding-top: 5px; }
 
 #banner {
   padding: 5px 14px;

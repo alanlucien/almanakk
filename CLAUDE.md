@@ -91,7 +91,14 @@ The sheet is the layout reference and the initial data to import.
   icon-512.png are rendered from it (Chromium screenshot of the svg at size).
   Edit the svg and re-render both, never the PNGs by hand. iOS caches a
   home-screen icon forever: the bookmark must be deleted and re-added to pick
-  up a new one.
+  up a new one — AND the icon file must be RENAMED (iOS caches it by URL, so
+  overwriting icon-192.png was not enough; hence icon-192-v2.png).
+- CACHE BUSTING (2026-08-29, after Alan sat on a stale build twice): index.html
+  loads every script and the stylesheet with ?v=YYYYMMDD, sw.js caches those
+  same versioned URLs, and app.js reads its own ?v= into BUILD, shown at the
+  foot of the Kalendere panel ("bygg 20260829"). WHEN SHIPPING A CHANGE, bump
+  the version in index.html AND sw.js together; ask Alan to read the build line
+  rather than guessing whether a fix reached his phone.
 - OAuth client "Almanakk web" in Google Cloud project ALMANAKK
   (winterguests.com org); consent screen audience: Internal. Authorized
   origins: http://localhost:8123 and https://alanlucien.github.io.

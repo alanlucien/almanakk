@@ -2,9 +2,13 @@
    Event data offline comes from localStorage (see gcal.js), not from here. */
 'use strict';
 
-const CACHE = 'almanakk-v3';
-const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'gcal.js', 'config.js',
-  'demo-data.js', 'airports.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'almanakk-20260829';
+const V = '20260829';
+// versioned URLs: a stale copy of the code can never be served, which is what
+// kept an old build (and an old icon) alive on Alan's phone
+const SHELL = ['./', 'index.html', `style.css?v=${V}`, `app.js?v=${V}`, `gcal.js?v=${V}`,
+  `config.js?v=${V}`, `demo-data.js?v=${V}`, `airports.js?v=${V}`,
+  'manifest.webmanifest', 'icon-192-v2.png', 'icon-512-v2.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
