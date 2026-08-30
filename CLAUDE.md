@@ -85,6 +85,13 @@ The sheet is the layout reference and the initial data to import.
 
 - Live at https://alanlucien.github.io/almanakk/ (GitHub Pages, repo
   alanlucien/almanakk, public — never commit personal schedule data).
+- Home-screen icon (Alan picked, 2026-08-29): the month spine with its day rows
+  running off it, paper marks on ink ground — no red, in the spirit of the iOS
+  Control Center glyphs he pointed at. icon.svg is the SOURCE; icon-192.png and
+  icon-512.png are rendered from it (Chromium screenshot of the svg at size).
+  Edit the svg and re-render both, never the PNGs by hand. iOS caches a
+  home-screen icon forever: the bookmark must be deleted and re-added to pick
+  up a new one.
 - OAuth client "Almanakk web" in Google Cloud project ALMANAKK
   (winterguests.com org); consent screen audience: Internal. Authorized
   origins: http://localhost:8123 and https://alanlucien.github.io.

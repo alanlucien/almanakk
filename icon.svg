@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Almanakk: the month spine with its day rows running off it.
+       Ink ground, paper marks — the calendar's own two colours, no red.
+       Source of truth for icon-192.png and icon-512.png; re-render with
+       scripts in the commit message or any SVG->PNG tool. -->
+  <rect width="512" height="512" fill="#2a2822"/>
+  <g stroke="#f6f1e2" stroke-width="20" stroke-linecap="round" fill="none">
+    <path d="M146 108 V404"/>
+    <path d="M146 150 H372"/>
+    <path d="M146 232 H320"/>
+    <path d="M146 314 H372"/>
+    <path d="M146 396 H300"/>
+  </g>
+</svg>

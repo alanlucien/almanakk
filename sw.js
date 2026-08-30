@@ -2,7 +2,7 @@
    Event data offline comes from localStorage (see gcal.js), not from here. */
 'use strict';
 
-const CACHE = 'almanakk-v2';
+const CACHE = 'almanakk-v3';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'gcal.js', 'config.js',
   'demo-data.js', 'airports.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
