@@ -716,14 +716,24 @@ function openDayPanel(row) {
   const r = row.getBoundingClientRect();
   pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
   pop.style.top = (r.bottom + 4 + pop.offsetHeight > window.innerHeight ? Math.max(8, r.top - pop.offsetHeight - 4) : r.bottom + 4) + 'px';
-  pop.querySelector('.qa').addEventListener('submit', async e => {
+  const qa = pop.querySelector('.qa');
+  qa.addEventListener('submit', async e => {
     e.preventDefault();
+    // saving posts to Google and then reloads the year, which takes seconds on a
+    // phone; without this the field stays live and a second Enter books it twice
+    if (qa.dataset.busy) return;
     const text = pop.querySelector('input').value.trim();
     if (!text) return closePanel();
+    qa.dataset.busy = '1';
+    qa.querySelectorAll('input, button').forEach(el => { el.disabled = true; });
     try {
       await addEvent(date, text);
       closePanel(true);
-    } catch (err) { toast(err.message); }
+    } catch (err) {
+      toast(err.message);
+      delete qa.dataset.busy;
+      qa.querySelectorAll('input, button').forEach(el => { el.disabled = false; });
+    }
   });
   pop.addEventListener('click', async e => {
     const editId = e.target.dataset.edit;
