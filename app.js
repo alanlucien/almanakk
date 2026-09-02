@@ -184,6 +184,42 @@ function monthLayout(y, m, events, overlays) {
   return { spans: spans.concat(ovl), details, nOwn: n, nOvl };
 }
 
+// A flight that leaves in the small hours belongs to the night before: nobody
+// thinks "I fly on the 28th" about a 01:55 departure — they leave on the 27th,
+// late. Past 03:30 it flips and reads as an early morning (Alan, 02.09.2026).
+// Does a band label actually fit its lane? Measured, not guessed: "Jury duty"
+// is short and should stay whole, while a genuinely long title still gets
+// written down the band a word per row. Lane width and font are read from the
+// live row after a render, so this follows the viewport and the print sizes.
+let laneBox = { w: 0, font: '' };
+let measured = false;
+function measureLane() {
+  const el = document.querySelector('.day .lane');
+  if (!el) return;
+  const cs = getComputedStyle(el);
+  const probe = el.querySelector('i');
+  laneBox = {
+    w: el.getBoundingClientRect().width - 8, // the label's own left/right padding
+    font: probe ? getComputedStyle(probe).font : cs.font,
+  };
+  // the first paint has nothing to measure yet, so draw once more now that we do
+  if (!measured && laneBox.w > 0) { measured = true; render(); }
+}
+let measureCtx = null;
+function fitsLane(text) {
+  if (!laneBox.w || !laneBox.font) return false; // before the first paint: keep the old behaviour
+  measureCtx = measureCtx || document.createElement('canvas').getContext('2d');
+  measureCtx.font = laneBox.font;
+  return measureCtx.measureText(text).width <= laneBox.w;
+}
+
+const NIGHT_UNTIL = 3 * 60 + 30;
+window.nightFlight = function (title, time) {
+  if (!time || !/^\d{2}:\d{2}$/.test(time)) return false;
+  if (Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)) >= NIGHT_UNTIL) return false;
+  return !!flightDest(title);
+};
+
 /* ---------- shows ping red ---------- */
 
 const SHOW_RE = /\b(show\w*|prem\w*|première|performance\w*|forest\w*|visning\w*|vorstellung\w*|matin[ée]\w*)\b/i;
@@ -529,7 +565,7 @@ function renderMonthEl(y, m) {
       // the next day where it could be clipped or painted over — the bug Alan
       // hit three times when this was one tall box instead.
       if (showLabel) {
-        if (!canSpill && words.length > 1 && endInMonth > day) {
+        if (!canSpill && words.length > 1 && endInMonth > day && !fitsLane(ev.title)) {
           wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
         } else {
           delete wrapPlan[ev.id];
@@ -639,6 +675,7 @@ function render(group) {
   $('#view-year').classList.toggle('active', state.view === 'year');
   $('#view-month').classList.toggle('active', state.view === 'month' && !state.detailed);
   $('#view-detail').classList.toggle('active', state.view === 'month' && state.detailed);
+  measureLane();
   updateChips();
 }
 

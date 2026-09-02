@@ -272,10 +272,30 @@
             const e = parseDate(ev.end.date); e.setDate(e.getDate() - 1); // exclusive -> inclusive
             end = fmt(e);
           } else {
-            // read the event's own wall-clock (Google sends dateTime in the
-            // event's time zone) — a 10:00 Kobe rehearsal shows as 10:00
-            start = end = ev.start.dateTime.slice(0, 10);
-            time = ev.start.dateTime.slice(11, 16);
+            // Show the event's OWN local clock. Google returns the instant with
+            // whatever offset it likes and names the intended zone separately,
+            // so slicing the string gave Oslo time: a 13:00 Kobe call read as
+            // 06:00, and a 01:55 Beijing departure read as 19:55 the day before.
+            const tz = ev.start.timeZone;
+            let local = ev.start.dateTime;
+            if (tz) {
+              try {
+                // sv-SE formats as "YYYY-MM-DD HH:MM", which slices like ISO
+                local = new Intl.DateTimeFormat('sv-SE', {
+                  timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+                  hour: '2-digit', minute: '2-digit', hour12: false,
+                }).format(new Date(ev.start.dateTime));
+              } catch (err) { /* unknown zone: fall back to the raw string */ }
+            }
+            start = end = local.slice(0, 10);
+            time = local.slice(11, 16);
+            // A flight leaving between midnight and 03:30 belongs to the evening
+            // before, because that is the night you travel: you leave for the
+            // airport on the 27th to catch a 01:55 on the 28th (Alan, 02.09.2026)
+            if (window.nightFlight && window.nightFlight(ev.summary || '', time)) {
+              const d = parseDate(start); d.setDate(d.getDate() - 1);
+              start = end = fmt(d);
+            }
           }
           // eventType 'fromGmail' = auto-scraped from an email; may well be
           // someone else's flight (cc'd itinerary), so it never moves the city pin
