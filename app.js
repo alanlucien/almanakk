@@ -675,7 +675,14 @@ function parseRange(date, text) {
 // and the parser already reads the arrow form, so nothing downstream changes.
 function arrowForm(text) {
   if (!cityMarker(text)) return text;
-  return text.replace(/^(\s*(?:\d{1,2}[:.]\d{2}\s+)?)(?:-+\s*>?|=>|\u2192)\s*/, '$1\u2192 ');
+  // Capitalise a word only when it is entirely lower case. Anything already
+  // carrying a capital is left exactly as typed — which is what keeps airport
+  // codes resolving ("-BGO" must not become "Bgo") and spares names that are
+  // capitalised in the middle. A trailing time or "tbc" is never a word here.
+  const nice = c => c.replace(/\S+/g, w => /^[a-z\u00e0-\u00f6\u00f8-\u00ff]+$/.test(w) ? w[0].toUpperCase() + w.slice(1) : w);
+  return text.replace(
+    /^(\s*(?:\d{1,2}[:.]\d{2}\s+)?)(?:-+\s*>?|=>|\u2192)\s*([^,(]+?)\s*((?:\btbc\b.*)?)$/i,
+    (_, lead, city, tail) => lead + '\u2192 ' + nice(city) + (tail ? ' ' + tail : ''));
 }
 
 async function addEvent(date, text) {
