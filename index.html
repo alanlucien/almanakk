@@ -9,7 +9,7 @@
 <title>Almanakk</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192-v2.png">
-<link rel="stylesheet" href="style.css?v=20260903">
+<link rel="stylesheet" href="style.css?v=20260904">
 </head>
 <body>
 <header>
@@ -21,8 +21,9 @@
   </nav>
   <div class="spacer"></div>
   <nav>
-    <button id="view-year">År</button>
-    <button id="view-month">Måned</button>
+    <button id="view-year" title="År" aria-label="År"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg></button>
+    <button id="view-month" title="Måned" aria-label="Måned"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <button id="view-detail" title="Detaljer — hver hendelse på egen linje" aria-label="Detaljer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 6h.01M4 12h.01M4 18h.01M9 6h11M9 12h11M9 18h11"/></svg></button>
     <button id="tour-chip" hidden title="Legg wg-turnékalenderne over som bånd">wg</button>
     <button id="signin" hidden>Logg inn med Google</button>
     <!-- everything you set once and leave lives behind the dots, so the header
@@ -30,7 +31,6 @@
     <details id="more">
       <summary title="Mer" aria-label="Mer">⋯</summary>
       <div id="more-list">
-        <button id="view-detail" title="Måned med alle hendelser utskrevet">Detaljer</button>
         <button id="print" title="Skriv ut A4">Skriv ut</button>
         <button id="lang-chip" title="Norsk / English"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c3.5 3.5 3.5 16.5 0 20-3.5-3.5-3.5-16.5 0-20z"/></svg> <span>Språk</span></button>
         <details id="cal-picker" hidden>
@@ -44,11 +44,11 @@
 <div id="banner" hidden></div>
 <main id="app"></main>
 <div id="toast" hidden></div>
-<script src="config.js?v=20260903"></script>
-<script src="demo-data.js?v=20260903"></script>
-<script src="airports.js?v=20260903"></script>
-<script src="app.js?v=20260903"></script>
-<script src="gcal.js?v=20260903"></script>
+<script src="config.js?v=20260904"></script>
+<script src="demo-data.js?v=20260904"></script>
+<script src="airports.js?v=20260904"></script>
+<script src="app.js?v=20260904"></script>
+<script src="gcal.js?v=20260904"></script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="window.gcalReady && gcalReady()"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

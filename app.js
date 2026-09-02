@@ -637,9 +637,11 @@ function render(group) {
 }
 
 function applyLang() {
-  $('#view-year').textContent = L().year;
-  $('#view-month').textContent = L().month;
-  $('#view-detail').textContent = L().detail;
+  // the three views are glyphs, not words: at 375px the words wrapped the header
+  // onto a second line, and a row that mixes words with symbols reads as a mistake
+  for (const [sel, label] of [['#view-year', L().year], ['#view-month', L().month], ['#view-detail', L().detail]]) {
+    const b = $(sel); b.title = label; b.setAttribute('aria-label', label);
+  }
   $('#print').textContent = L().print;
   $('#signin').textContent = L().signin;
   $('#cal-picker summary').textContent = L().cals;

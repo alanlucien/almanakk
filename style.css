@@ -47,8 +47,10 @@ button {
   color: var(--ink);
 }
 button.active { background: var(--ink); color: var(--card); }
-#lang-chip { display: inline-flex; align-items: center; padding: 5px 8px; }
-#lang-chip svg { display: block; }
+/* every direct control in the header is a glyph, so they share one shape */
+#lang-chip, #view-year, #view-month, #view-detail { display: inline-flex; align-items: center; padding: 4px 8px; }
+#lang-chip svg, #view-year svg, #view-month svg, #view-detail svg { display: block; }
+#more-list #lang-chip { padding: 3px 10px; gap: 6px; }
 
 /* the ⋯ menu: same pattern as the calendar panel, anchored to the screen on a
    phone so it can never run off the edge (the header wraps) */
