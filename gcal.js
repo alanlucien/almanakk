@@ -16,6 +16,15 @@
   };
   let loadedYears = new Set();
   let rawEvents = []; // internal events from Google, all loaded years
+  // Ticking a calendar throws the cache away and reloads. Without this counter a
+  // second tick while the first fetch was still running left TWO loops appending
+  // to rawEvents, so every event landed twice — exactly what Alan saw when he
+  // toggled the boxes quickly. A load reads the counter when it starts and only
+  // commits if nobody has reset the cache underneath it since. Loads of two
+  // different years may still run together and both commit, which is what
+  // happens when you page through years quickly.
+  let cacheGen = 0;
+  function resetCache() { loadedYears = new Set(); rawEvents = []; cacheGen++; }
 
   const TOKEN_KEY = 'almanakk-token';
 
@@ -138,8 +147,7 @@
     document.querySelector('#banner').hidden = true;
     try {
       await loadCalendars();
-      loadedYears = new Set();
-      rawEvents = [];
+      resetCache();
       await window.gcalEnsureYear(state.year);
     } catch (e) {
       // never end up with no data AND no way to sign in
@@ -232,8 +240,7 @@
       } else if (e.target.classList.contains('showcal')) {
         const ids = [...document.querySelectorAll('#cal-list .showcal:checked')].map(i => i.dataset.id);
         localStorage.setItem(SEL_KEY, JSON.stringify(ids));
-        loadedYears = new Set();
-        rawEvents = [];
+        resetCache();
         await window.gcalEnsureYear(state.year);
       } else if (e.target.type === 'radio') {
         localStorage.setItem(TARGET_KEY, e.target.dataset.id);
@@ -244,6 +251,9 @@
   window.gcalEnsureYear = async function (year) {
     if (state.mode !== 'google' || loadedYears.has(year)) return;
     loadedYears.add(year);
+    const gen = cacheGen;
+    const mine = []; // collected here, never in the shared array, until we know we are still current
+    const stale = () => gen !== cacheGen;
     const timeMin = year + '-01-01T00:00:00Z';
     const timeMax = (year + 1) + '-01-10T00:00:00Z';
     const byId = Object.fromEntries(calendars.map(c => [c.id, c]));
@@ -269,11 +279,23 @@
           }
           // eventType 'fromGmail' = auto-scraped from an email; may well be
           // someone else's flight (cc'd itinerary), so it never moves the city pin
-          rawEvents.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color, fromGmail: ev.eventType === 'fromGmail' });
+          mine.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color, fromGmail: ev.eventType === 'fromGmail' });
         }
         pageToken = data.nextPageToken || '';
+        if (stale()) return; // a newer tick superseded us mid-fetch: drop everything
       } while (pageToken);
+      if (stale()) return;
     }
+    if (stale()) return;
+    // Belt and braces. The id is calendar + event id, so it is unique per event:
+    // dropping repeats here means no future slip can put the same event on the
+    // day twice, and a cache that already holds duplicates heals on next load.
+    const seen = new Set();
+    rawEvents = rawEvents.concat(mine).filter(e => {
+      if (seen.has(e.id)) return false;
+      seen.add(e.id);
+      return true;
+    });
     state.events = rawEvents;
     try { localStorage.setItem('almanakk-events', JSON.stringify(rawEvents)); } catch (e) { /* storage full: skip */ }
     render();
@@ -302,8 +324,7 @@
     await api('calendars/' + encodeURIComponent(target) + '/events', {}, {
       method: 'POST', body: JSON.stringify(body),
     });
-    loadedYears = new Set();
-    rawEvents = [];
+    resetCache();
     await window.gcalEnsureYear(state.year);
   };
 
@@ -323,8 +344,7 @@
     if (!missing.length) return;
     missing.forEach(id => sel.add(id));
     localStorage.setItem(SEL_KEY, JSON.stringify([...sel]));
-    loadedYears = new Set();
-    rawEvents = [];
+    resetCache();
     renderCalPicker();
     await window.gcalEnsureYear(state.year);
   };
@@ -355,8 +375,7 @@
       }
       await api('calendars/' + encodeURIComponent(ev.calId) + '/events', {}, { method: 'POST', body: JSON.stringify(body) });
     }
-    loadedYears = new Set();
-    rawEvents = [];
+    resetCache();
     await window.gcalEnsureYear(state.year);
   };
 
@@ -364,8 +383,7 @@
     await api('calendars/' + encodeURIComponent(ev.calId) + '/events/' + encodeURIComponent(ev.gid), {}, {
       method: 'PATCH', body: JSON.stringify({ summary: title }),
     });
-    loadedYears = new Set();
-    rawEvents = [];
+    resetCache();
     await window.gcalEnsureYear(state.year);
   };
 
@@ -373,8 +391,7 @@
     const url = new URL('https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(ev.calId) + '/events/' + encodeURIComponent(ev.gid));
     const r = await fetch(url, { method: 'DELETE', headers: { Authorization: 'Bearer ' + accessToken } });
     if (!r.ok && r.status !== 410) throw new Error('Kunne ikke slette (' + r.status + ')');
-    loadedYears = new Set();
-    rawEvents = [];
+    resetCache();
     await window.gcalEnsureYear(state.year);
   };
 
