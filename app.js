@@ -364,6 +364,33 @@ function cityMarker(title) {
   return name || null;
 }
 // Compact views read a flight as its route: "OSL-PAR-HKG" -> "Oslo → Hong Kong".
+// A journey with a stop reads as one trip: "Bergen →•→ Pisa", a dot per stop.
+// Alan: "i start the day in bergen end in pisa" — the legs are the airline's
+// business. Detaljer and the day panel always keep them whole.
+function journeyLabel(legs) {
+  const stops = '\u2022'.repeat(Math.max(0, legs.length - 2));
+  return cityLabel(legs[0]) + ' \u2192' + stops + '\u2192 ' + cityLabel(legs[legs.length - 1]);
+}
+
+// Two events that meet — "BGO-OSL" then "OSL-PSA" — are one journey, and eat
+// twice the room they need. Merge them where the first one lands is where the
+// next one leaves. Never across a tour calendar, and never in Detaljer.
+function collapseJourneys(items) {
+  if (state.detailed) return items;
+  const out = [];
+  for (const it of items) {
+    const legs = it.wg ? [] : flightLegs(it.e.title);
+    const prev = out[out.length - 1];
+    if (legs.length >= 2 && prev && !prev.wg && prev._legs && prev._legs.length >= 2
+        && prev._legs[prev._legs.length - 1] === legs[0]) {
+      prev._legs = prev._legs.concat(legs.slice(1));
+      continue;
+    }
+    out.push(Object.assign({}, it, { _legs: legs.length >= 2 ? legs : null }));
+  }
+  return out;
+}
+
 function flightRoute(title) {
   let legs = flightLegs(title);
   // "Flight Oslo → Germany (Wuppertal trip)": the legs don't both resolve, but
@@ -644,11 +671,16 @@ function renderMonthEl(y, m) {
         return ka < kb ? -1 : ka > kb ? 1 : 0;
       });
     // compact views show WHAT (no clock prefix); Detaljer view and the day box show WHEN
-    const evtHtml = (e, wg) => `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">`
-      + esc(state.detailed ? (e.time ? e.time + ' ' : '') + e.title : compactTitle(e)) + '</b>';
+    const evtHtml = (it) => {
+      const e = it.e, wg = it.wg;
+      const txt = state.detailed ? (e.time ? e.time + ' ' : '') + e.title
+        : (it._legs && it._legs.length > 2 ? journeyLabel(it._legs) : compactTitle(e));
+      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">`
+        + esc(txt) + '</b>';
+    };
     // a day without any band absorbs all lane columns (keeps the grid aligned)
     const detail = `<span class="detail"${(hasOwn || hasWgBand) ? '' : ` style="grid-column: span ${nOwn + nOvl + 1}"`}>`
-      + lineItems.map(({ e, wg }) => evtHtml(e, wg)).join('')
+      + collapseJourneys(lineItems).map(evtHtml).join('')
       + '</span>';
     // One cell, one line, one thing in it: a holiday, else the week number on
     // Monday, else the city. Long names step down a size rather than clip.

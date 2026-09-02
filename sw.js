@@ -2,7 +2,7 @@
    Event data offline comes from localStorage (see gcal.js), not from here. */
 'use strict';
 
-const V = '20260911';
+const V = '20260912';
 // derived, so bumping V alone can never leave a stale cache behind
 const CACHE = 'almanakk-' + V;
 // versioned URLs: a stale copy of the code can never be served, which is what
