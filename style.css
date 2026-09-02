@@ -84,6 +84,10 @@ button.active { background: var(--ink); color: var(--card); }
 
 /* the day panel says which calendar a new event lands in — with three
    calendars in play, "did that go to the right one?" is a fair question */
+/* the city is tappable: it is the quickest way to correct where you are */
+.cty { cursor: pointer; }
+.cty:hover { text-decoration: underline; text-underline-offset: 2px; }
+
 .qa-target { margin: 4px 0 0; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
 .qa-target .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, #999); display: inline-block; flex: none; }
 

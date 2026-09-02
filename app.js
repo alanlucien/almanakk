@@ -19,6 +19,8 @@ const LANGS = {
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender', savedIn: 'Lagret i', goesTo: 'Ny hendelse →',
+    cityHint: 'Trykk for å endre byen', cityAsk: 'Skriv bynavnet — lagres som «→ By»',
+    cityFromFlight: 'Denne byen kommer fra et fly. Endre flyet selv.', signinFirst: 'Logg inn med Google først.',
     deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', replaced: 'erstattet av fly',
     tourHint: 'Huk av «Tour» på turnékalenderne under Kalendere først.',
     newPh: 'Ny · «8-12 tekst» = flere dager · «13:00» = tid', add: 'Legg til', del: 'Slett',
@@ -31,6 +33,8 @@ const LANGS = {
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar', savedIn: 'Saved to', goesTo: 'New event →',
+    cityHint: 'Tap to change the city', cityAsk: 'Type the city — saved as "→ City"',
+    cityFromFlight: 'This city comes from a flight. Edit the flight itself.', signinFirst: 'Sign in with Google first.',
     deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', replaced: 'replaced by flight',
     tourHint: 'Tick "Tour" on the touring calendars under Calendars first.',
     newPh: 'New · "8-12 text" = several days · "13:00" = timed', add: 'Add', del: 'Delete',
@@ -345,8 +349,10 @@ function buildFlightIndex() {
     // Gmail-scraped events are skipped: a cc'd itinerary is often someone
     // else's flight, and a wrong city is worse than no city
     if (ev.fromGmail) continue;
-    const dest = cityMarker(ev.title) || flightDest(ev.title);
-    if (dest) flights.push({ date: ev.start, time: ev.time || '99', dest, tbc: isTbc(ev) });
+    const marker = cityMarker(ev.title);
+    const dest = marker || flightDest(ev.title);
+    // evId/marker let a tap on the city find the event that put it there
+    if (dest) flights.push({ date: ev.start, time: ev.time || '99', dest, tbc: isTbc(ev), marker: !!marker, evId: ev.id });
   }
   // Date first. Within a day a BOOKING outranks a PLAN — "-Roma tbc" is a guess
   // and a real flight that day replaces it — then by time, so the last leg of a
@@ -599,7 +605,7 @@ function renderMonthEl(y, m) {
     const info = h
       ? `<span class="info ${h.red ? 'red' : ''} ${h.name.length > 11 ? 'long' : ''} ${h.name.length > 15 ? 'xlong' : ''}">${esc(h.name)}</span>`
       : cityTxt
-        ? `<span class="info"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}">${esc(cityTxt)}</span></span>`
+        ? `<span class="info"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}" data-cty="${ds}" title="${esc(L().cityHint)}">${esc(cityTxt)}</span></span>`
         : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
@@ -699,6 +705,55 @@ async function addEvent(date, text) {
     loadDemo();
     toast(L().added);
   }
+}
+
+/* ---------- tap a city in the info column -> retype it ---------- */
+
+// The city is derived, never stored, so this edits the event that produced it:
+// a typed "→ Oslo" marker is renamed in place. A city that came from a real
+// flight is left alone — a marker cannot outrank a booking on the same day, so
+// "editing" it here would look like it worked and change nothing.
+function openCityEdit(span) {
+  closePanel(true);
+  const ds = span.dataset.cty;
+  const src = cityOn(ds, buildFlightIndex());
+  if (!src) return;
+  const ev = src.marker && state.events.find(e => String(e.id) === String(src.evId));
+  if (!ev) return toast(L().cityFromFlight);
+  if (state.mode !== 'google') return toast(L().signinFirst);
+
+  const pop = document.createElement('div');
+  pop.id = 'popover';
+  pop.innerHTML = `<p class="dim"><b>${ds}</b></p>`
+    + `<form class="qa"><input type="text" value="${esc(src.dest)}" autocomplete="off"><button type="submit" class="add">OK</button></form>`
+    + `<p class="qa-target">${esc(L().cityAsk)}</p>`;
+  document.body.appendChild(pop);
+  const r = span.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+  pop.style.top = (r.bottom + 4 + pop.offsetHeight > window.innerHeight
+    ? Math.max(8, r.top - pop.offsetHeight - 4) : r.bottom + 4) + 'px';
+
+  const form = pop.querySelector('form'), input = pop.querySelector('input');
+  input.focus(); input.select();
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (form.dataset.busy) return;              // same guard as quick-add
+    const typed = input.value.trim().replace(/^\s*(?:-+\s*>?|=>|\u2192)\s*/, '');
+    if (!typed || typed === src.dest) return closePanel(true);
+    // a planned move stays planned when you only correct the city
+    const keepTbc = isTbc(ev) && !/\btbc\b/i.test(typed) ? ' tbc' : '';
+    form.dataset.busy = '1';
+    form.querySelectorAll('input, button').forEach(el => { el.disabled = true; });
+    try {
+      await window.gcalUpdateEvent(ev, arrowForm('-' + typed) + keepTbc);
+      closePanel(true);
+      toast(L().updated);
+    } catch (err) {
+      toast(err.message);
+      delete form.dataset.busy;
+      form.querySelectorAll('input, button').forEach(el => { el.disabled = false; });
+    }
+  });
 }
 
 /* ---------- day panel: tap a day -> full list + add field ---------- */
@@ -956,6 +1011,8 @@ window.addEventListener('afterprint', () => {
 // (unless the add-field holds unsaved text — then it stays).
 $('#app').addEventListener('click', e => {
   if (e.target.closest('#popover')) return;
+  const cty = e.target.closest('.cty');
+  if (cty) { e.stopPropagation(); return openCityEdit(cty); }
   if ($('#popover')) { closePanel(); return; }
   const row = e.target.closest('.day');
   if (row) openDayPanel(row);
