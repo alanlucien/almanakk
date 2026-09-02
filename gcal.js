@@ -307,6 +307,12 @@
     await window.gcalEnsureYear(state.year);
   };
 
+  // which calendar a new event will land in, so the day panel can say so
+  window.gcalTarget = () => {
+    const c = calendars.find(x => x.id === targetId());
+    return c ? { name: c.name, color: c.color } : null;
+  };
+
   window.gcalCalendars = () => calendars;
 
   // Make sure the given calendars are in the selected set and loaded

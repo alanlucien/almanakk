@@ -82,6 +82,11 @@ button.active { background: var(--ink); color: var(--card); }
 /* which build this device is running — settles "is the fix live yet?" */
 #cal-list .cal-build { font-size: 10px; color: var(--muted); letter-spacing: .05em; margin-top: 6px; border-top: 1px solid var(--rule); padding-top: 5px; }
 
+/* the day panel says which calendar a new event lands in — with three
+   calendars in play, "did that go to the right one?" is a fair question */
+.qa-target { margin: 4px 0 0; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.qa-target .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, #999); display: inline-block; flex: none; }
+
 #banner {
   padding: 5px 14px;
   font-size: 12px;

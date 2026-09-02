@@ -18,7 +18,7 @@ const LANGS = {
     week: 'uke',
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
-    added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender',
+    added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender', savedIn: 'Lagret i', goesTo: 'Ny hendelse →',
     deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', replaced: 'erstattet av fly',
     tourHint: 'Huk av «Tour» på turnékalenderne under Kalendere først.',
     newPh: 'Ny · «8-12 tekst» = flere dager · «13:00» = tid', add: 'Legg til', del: 'Slett',
@@ -30,7 +30,7 @@ const LANGS = {
     week: 'wk',
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
-    added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar',
+    added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar', savedIn: 'Saved to', goesTo: 'New event →',
     deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', replaced: 'replaced by flight',
     tourHint: 'Tick "Tour" on the touring calendars under Calendars first.',
     newPh: 'New · "8-12 text" = several days · "13:00" = timed', add: 'Add', del: 'Delete',
@@ -669,11 +669,22 @@ function parseRange(date, text) {
   return { start, end, title: m[3] };
 }
 
+// "-Oslo" is shorthand for typing. What gets SAVED should read as a move in
+// Google Calendar too, where Ornella and anyone subscribed sees it — so the
+// stored title becomes "→ Oslo". Any leading/trailing time and "tbc" survive,
+// and the parser already reads the arrow form, so nothing downstream changes.
+function arrowForm(text) {
+  if (!cityMarker(text)) return text;
+  return text.replace(/^(\s*(?:\d{1,2}[:.]\d{2}\s+)?)(?:-+\s*>?|=>|\u2192)\s*/, '$1\u2192 ');
+}
+
 async function addEvent(date, text) {
+  text = arrowForm(text);
   const range = parseRange(date, text);
   if (state.mode === 'google') {
     await window.gcalCreateEvent(range ? range.start : date, range ? range.end : date, range ? range.title : text);
-    toast(L().saved);
+    const t = window.gcalTarget && window.gcalTarget();
+    toast(t ? `${L().savedIn} ${t.name}` : L().saved);
   } else if (ALMANAKK_CONFIG.clientId) {
     throw new Error('Logg inn med Google først for å legge til.');
   } else {
@@ -699,6 +710,7 @@ function openDayPanel(row) {
     });
   const pop = document.createElement('div');
   pop.id = 'popover';
+  const tgt = window.gcalTarget && window.gcalTarget();
   const idx = buildFlightIndex();
   const move = cityOn(date, idx); // the panel always spells it out in full
   const city = move && cityName(move.dest);
@@ -714,7 +726,8 @@ function openDayPanel(row) {
       + (e.start !== e.end ? ` <span class="dim">${e.start} – ${e.end}</span>` : '')
       + ` <button class="x" data-edit="${e.id}">${L().edit}</button>`
       + ` <button class="x" data-del="${e.id}">${L().del}</button></p>`).join('')
-    + `<form class="qa"><input type="text" placeholder="${L().newPh}" autocomplete="off"><button type="submit" class="add">${L().add}</button></form>`;
+    + `<form class="qa"><input type="text" placeholder="${L().newPh}" autocomplete="off"><button type="submit" class="add">${L().add}</button></form>`
+    + (tgt ? `<p class="qa-target"><span class="dot" style="--c:${tgt.color}"></span>${L().goesTo} ${esc(tgt.name)}</p>` : '');
   document.body.appendChild(pop);
   const r = row.getBoundingClientRect();
   pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
