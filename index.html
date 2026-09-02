@@ -9,7 +9,7 @@
 <title>Almanakk</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192-v2.png">
-<link rel="stylesheet" href="style.css?v=20260902">
+<link rel="stylesheet" href="style.css?v=20260903">
 </head>
 <body>
 <header>
@@ -23,26 +23,32 @@
   <nav>
     <button id="view-year">År</button>
     <button id="view-month">Måned</button>
-    <button id="view-detail" title="Måned med alle hendelser utskrevet">Detaljer</button>
-    <button id="print" title="Skriv ut A4">Skriv ut</button>
     <button id="tour-chip" hidden title="Legg wg-turnékalenderne over som bånd">wg</button>
-    <button id="cities-chip" title="Bytt mellom bynavn og flykoder">Byer</button>
-    <button id="lang-chip" title="Norsk / English"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c3.5 3.5 3.5 16.5 0 20-3.5-3.5-3.5-16.5 0-20z"/></svg></button>
     <button id="signin" hidden>Logg inn med Google</button>
-    <details id="cal-picker" hidden>
-      <summary>Kalendere</summary>
-      <div id="cal-list"></div>
+    <!-- everything you set once and leave lives behind the dots, so the header
+         keeps one row on a phone and the month starts higher up the screen -->
+    <details id="more">
+      <summary title="Mer" aria-label="Mer">⋯</summary>
+      <div id="more-list">
+        <button id="view-detail" title="Måned med alle hendelser utskrevet">Detaljer</button>
+        <button id="print" title="Skriv ut A4">Skriv ut</button>
+        <button id="lang-chip" title="Norsk / English"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c3.5 3.5 3.5 16.5 0 20-3.5-3.5-3.5-16.5 0-20z"/></svg> <span>Språk</span></button>
+        <details id="cal-picker" hidden>
+          <summary>Kalendere</summary>
+          <div id="cal-list"></div>
+        </details>
+      </div>
     </details>
   </nav>
 </header>
 <div id="banner" hidden></div>
 <main id="app"></main>
 <div id="toast" hidden></div>
-<script src="config.js?v=20260902"></script>
-<script src="demo-data.js?v=20260902"></script>
-<script src="airports.js?v=20260902"></script>
-<script src="app.js?v=20260902"></script>
-<script src="gcal.js?v=20260902"></script>
+<script src="config.js?v=20260903"></script>
+<script src="demo-data.js?v=20260903"></script>
+<script src="airports.js?v=20260903"></script>
+<script src="app.js?v=20260903"></script>
+<script src="gcal.js?v=20260903"></script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="window.gcalReady && gcalReady()"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

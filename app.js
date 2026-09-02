@@ -19,7 +19,7 @@ const LANGS = {
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender',
-    deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', citiesBtn: 'Byer', codesBtn: 'Koder', replaced: 'erstattet av fly',
+    deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', replaced: 'erstattet av fly',
     tourHint: 'Huk av «Tour» på turnékalenderne under Kalendere først.',
     newPh: 'Ny · «8-12 tekst» = flere dager · «13:00» = tid', add: 'Legg til', del: 'Slett',
     printHead: 'Skriv ut %Y — A4 liggende', per3: '3 mnd/side', per6: '6 mnd/side', per12: 'Hele året på én side',
@@ -31,7 +31,7 @@ const LANGS = {
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar',
-    deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', citiesBtn: 'Cities', codesBtn: 'Codes', replaced: 'replaced by flight',
+    deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', replaced: 'replaced by flight',
     tourHint: 'Tick "Tour" on the touring calendars under Calendars first.',
     newPh: 'New · "8-12 text" = several days · "13:00" = timed', add: 'Add', del: 'Delete',
     printHead: 'Print %Y — A4 landscape', per3: '3 months/page', per6: '6 months/page', per12: 'Whole year on one page',
@@ -47,7 +47,9 @@ const state = {
   mode: 'demo',    // 'demo' | 'google'
   wg: localStorage.getItem('almanakk-wg') === '1', // overlay the tour-tagged calendars
   cities: true, // always shown; the button switches how they read
-  cityCodes: localStorage.getItem('almanakk-citycodes') === '1', // OSL vs Oslo
+  cityCodes: false, // names always: Alan dropped the Byer button 02.09.2026 —
+                    // his flight titles are already codes (OSL-LGW), so "codes"
+                    // mode only repeated the title back
   lang: localStorage.getItem('almanakk-lang') || 'no',
   detailed: false, // month view with every event on its own row
 };
@@ -641,7 +643,6 @@ function applyLang() {
   $('#print').textContent = L().print;
   $('#signin').textContent = L().signin;
   $('#cal-picker summary').textContent = L().cals;
-  $('#cities-chip').textContent = state.cityCodes ? L().codesBtn : L().citiesBtn;
 }
 
 // "8-12 Antigone" on a day in March -> span March 8–12.
@@ -856,8 +857,6 @@ function updateChips() {
   const tc = $('#tour-chip');
   tc.hidden = false;
   tc.classList.toggle('active', state.wg && tourCalIds().length > 0);
-  // not on/off any more: it says which way cities are reading right now
-  $('#cities-chip').textContent = state.cityCodes ? L().codesBtn : L().citiesBtn;
 }
 $('#tour-chip').addEventListener('click', async () => {
   if (!tourCalIds().length) {
@@ -874,12 +873,12 @@ $('#tour-chip').addEventListener('click', async () => {
   render();
   updateChips();
 });
-$('#cities-chip').addEventListener('click', () => {
-  state.cityCodes = !state.cityCodes;
-  localStorage.setItem('almanakk-citycodes', state.cityCodes ? '1' : '0');
-  render();
-  updateChips();
-});
+
+// the ⋯ menu shuts as soon as you pick something, and when you tap away —
+// a menu left hanging over the month is worse than the button it replaced
+const moreMenu = $('#more');
+moreMenu.addEventListener('click', e => { if (e.target.closest('button')) moreMenu.open = false; });
+document.addEventListener('click', e => { if (!e.target.closest('#more')) moreMenu.open = false; });
 
 $('#prev').addEventListener('click', () => step(-1));
 $('#next').addEventListener('click', () => step(1));

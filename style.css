@@ -50,6 +50,22 @@ button.active { background: var(--ink); color: var(--card); }
 #lang-chip { display: inline-flex; align-items: center; padding: 5px 8px; }
 #lang-chip svg { display: block; }
 
+/* the ⋯ menu: same pattern as the calendar panel, anchored to the screen on a
+   phone so it can never run off the edge (the header wraps) */
+#more { position: relative; }
+#more summary { cursor: pointer; padding: 3px 10px; background: var(--card); border: 1px solid var(--rule-strong); border-radius: 3px; list-style: none; line-height: 1; }
+#more summary::-webkit-details-marker { display: none; }
+#more[open] summary { background: var(--ink); color: var(--card); }
+#more-list {
+  position: absolute; right: 0; top: 110%;
+  background: var(--card); border: 1px solid var(--rule-strong);
+  padding: 8px; min-width: 160px; z-index: 11;
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+}
+#more-list button { text-align: left; }
+#more-list #lang-chip { justify-content: flex-start; gap: 6px; }
+#more-list #cal-picker { position: static; }
+
 #cal-picker { position: relative; }
 #cal-picker summary { cursor: pointer; padding: 3px 10px; background: var(--card); border: 1px solid var(--rule-strong); border-radius: 3px; list-style: none; }
 #cal-list {
@@ -236,7 +252,8 @@ main.strip { height: 100%; overflow-y: auto; }
 @media (max-width: 720px) {
   /* the header wraps, so the Kalendere button can sit at the far left — anchor
      the panel to the screen instead of the button, or it runs off the edge */
-  #cal-picker { position: static; }
+  #cal-picker, #more { position: static; }
+  #more-list { left: auto; right: 8px; min-width: 150px; }
   #cal-list {
     left: 8px; right: 8px; top: 100%;
     min-width: 0;
@@ -249,7 +266,7 @@ main.strip { height: 100%; overflow-y: auto; }
   header h1 { font-size: 13px; letter-spacing: .2em; flex-basis: auto; }
   header .spacer { display: none; }
   #period-label { min-width: 0; }
-  button, #cal-picker summary { padding: 2px 8px; font-size: 13px; }
+  button, #cal-picker summary, #more summary { padding: 2px 8px; font-size: 13px; }
   .quarter { grid-template-columns: 1fr; padding: 8px; }
 }
 
