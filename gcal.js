@@ -199,6 +199,9 @@
       name: c.summaryOverride || c.summary,
       color: c.backgroundColor || '#26241f',
       writable: c.accessRole === 'owner' || c.accessRole === 'writer',
+      // the account you signed in as: alan@winterguests.com, i.e. work. Everything
+      // else — the private gmail, a shared studio calendar — is somebody's guest.
+      primary: !!c.primary,
     }));
     renderCalPicker();
   }
@@ -211,8 +214,11 @@
   function targetId() {
     const stored = localStorage.getItem(TARGET_KEY);
     if (stored && calendars.some(c => c.id === stored && c.writable)) return stored;
-    const primary = calendars.find(c => c.id.includes('@') && c.writable);
-    return (primary || calendars.find(c => c.writable) || {}).id;
+    // Fall back to the calendar you are signed in as — work. The old fallback
+    // took the first writable id containing '@', which could just as easily have
+    // been the private gmail calendar, and a flight would have landed there.
+    const home = calendars.find(c => c.primary && c.writable);
+    return (home || calendars.find(c => c.writable) || {}).id;
   }
 
   function renderCalPicker() {
@@ -299,7 +305,7 @@
           }
           // eventType 'fromGmail' = auto-scraped from an email; may well be
           // someone else's flight (cc'd itinerary), so it never moves the city pin
-          mine.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color, fromGmail: ev.eventType === 'fromGmail' });
+          mine.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color, fromGmail: ev.eventType === 'fromGmail', home: !!byId[id].primary });
         }
         pageToken = data.nextPageToken || '';
         if (stale()) return; // a newer tick superseded us mid-fetch: drop everything

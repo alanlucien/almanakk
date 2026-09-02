@@ -176,8 +176,18 @@ function monthLayout(y, m, events, overlays) {
   const first = fmt(new Date(y, m, 1));
   const last = fmt(new Date(y, m, daysInMonth(y, m)));
   const overlapping = events.filter(ev => ev.start <= last && ev.end >= first);
-  const spans = overlapping.filter(ev => ev.end > ev.start).sort(byStart);
-  const n = Math.max(1, packLanes(spans, MAX_LANES, 0));
+  // Work first, then everything else. All-day events from the calendar you are
+  // signed in as take the leftmost lanes; the private gmail calendar and any
+  // shared-in calendar sit to their right (Alan, 02.09.2026).
+  const all = overlapping.filter(ev => ev.end > ev.start).sort(byStart);
+  const work = all.filter(ev => ev.home), guest = all.filter(ev => !ev.home);
+  // When there is private all-day to show, work may claim at most all-but-one
+  // lane, so a holiday can never be crowded out by a busy month of projects.
+  // Work spans beyond that stack in their own last lane, as they always have.
+  const nWork = packLanes(work, guest.length ? MAX_LANES - 1 : MAX_LANES, 0);
+  const nGuest = guest.length ? packLanes(guest, MAX_LANES - nWork, nWork) : 0;
+  const spans = work.concat(guest);
+  const n = Math.max(1, nWork + nGuest);
   // overlay (wg) events get their own lanes to the right of the normal ones
   const ovl = (overlays || []).filter(ev => ev.start <= last && ev.end >= first).sort(byStart);
   ovl.forEach(ev => { ev._wg = true; });
