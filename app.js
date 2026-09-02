@@ -19,7 +19,9 @@ const LANGS = {
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender', savedIn: 'Lagret i', goesTo: 'Ny hendelse →',
-    cityHint: 'Trykk for å endre byen', cityAsk: 'Skriv bynavnet — lagres som «→ By»',
+    cityHint: 'Trykk for å planlegge en reise', cityAsk: 'Skriv bynavnet — lagres som «→ By»',
+    cityPlanAsk: 'Planlagt reise — lagres som «→ By tbc» til en flybillett dukker opp', cityPh: 'By',
+    planCleared: 'Planlagt reise fjernet, flyet er booket:',
     cityFromFlight: 'Denne byen kommer fra et fly. Endre flyet selv.', signinFirst: 'Logg inn med Google først.',
     deleted: 'Slettet', undo: 'Angre', restored: 'Gjenopprettet', edit: 'Endre', updated: 'Endret', replaced: 'erstattet av fly',
     tourHint: 'Huk av «Tour» på turnékalenderne under Kalendere først.',
@@ -33,7 +35,9 @@ const LANGS = {
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar', savedIn: 'Saved to', goesTo: 'New event →',
-    cityHint: 'Tap to change the city', cityAsk: 'Type the city — saved as "→ City"',
+    cityHint: 'Tap to plan a move', cityAsk: 'Type the city — saved as "→ City"',
+    cityPlanAsk: 'Planned move — saved as "→ City tbc" until a booking turns up', cityPh: 'City',
+    planCleared: 'Planned move removed, the flight is booked:',
     cityFromFlight: 'This city comes from a flight. Edit the flight itself.', signinFirst: 'Sign in with Google first.',
     deleted: 'Deleted', undo: 'Undo', restored: 'Restored', edit: 'Edit', updated: 'Updated', replaced: 'replaced by flight',
     tourHint: 'Tick "Tour" on the touring calendars under Calendars first.',
@@ -639,10 +643,11 @@ function renderMonthEl(y, m) {
     // One cell, one line, one thing in it: a holiday, else the week number on
     // Monday, else the city. Long names step down a size rather than clip.
     const info = h
-      ? `<span class="info ${h.red ? 'red' : ''} ${h.name.length > 11 ? 'long' : ''} ${h.name.length > 15 ? 'xlong' : ''}">${esc(h.name)}</span>`
+      ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="${h.red ? 'red' : ''} ${h.name.length > 11 ? 'long' : ''} ${h.name.length > 15 ? 'xlong' : ''}">${esc(h.name)}</span></span>`
       : cityTxt
-        ? `<span class="info"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}" data-cty="${ds}" title="${esc(L().cityHint)}">${esc(cityTxt)}</span></span>`
-        : (wi === 0 ? `<span class="info">${L().week} ${isoWeek(d)}</span>` : '<span class="info"></span>');
+        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}">${esc(cityTxt)}</span></span>`
+        : (wi === 0 ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}">${L().week} ${isoWeek(d)}</span>`
+                    : `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"></span>`);
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
     rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''}" data-date="${ds}">`
@@ -744,28 +749,35 @@ async function addEvent(date, text) {
   }
 }
 
-/* ---------- tap a city in the info column -> retype it ---------- */
+/* ---------- plan a move: tap the city corner of any day ---------- */
 
-// The city is derived, never stored, so this edits the event that produced it:
-// a typed "→ Oslo" marker is renamed in place. A city that came from a real
-// flight is left alone — a marker cannot outrank a booking on the same day, so
-// "editing" it here would look like it worked and change nothing.
-function openCityEdit(span) {
+// Alan's design (02.09.2026): the right-hand corner of a day is where the city
+// lives, so that is where you plan one. Name a city and you get a PLANNED move
+// — "→ Roma tbc" — which reads italic everywhere. It is a way of saying "I mean
+// to be in Roma from here", which is how he works out when to book flights.
+// A booking on the same day wins and clears the plan (see cleanSupersededPlans).
+async function openCityEdit(cell) {
   closePanel(true);
-  const ds = span.dataset.cty;
-  const src = cityOn(ds, buildFlightIndex());
-  if (!src) return;
-  const ev = src.marker && state.events.find(e => String(e.id) === String(src.evId));
-  if (!ev) return toast(L().cityFromFlight);
+  const ds = cell.dataset.day;
+  if (!ds) return;
   if (state.mode !== 'google') return toast(L().signinFirst);
+  const idx = buildFlightIndex();
+  // a booked flight that day already owns the city; a plan against it would be
+  // silently overruled, so say so rather than accept an edit that does nothing
+  if (idx.some(f => f.date === ds && !f.tbc)) return toast(L().cityFromFlight);
+  const own = idx.find(f => f.date === ds && f.marker);
+  const ev = own && state.events.find(e => String(e.id) === String(own.evId));
+  const current = own ? own.dest : '';
+  const tgt = !ev && window.gcalTarget && window.gcalTarget();
 
   const pop = document.createElement('div');
   pop.id = 'popover';
   pop.innerHTML = `<p class="dim"><b>${ds}</b></p>`
-    + `<form class="qa"><input type="text" value="${esc(src.dest)}" autocomplete="off"><button type="submit" class="add">OK</button></form>`
-    + `<p class="qa-target">${esc(L().cityAsk)}</p>`;
+    + `<form class="qa"><input type="text" value="${esc(current)}" placeholder="${esc(L().cityPh)}" autocomplete="off"><button type="submit" class="add">OK</button></form>`
+    + `<p class="qa-target">${esc(ev ? L().cityAsk : L().cityPlanAsk)}</p>`
+    + (tgt ? `<p class="qa-target"><span class="dot" style="--c:${tgt.color}"></span>${L().goesTo} ${esc(tgt.name)}</p>` : '');
   document.body.appendChild(pop);
-  const r = span.getBoundingClientRect();
+  const r = cell.getBoundingClientRect();
   pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
   pop.style.top = (r.bottom + 4 + pop.offsetHeight > window.innerHeight
     ? Math.max(8, r.top - pop.offsetHeight - 4) : r.bottom + 4) + 'px';
@@ -774,17 +786,23 @@ function openCityEdit(span) {
   input.focus(); input.select();
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    if (form.dataset.busy) return;              // same guard as quick-add
+    if (form.dataset.busy) return;
     const typed = input.value.trim().replace(/^\s*(?:-+\s*>?|=>|\u2192)\s*/, '');
-    if (!typed || typed === src.dest) return closePanel(true);
-    // a planned move stays planned when you only correct the city
-    const keepTbc = isTbc(ev) && !/\btbc\b/i.test(typed) ? ' tbc' : '';
+    if (!typed || typed === current) return closePanel(true);
     form.dataset.busy = '1';
     form.querySelectorAll('input, button').forEach(el => { el.disabled = true; });
     try {
-      await window.gcalUpdateEvent(ev, arrowForm('-' + typed) + keepTbc);
+      if (ev) {
+        // renaming an existing marker keeps whatever it already was
+        const keepTbc = isTbc(ev) && !/\btbc\b/i.test(typed) ? ' tbc' : '';
+        await window.gcalUpdateEvent(ev, arrowForm('-' + typed) + keepTbc);
+        toast(L().updated);
+      } else {
+        // a new one is always a PLAN until a booking replaces it
+        const tbc = /\btbc\b/i.test(typed) ? '' : ' tbc';
+        await addEvent(ds, arrowForm('-' + typed) + tbc);
+      }
       closePanel(true);
-      toast(L().updated);
     } catch (err) {
       toast(err.message);
       delete form.dataset.busy;
@@ -792,6 +810,29 @@ function openCityEdit(span) {
     }
   });
 }
+
+// A planned move is a guess about a day you have not booked yet. The moment a
+// real flight lands on that same day the guess is answered, so it is removed
+// rather than left sitting under the booking saying something vaguer.
+// Only ever a tbc marker you typed, only on the exact day a booking appears.
+let cleaning = false;
+window.almanakkAfterLoad = async function () {
+  if (cleaning || state.mode !== 'google') return;
+  const idx = buildFlightIndex();
+  const booked = new Set(idx.filter(f => !f.tbc).map(f => f.date));
+  const doomed = idx
+    .filter(f => f.tbc && f.marker && booked.has(f.date))
+    .map(f => state.events.find(e => String(e.id) === String(f.evId)))
+    .filter(Boolean);
+  if (!doomed.length) return;
+  cleaning = true;
+  try {
+    for (const ev of doomed) await window.gcalDeleteEvent(ev);
+    toast(`${L().planCleared} ${doomed.map(e => e.title).join(' · ')}`);
+  } catch (err) {
+    // leave it alone: the day panel still says the booking replaced it
+  } finally { cleaning = false; }
+};
 
 /* ---------- day panel: tap a day -> full list + add field ---------- */
 
@@ -1048,8 +1089,8 @@ window.addEventListener('afterprint', () => {
 // (unless the add-field holds unsaved text — then it stays).
 $('#app').addEventListener('click', e => {
   if (e.target.closest('#popover')) return;
-  const cty = e.target.closest('.cty');
-  if (cty) { e.stopPropagation(); return openCityEdit(cty); }
+  const cell = e.target.closest('.info.plan');
+  if (cell) { e.stopPropagation(); return openCityEdit(cell); }
   if ($('#popover')) { closePanel(); return; }
   const row = e.target.closest('.day');
   if (row) openDayPanel(row);

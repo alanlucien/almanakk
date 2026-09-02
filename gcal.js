@@ -319,6 +319,8 @@
     state.events = rawEvents;
     try { localStorage.setItem('almanakk-events', JSON.stringify(rawEvents)); } catch (e) { /* storage full: skip */ }
     render();
+    // a booking may have answered a planned move: clear it (guards against re-entry)
+    if (window.almanakkAfterLoad) window.almanakkAfterLoad();
   };
 
   window.gcalCreateEvent = async function (startDate, endDate, text) {
