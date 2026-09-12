@@ -5,6 +5,21 @@ what the app shows at the foot of Kalendere ("bygg …"); the commit is what to 
 to get exactly that version back (`git checkout <commit>` then `python3 publiser.py`).
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
+## 13.09.2026 — LIVE: black and white paper, week and day views (bygg 20260913n)
+- The paper is black and white. Sundays and holidays grey, a heavy rule closing
+  each week, print frames round the blocks. Brown is gone. `e3b2f4e`
+- WEEK view: the diary spread, one line per event, a run's name on the day it
+  starts and a line down the margin to where it ends.
+- DAY view: an event opens in its day. Title, time, dates, location and notes,
+  the calendar it lives in, delete beside save, and a Google Maps link.
+- Header is the month centred, the year right, and one ellipsis menu.
+- Gestures: one tap opens a level, two taps close it. Two taps on an event in
+  the month open it for editing. Swipe steps sideways in every view.
+- The phone's year view is twelve month thumbnails.
+- The back button goes back a view instead of leaving the app.
+- TO UNDO: Cloudflare dashboard → almanakk-v2 → Deployments → Rollback, or
+  `git checkout 1f0cadf` then `python3 publiser.py` for yesterday's build.
+
 ## 12.09.2026 — LIVE: the day line reads as time, and bands overlap (bygg 20260912ad)
 - Morning at the left, afternoon at a midday column, evening at a column of its own.
   On by default; `?kveld=0` gives the plain left-aligned line back. `1f0cadf`
