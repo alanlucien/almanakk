@@ -834,3 +834,12 @@ header #period-year {
 /* a short city name can afford to be read at a glance; a long one cannot,
    so only the short ones step up */
 .week > h2 .wcity.short, .dayview > h2 .wcity.short { font-size: 12px; letter-spacing: .09em; }
+
+/* A LITTLE OFF EACH DAY GOES A LONG WAY (Alan, 13.09). Three ruled lines was
+   right; their height was not. Seven days times a few pixels a line is most of
+   a day's worth of screen, so this is trimmed rather than redesigned. */
+.wday > h3 { padding-top: 3px; padding-bottom: 1px; }
+.wday { padding-bottom: 0; }
+.wday .wblank { height: 1.15em; }
+.wday .wev { padding-top: 2px; padding-bottom: 2px; }
+.week .wspan { padding-top: 0; padding-bottom: 0; }
