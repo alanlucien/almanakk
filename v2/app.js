@@ -546,49 +546,12 @@ function inkColor(hex) {
   return `rgb(${r},${g},${b})`;
 }
 
-// A band's hairline should fall BETWEEN letters, never through one (Alan,
-// 12.09 — "the way it sits exactly between the S and the M in HOS MOR").
-// After a render, each day line is nudged a few pixels so the nearest band
-// edge lands on a letter boundary, and on a word space if one is in reach.
-// Measured, capped, and skipped when the line has no slack to give.
-const NUDGE_MAX = 5;      // px: beyond this the line visibly loses its left edge
-function alignLinesToBands() {
-  if (!measureCtx || !laneBox.font) return;
-  document.querySelectorAll('.day .canvas').forEach(cv => {
-    const det = cv.querySelector('.detail');
-    if (!det) return;
-    det.style.paddingLeft = '';
-    const text = det.textContent;
-    if (!text.trim()) return;
-    const cvLeft = cv.getBoundingClientRect().left;
-    const detLeft = det.getBoundingClientRect().left - cvLeft;
-    // Either edge of a band can cut a word: its hairline on the left, and the
-    // tone change where its tint stops on the right. Both count.
-    const edges = [];
-    cv.querySelectorAll('.band').forEach(b => {
-      const r = b.getBoundingClientRect();
-      edges.push(r.left - cvLeft, r.right - cvLeft);
-    });
-    const inText = edges.filter(x => x > detLeft + 1).sort((a, b) => a - b);
-    if (!inText.length) return;
-    const cs = getComputedStyle(det.querySelector('b') || det);
-    measureCtx.font = cs.font || laneBox.font;
-    const pad = parseFloat(getComputedStyle(det).paddingLeft) || 0;
-    const edge = inText[0] - detLeft - pad;            // where the line cuts, in text space
-    if (edge <= 0) return;
-    // character boundaries, and which of them are word spaces
-    let best = null;
-    for (let i = 0; i <= text.length; i++) {
-      const x = measureCtx.measureText(text.slice(0, i)).width;
-      const shift = edge - x;                          // move the text right by this much
-      if (shift < -0.5 || shift > NUDGE_MAX) continue;
-      const isSpace = i > 0 && i < text.length && (text[i] === ' ' || text[i - 1] === ' ');
-      const score = Math.abs(shift) - (isSpace ? 2.5 : 0);   // a space is worth a small detour
-      if (!best || score < best.score) best = { shift, score };
-    }
-    if (best && best.shift > 0.4) det.style.paddingLeft = (pad + best.shift).toFixed(1) + 'px';
-  });
-}
+// TRIED AND REVERTED, 12.09. Alan's idea was to nudge each day line a few
+// pixels so a band's edge falls between letters rather than through one. It
+// worked, but only some rows move, and then their text no longer starts where
+// the rows above and below start. He spotted it at once: a column whose left
+// edge wanders is worse than a letter with a hairline across it. Do not
+// re-attempt per-row; any fix has to keep one shared left edge for the month.
 
 function renderMonthEl(y, m) {
   const { spans, details, nOwn, nOvl } = monthLayout(y, m, visibleEvents(), overlayEvents());
@@ -812,7 +775,6 @@ function render(group) {
   $('#view-month').classList.toggle('active', state.view === 'month' && !state.detailed);
   $('#view-detail').classList.toggle('active', state.view === 'month' && state.detailed);
   measureLane();
-  alignLinesToBands();
   updateChips();
 }
 
