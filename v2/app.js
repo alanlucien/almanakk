@@ -562,6 +562,10 @@ function inkColor(hex) {
 // On by default since 12.09, the day Alan approved it. ?kveld=0 turns the
 // time columns off and gives the plain left-aligned day line back.
 const KVELD = !/[?&]kveld=0\b/.test(location.search);
+// ?band=column gives every band its own column, the way v1 had it; the default
+// is the overlapping staircase. A switch, not a decision — Alan judges both on
+// his real calendar before either is thrown away (12.09).
+const BANDS = /[?&]band=column\b/.test(location.search) ? 'column' : 'stair';
 const EVENING_FROM = 18;                            // an "evening" starts here
 const NUDGE_RIGHT = 6;   // px a word may be pushed right; past this it reads as a gap
 const NUDGE_LEFT = 2.5;  // px it may be pulled left — only tightens one space
@@ -929,20 +933,7 @@ function renderMonthEl(y, m) {
   // shows a strip of its own colour down the month. That costs one strip per
   // project instead of a full title width per project, and the label can stay
   // where it belongs — at its own band's left edge, never packed onto a row.
-  const LANE_STRIPE = 4, LABEL_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0;
-  // A TOUR BAND IS NOT ONE OF ALAN'S (Alan, 12.09: "the banner for winter
-   // guests should be further to the right"). Overlay lanes get a wider gap
-   // before them, which both says they are someone else's and gives his own
-   // last band room to say its name — "Jury duty" was being cut to "Jury dut"
-   // by ANTIGONE PARIS starting on the same row, and neither label could move
-   // because both were start labels.
-  const WG_GAP = 4;
-  const laneEm = [];
-  for (let i = 0; i < nOwn + nOvl; i++) {
-    laneEm[i] = (laneBox.px ? LANE_STRIPE : 3.5) + LANE_GAP
-      + (nOvl && nOwn && i === nOwn - 1 ? WG_GAP : 0);
-  }
-  const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
+  const LANE_STRIPE = 4, LABEL_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0, WG_GAP = 4;
   // one width per span for the whole month, so a band never changes width
   // between rows; a title too long to fit takes its widest WORD, because that
   // is what gets written down the band one word per row
@@ -955,23 +946,36 @@ function renderMonthEl(y, m) {
       ? Math.max(LANE_STRIPE, Math.min(full <= LABEL_MAX ? full : widest, LABEL_MAX))
       : 5.5;
   }
-  // ONE WIDTH PER LANE, AND EVERY LANE MUST OUTREACH THE ONE BEFORE IT (Alan,
-  // 12.09: "that festivaluke is entirely inside kongen av bastøy is
-  // problematic if the colour is the same"). A later band paints over an
-  // earlier one, so if it also ENDED left of it, it would be swallowed whole
-  // and two projects would read as one. Each lane therefore ends at least a
-  // strip right of its neighbour: the earlier band keeps a strip on the left,
-  // the later one keeps the right edge, and neither can disappear.
-  const laneW = [];
-  let reach = 0;
+  const natW = [];                       // what each lane would need on its own
   for (let i = 0; i < nOwn + nOvl; i++) {
     let w = LANE_STRIPE;
     for (const ev of spans) if (ev._lane === i) w = Math.max(w, bandEm[ev.id]);
-    const left = laneLeft(i);
-    if (i && left + w < reach + LANE_STRIPE) w = reach + LANE_STRIPE - left;
-    laneW[i] = w;
-    reach = left + w;
+    natW[i] = w;
   }
+  // TWO MODELS, SO ALAN CAN JUDGE THEM ON HIS OWN CALENDAR (12.09). STAIR is
+  // today's: bands overlap, each starting a strip right of the last, which buys
+  // width and costs the clean edge you follow a tour down by. COLUMN is v1's:
+  // every band has its own column and nothing is painted over, which reads
+  // better and costs width. Labels reach left and right in both.
+  const laneEm = [], laneW = [];
+  let reach = 0;
+  for (let i = 0; i < nOwn + nOvl; i++) {
+    const gap = (nOvl && nOwn && i === nOwn - 1 ? WG_GAP : 0);
+    if (BANDS === 'column') {
+      laneEm[i] = natW[i] + LANE_GAP + gap;
+      laneW[i] = natW[i];
+    } else {
+      laneEm[i] = (laneBox.px ? LANE_STRIPE : 3.5) + LANE_GAP + gap;
+      const left = laneEm.slice(0, i).reduce((a, b) => a + b, 0);
+      let w = natW[i];
+      // every band must end a strip right of its neighbour, or a later one
+      // painting over an earlier one would swallow it whole
+      if (i && left + w < reach + LANE_STRIPE) w = reach + LANE_STRIPE - left;
+      laneW[i] = w;
+      reach = left + w;
+    }
+  }
+  const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
 
   // WHICH DAY A LABEL LANDS ON (Alan, 12.09). A band that begins this month has
   // to say its name on the day it begins — that is the one label that cannot
