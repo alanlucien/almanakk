@@ -18,6 +18,8 @@ const LANGS = {
     wd: ['M','Ti','O','To','F','L','S'], // Monday-first
     wdLong: ['MANDAG','TIRSDAG','ONSDAG','TORSDAG','FREDAG','LØRDAG','SØNDAG'],
     week: 'uke',
+    fTitle: 'Tittel', fTime: 'Klokkeslett', fFrom: 'Fra', fTo: 'Til',
+    fWhere: 'Sted', fNotes: 'Notat', save: 'Lagre', closeEdit: 'Lukk', atTime: 'Klokken',
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender', savedIn: 'Lagret i', goesTo: 'Ny hendelse →',
@@ -35,6 +37,8 @@ const LANGS = {
     wd: ['Mo','Tu','We','Th','Fr','Sa','Su'],
     wdLong: ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'],
     week: 'wk',
+    fTitle: 'Title', fTime: 'Time', fFrom: 'From', fTo: 'To',
+    fWhere: 'Location', fNotes: 'Notes', save: 'Save', closeEdit: 'Close', atTime: 'By the clock',
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar', savedIn: 'Saved to', goesTo: 'New event →',
@@ -710,6 +714,65 @@ function clipLine() {
 
 // The week's bands are drawn after layout, because a day is as tall as the
 // number of things in it — there is no grid to hang them on.
+function wireDayView() {
+  const sec = document.querySelector('.dayview');
+  if (!sec) return;
+  sec.addEventListener('click', async e => {
+    const del = e.target.dataset.del;
+    if (del) {
+      const ev = state.events.find(x => String(x.id) === String(del));
+      if (!ev) return;
+      try { await deleteEvent(ev); state.openEvent = null; toast(L().deleted); }
+      catch (err) { toast(err.message); }
+      return;
+    }
+    if (e.target.dataset.close) { state.openEvent = null; render(); }
+  });
+  sec.addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target.closest('.dedit');
+    if (!form || form.dataset.busy) return;
+    const ev = state.events.find(x => String(x.id) === String(form.dataset.eid));
+    if (!ev) return;
+    const v = n => (form.querySelector(`[name="${n}"]`) || {}).value || '';
+    form.dataset.busy = '1';
+    try {
+      await saveEvent(ev, {
+        title: v('title').trim(), time: v('time').trim(),
+        start: v('start'), end: v('end'),
+        location: v('location').trim(), notes: v('notes').trim(),
+      });
+      state.openEvent = null;
+      toast(L().updated);
+    } catch (err) {
+      toast(err.message);
+      delete form.dataset.busy;
+    }
+  });
+}
+
+// Everything the day view can change, in one patch. A time is written into the
+// title the way Alan writes it elsewhere in this app, so the two agree.
+async function saveEvent(ev, f) {
+  if (state.mode !== 'google') {
+    if (ALMANAKK_CONFIG.clientId) throw new Error('Logg inn med Google først.');
+    ev.src.t = (f.time ? f.time + ' ' : '') + f.title;
+    ev.src.s = f.start; ev.src.e = f.end;
+    loadDemo();
+    return;
+  }
+  const patch = {
+    summary: (f.time && !/^\d{1,2}[:.]\d{2}/.test(f.title) ? f.time + ' ' : '') + f.title,
+    location: f.location, description: f.notes,
+  };
+  if (f.start && f.end) {
+    const next = parseDate(f.end); next.setDate(next.getDate() + 1);
+    patch.start = { date: f.start };
+    patch.end = { date: fmt(next) };
+  }
+  await window.gcalUpdateEvent(ev, patch);
+}
+
 function openWeekEntry(line, date) {
   if (!date) return;
   const form = document.createElement('form');
@@ -1283,6 +1346,68 @@ function mondayOf(ds) {
   return d;
 }
 
+// THE DAY IS WHERE AN EVENT IS EDITED (Alan, 12.09). Clicking a day shows it
+// in the week's context; clicking an event shows it in the day's. Same move,
+// one level down — so an event is never torn out of the day it belongs to just
+// to be changed. Every field Google keeps lives here.
+function renderDayEl(ds) {
+  const d = parseDate(ds);
+  const wi = (d.getDay() + 6) % 7;
+  const h = holidays(d.getFullYear())[ds];
+  const tour = new Set(tourCalIds());
+  // ALL DAY ON TOP, THE CLOCK BELOW IT (Alan, 12.09). Two things, not one
+  // list: what is true of the whole day, then what happens at an hour, in the
+  // order it happens. A run and an all-day entry belong to the first; anything
+  // with a time belongs to the second.
+  const here = state.events.filter(e => e.start <= ds && e.end >= ds);
+  const allDay = here.filter(e => e.end > e.start || !effTime(e))
+    .sort((a, b) => (a.end > a.start ? -1 : 1) - (b.end > b.start ? -1 : 1));
+  const timed = here.filter(e => e.end === e.start && effTime(e))
+    .sort((a, b) => (effTime(a) < effTime(b) ? -1 : effTime(a) > effTime(b) ? 1 : 0));
+  const row = e => {
+    const open = String(e.id) === String(state.openEvent);
+    const span = e.end > e.start;
+    if (!open) {
+      return `<p class="dev ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}" data-eid="${e.id}">`
+        + `<span class="wt">${esc(e.time || '')}</span>`
+        + `<span class="wn" style="color:${evInk(e)}">${esc(e.title)}</span>`
+        + (span ? `<span class="wr">${esc(e.start)} – ${esc(e.end)}</span>` : '')
+        + '</p>';
+    }
+    return `<form class="dedit" data-eid="${e.id}">`
+      + `<label>${L().fTitle}<input name="title" type="text" value="${esc(e.title)}"></label>`
+      + `<div class="drow">`
+      + `<label>${L().fTime}<input name="time" type="text" inputmode="numeric" placeholder="--:--" value="${esc(e.time || '')}"></label>`
+      + `<label>${L().fFrom}<input name="start" type="date" value="${esc(e.start)}"></label>`
+      + `<label>${L().fTo}<input name="end" type="date" value="${esc(e.end)}"></label>`
+      + `</div>`
+      + `<label>${L().fWhere}<input name="location" type="text" value="${esc(e.location || '')}"></label>`
+      + `<label>${L().fNotes}<textarea name="notes" rows="2">${esc(e.notes || '')}</textarea></label>`
+      + `<p class="dmeta"><span class="dot" style="--c:${e.color}"></span>${esc(calName(e.calId))}</p>`
+      + `<div class="dbtns"><button type="submit" class="add">${L().save}</button>`
+      + `<button type="button" class="x" data-del="${e.id}">${L().del}</button>`
+      + `<button type="button" class="x" data-close="1">${L().closeEdit}</button></div>`
+      + '</form>';
+  };
+  const rows = allDay.map(row).join('')
+    + (timed.length ? `<p class="dsplit">${L().atTime}</p>` : '')
+    + timed.map(row).join('');
+  return `<section class="dayview" data-date="${ds}">`
+    + `<h2><span class="dnum ${wi === 6 || (h && h.red) ? 'red' : ''}">${d.getDate()}</span>`
+    + `<span class="dname">${L().wdLong[wi]}</span>`
+    + `<small>${L().months[d.getMonth()]} ${d.getFullYear()}</small>`
+    + (h ? `<span class="whol">${esc(h.name)}</span>` : '')
+    + `<span class="wkno">${L().week} ${isoWeek(d)}</span></h2>`
+    + (rows || `<p class="wblank"></p>`)
+    + `<p class="wblank"></p></section>`;
+}
+
+function calName(id) {
+  const all = (window.gcalCalendars && window.gcalCalendars()) || (window.DEMO_CALENDARS || []);
+  const c = all.find(x => x.id === id);
+  return c ? (c.name || c.id) : id;
+}
+
 function renderWeekEl(ds) {
   const mon = mondayOf(ds);
   const hol = holidays(mon.getFullYear());
@@ -1386,6 +1511,12 @@ function render(group) {
     app.className = 'year';
     app.innerHTML = html;
     $('#period-label').textContent = state.year;
+  } else if (state.view === 'day') {
+    const dsx = state.dayOf || fmt(new Date());
+    app.className = 'dayviewwrap';
+    app.innerHTML = renderDayEl(dsx);
+    const dd = parseDate(dsx);
+    $('#period-label').textContent = dd.getDate() + '. ' + L().months[dd.getMonth()].toLowerCase();
   } else if (state.view === 'week') {
     const ws = state.weekOf || fmt(new Date());
     app.className = 'weekview';
@@ -1408,6 +1539,7 @@ function render(group) {
   alignTourItems();
   clipLine();
   layoutWeekBands();
+  wireDayView();
   alignLinesToBands();
   updateChips();
 }
@@ -1833,6 +1965,10 @@ $('#app').addEventListener('click', e => {
   if (cell) { e.stopPropagation(); return openCityEdit(cell); }
   if ($('#popover')) { closePanel(); return; }
   const row = e.target.closest('.day');
+  if (state.view === 'day' && e.target.closest('.dayview > h2')) {
+    state.weekOf = state.weekDay = state.dayOf;
+    state.view = 'week'; state.openEvent = null; render(); return;
+  }
   // THE WEEK'S TITLE TAKES YOU BACK UP (Alan, 12.09: "if i click the square at
   // the top of the week again, it collapses back to month view"). The same
   // place you came from, so the gesture reverses itself.
@@ -1841,6 +1977,22 @@ $('#app').addEventListener('click', e => {
     const anchor = parseDate(state.weekDay || fmt(m));
     state.year = anchor.getFullYear(); state.month = anchor.getMonth();
     state.view = 'month'; render(); return;
+  }
+  // AN EVENT OPENS IN ITS DAY (Alan, 12.09). From the month, from the week,
+  // from the day itself — the same click, and it never leaves the day it
+  // belongs to just to be edited.
+  const hit = e.target.closest('[data-eid]');
+  if (hit && !e.target.closest('.dedit') && !e.target.closest('#popover')) {
+    const ev = state.events.find(x => String(x.id) === String(hit.dataset.eid));
+    if (ev) {
+      state.dayOf = hit.dataset.date || (state.view === 'day' ? state.dayOf : null)
+        || (ev.start > (state.weekDay || '') ? ev.start : state.weekDay) || ev.start;
+      if (state.view === 'month' || state.view === 'year') state.dayOf = hit.closest('.day')?.dataset.date || ev.start;
+      state.openEvent = ev.id;
+      state.view = 'day';
+      render();
+      return;
+    }
   }
   // YOU WRITE ON THE NEXT FREE LINE (Alan, 12.09: "i think we do need a day
   // panel? for when we enter events?"). No — the week already is the day

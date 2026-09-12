@@ -330,7 +330,9 @@
           }
           // eventType 'fromGmail' = auto-scraped from an email; may well be
           // someone else's flight (cc'd itinerary), so it never moves the city pin
-          mine.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color, fromGmail: ev.eventType === 'fromGmail', home: !!byId[id].primary });
+          mine.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color, fromGmail: ev.eventType === 'fromGmail', home: !!byId[id].primary,
+            // the day view edits these, so they have to travel with the event
+            location: ev.location || '', notes: ev.description || '' });
         }
         pageToken = data.nextPageToken || '';
         if (stale()) return; // a newer tick superseded us mid-fetch: drop everything
@@ -434,7 +436,8 @@
 
   window.gcalUpdateEvent = async function (ev, title) {
     await api('calendars/' + encodeURIComponent(ev.calId) + '/events/' + encodeURIComponent(ev.gid), {}, {
-      method: 'PATCH', body: JSON.stringify({ summary: title }),
+      // a string is still accepted, because v1 calls it that way
+      method: 'PATCH', body: JSON.stringify(typeof title === 'string' ? { summary: title } : title),
     });
     resetCache();
     await window.gcalEnsureYear(state.year);

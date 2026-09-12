@@ -569,3 +569,48 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 }
 /* a month's title opens that month, in the year view */
 .year .month > h2 { cursor: pointer; }
+
+/* ---------- the day: where an event is edited, in its own day ---------- */
+.dayview { background: var(--card); border: 1.5px solid var(--rule-strong); margin: 14px; }
+.dayview > h2 {
+  margin: 0; padding: 6px 10px; display: flex; align-items: baseline; gap: .5em;
+  border-bottom: 1.5px solid var(--rule-strong); cursor: pointer; font-size: 13px;
+}
+.dayview > h2 .dnum { font-size: 20px; font-weight: 700; letter-spacing: 0; }
+.dayview > h2 .dnum.red { color: var(--red); }
+.dayview > h2 .dname { letter-spacing: .12em; color: var(--muted); font-weight: 400; }
+.dayview > h2 small { font-weight: 400; letter-spacing: .1em; color: var(--muted); }
+.dayview > h2 .whol { font-style: italic; color: var(--red); font-weight: 400; }
+.dayview > h2 .wkno { margin-left: auto; font-weight: 400; letter-spacing: .1em; color: var(--muted); }
+
+.dayview .dev {
+  margin: 0; padding: 6px 10px; display: flex; gap: .6em; align-items: baseline;
+  border-bottom: 1px solid var(--rule); font-size: 13px; cursor: pointer;
+}
+.dayview .dev .wt { flex: 0 0 3.6em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dayview .dev .wn { flex: 1; min-width: 0; }
+.dayview .dev .wr { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.dayview .dev.show .wn { font-weight: 600; color: var(--red); }
+.dayview .dev.wg { opacity: .62; }
+
+/* the open one: every field Google keeps, on paper rather than in a form box */
+.dayview .dedit { padding: 8px 10px 10px; border-bottom: 1.5px solid var(--rule-strong); background: var(--card); }
+.dayview .dedit label { display: block; font-size: 10px; letter-spacing: .12em; color: var(--muted); margin-bottom: 7px; }
+.dayview .dedit input, .dayview .dedit textarea {
+  display: block; width: 100%; margin-top: 2px; padding: 3px 0;
+  border: 0; border-bottom: 1px solid var(--rule); background: none;
+  font: inherit; font-size: 16px; color: var(--ink); letter-spacing: 0;
+}
+.dayview .dedit textarea { resize: vertical; }
+.dayview .dedit .drow { display: flex; gap: 10px; }
+.dayview .dedit .drow label { flex: 1; }
+.dayview .dmeta { margin: 2px 0 8px; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: .4em; }
+.dayview .dmeta .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); display: inline-block; }
+.dayview .dbtns { display: flex; gap: 8px; }
+/* the day breaks in two: what is true all day, then what happens at an hour */
+.dayview .dsplit {
+  margin: 0; padding: 3px 10px; font-size: 10px; letter-spacing: .14em;
+  color: var(--muted); text-transform: uppercase;
+  border-top: 1.5px solid var(--rule-strong); border-bottom: 1px solid var(--rule);
+  background: var(--card);
+}
