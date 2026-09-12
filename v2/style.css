@@ -546,7 +546,7 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
    the run ends. */
 .week .wdays { position: relative; padding-right: calc(var(--wlanes, 0) * 7px + 12px); }
 .week .wband {
-  position: absolute; right: 12px; width: 2px;
+  position: absolute; right: 12px; width: 3px;
   margin-right: calc(var(--lane) * 7px);
   background: var(--c); opacity: .85; pointer-events: none;
 }
@@ -558,9 +558,13 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
    that carries on into the next just runs off the bottom edge, which is the
    difference between "done" and "still going". Centred on the 2px rule. */
 .week .wband.ends::after {
-  content: ''; position: absolute; left: -4px; bottom: -7px; z-index: 1;
-  border-left: 5px solid transparent; border-right: 5px solid transparent;
-  border-top: 8px solid var(--c);
+  /* INSIDE the run, never below it (Alan, 12.09: "the arrow should not enter
+     in if it is not including the day"). Hanging past the end, the tip poked
+     into the next day and claimed a day the event does not have. Sitting at
+     bottom:0 the tip lands exactly on the last day it covers. */
+  content: ''; position: absolute; left: -4.5px; bottom: 0; z-index: 1;
+  border-left: 6px solid transparent; border-right: 6px solid transparent;
+  border-top: 11px solid var(--c);
 }
 /* the name where it starts, read like a band label rather than an event */
 .week .wspan {
