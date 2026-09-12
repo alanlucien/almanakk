@@ -1477,6 +1477,8 @@ function renderDayEl(ds) {
     + (timed.length ? `<p class="dsplit">${L().atTime}</p>` : '')
     + timed.map(row).join('');
   // every place he has already typed, once each
+  const dmove = state.cities ? cityOn(ds, buildFlightIndex()) : null;
+  const dcity = dmove ? cityLabel(dmove.dest) : '';
   const places = [...new Set(state.events.map(x => (x.location || '').trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'no'));
   return `<section class="dayview" data-date="${ds}">`
@@ -1485,6 +1487,7 @@ function renderDayEl(ds) {
     + `<span class="dname">${L().wdLong[wi]}</span>`
     + `<small>${L().months[d.getMonth()]} ${d.getFullYear()}</small>`
     + (h ? `<span class="whol">${esc(h.name)}</span>` : '')
+    + (dcity ? `<span class="wcity">${esc(dcity)}</span>` : '')
     + `<span class="wkno">${L().week} ${isoWeek(d)}</span></h2>`
     + (rows || `<p class="wblank"></p>`)
     + `<p class="wblank"></p></section>`;
@@ -1576,7 +1579,21 @@ function renderWeekEl(ds) {
   const span = mon.getMonth() === end.getMonth()
     ? L().months[mon.getMonth()]
     : L().months[mon.getMonth()] + ' / ' + L().months[end.getMonth()];
+  // WHERE YOU ARE, AT THE TOP (Alan, 12.09: "do we repeat the city on top of
+  // the week... so we always know where we are"). A week you travelled in gets
+  // both ends of it, the way the day line already reads a journey.
+  const idx = state.cities ? buildFlightIndex() : null;
+  let wcity = '';
+  if (idx) {
+    // where the week STARTED is where you were the night before it, so a
+    // Monday flight reads as a journey rather than as the destination alone
+    const before = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() - 1);
+    const a = cityOn(fmt(before), idx), z = cityOn(lastKey, idx);
+    const an = a && cityLabel(a.dest), zn = z && cityLabel(z.dest);
+    wcity = an && zn && an !== zn ? an + ' / ' + zn : (zn || an || '');
+  }
   return `<section class="week"><h2>${span} <small>${end.getFullYear()}</small>`
+    + (wcity ? `<span class="wcity">${esc(wcity)}</span>` : '')
     + `<span class="wkno">${L().week} ${isoWeek(mon)}</span></h2>`
     + `<div class="wdays" style="--wlanes:${nLanes}">${days}`
     // the arrowhead means FINISHED, so only a run that actually ends inside

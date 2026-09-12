@@ -20,6 +20,7 @@
   --rule-strong: #1c1c1c;   /* print black, for frames and week edges */
   --red: #c0221b;
   --muted: #767676;
+  --ink-soft: #3d3d3d;   /* weekday names: quieter than the number, not a whisper */
 }
 
 * { box-sizing: border-box; }
@@ -480,7 +481,7 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
   font-size: 12px; font-weight: 400; border-bottom: 1px solid var(--rule);
 }
 .wday .wnum { font-weight: 700; font-size: 14px; }
-.wday .wname { letter-spacing: .12em; color: var(--muted); }
+.wday .wname { letter-spacing: .12em; color: var(--ink-soft); }
 .wday.red .wnum, .wday.red .wname { color: var(--red); }
 .wday .whol { margin-left: auto; font-style: italic; color: var(--red); }
 .wday.today > h3 { box-shadow: inset 3px 0 0 var(--ink); }
@@ -568,9 +569,9 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
      in if it is not including the day"). Hanging past the end, the tip poked
      into the next day and claimed a day the event does not have. Sitting at
      bottom:0 the tip lands exactly on the last day it covers. */
-  content: ''; position: absolute; left: -4.5px; bottom: 0; z-index: 1;
-  border-left: 6px solid transparent; border-right: 6px solid transparent;
-  border-top: 11px solid var(--c);
+  content: ''; position: absolute; left: -7.5px; bottom: 0; z-index: 1;
+  border-left: 9px solid transparent; border-right: 9px solid transparent;
+  border-top: 16px solid var(--c);
 }
 /* the name where it starts, read like a band label rather than an event */
 .week .wspan {
@@ -699,3 +700,10 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 /* all-day entries carry the week, so they are set larger than the timed lines */
 .week .wspan .wn { font-size: 15px; }
 .week .wspan { padding-top: 4px; padding-bottom: 4px; }
+/* where you are, at the top of a week or a day; both ends of it if you travelled */
+.week > h2 .wcity, .dayview > h2 .wcity {
+  margin-left: auto; font-size: 10px; letter-spacing: .07em;
+  text-transform: uppercase; font-weight: 600; color: var(--ink-soft);
+}
+.week > h2 .wcity + .wkno, .dayview > h2 .wcity + .wkno { margin-left: .9em; }
+.dayview > h2 .dname { color: var(--ink-soft); }
