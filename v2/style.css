@@ -452,3 +452,60 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .day .detail > .evt { flex: 0 0 auto; }
 .day .detail > .evt[hidden] { display: none !important; }
 .day .detail > .more { flex: 0 0 auto; margin-left: .45em; color: var(--muted); font-weight: 600; }
+
+/* ---------- the week: the diary spread (Alan, 12.09) ----------
+   Seven days, each given as many lines as it has events, every event whole on
+   its own line and plainly under its day. Same paper, same frame, same greys
+   as the month — it is the same sheet at a different density, not a new app. */
+.week { background: var(--card); border: 1.5px solid var(--rule-strong); margin: 14px; }
+.week > h2 {
+  margin: 0; padding: 6px 10px; display: flex; align-items: baseline; gap: .6em;
+  font-size: 13px; font-weight: 700; letter-spacing: .35em;
+  border-bottom: 1.5px solid var(--rule-strong);
+}
+.week > h2 small { font-weight: 400; letter-spacing: .1em; color: var(--muted); }
+.week > h2 .wkno { margin-left: auto; font-weight: 400; letter-spacing: .1em; color: var(--muted); }
+
+.wday { position: relative; border-bottom: 1px solid var(--rule); padding-bottom: 2px; }
+.wday:last-child { border-bottom: 0; }
+.wday.sun, .wday.red { border-bottom-color: var(--rule-strong); }
+.wday.free::after {
+  content: ''; position: absolute; inset: 0; background: var(--tint); pointer-events: none;
+}
+.wday > h3 {
+  margin: 0; padding: 4px 10px 2px; display: flex; align-items: baseline; gap: .5em;
+  font-size: 12px; font-weight: 400; border-bottom: 1px solid var(--rule);
+}
+.wday .wnum { font-weight: 700; font-size: 14px; }
+.wday .wname { letter-spacing: .12em; color: var(--muted); }
+.wday.red .wnum, .wday.red .wname { color: var(--red); }
+.wday .whol { margin-left: auto; font-style: italic; color: var(--red); }
+.wday.today > h3 { box-shadow: inset 3px 0 0 var(--ink); }
+
+/* one event, one line — the whole title, never clipped to a stub */
+.wday .wev {
+  position: relative; z-index: 1;
+  margin: 0; padding: 3px 10px; display: flex; gap: .6em; align-items: baseline;
+  border-bottom: 1px solid var(--rule); font-size: 12px; cursor: pointer;
+}
+.wday .wev:last-of-type { border-bottom: 0; }
+.wday .wev .wt { flex: 0 0 3.4em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wday .wev .wn { flex: 1; min-width: 0; }
+.wday .wev .wr { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.wday .wev.show .wn { font-weight: 600; color: var(--red); }
+.wday .wev.wg { opacity: .62; }
+.wday .wev.tbc .wn { font-style: italic; }
+/* a day with nothing keeps its ruled lines, the way the diary does */
+.wday .wblank { margin: 0; height: 1.5em; border-bottom: 1px solid var(--rule); }
+.wday .wblank:last-child { border-bottom: 0; }
+/* what runs through the week, said once at the top of it */
+.week .wruns { border-bottom: 1.5px solid var(--rule-strong); }
+.week .wrun {
+  margin: 0; padding: 3px 10px; display: flex; gap: .6em; align-items: baseline;
+  border-bottom: 1px solid var(--rule); font-size: 12px; cursor: pointer;
+}
+.week .wrun:last-child { border-bottom: 0; }
+.week .wrun .wn { flex: 1; min-width: 0; font-weight: 600; }
+.week .wrun .wr { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.week .wrun.wg { opacity: .62; }
+.week .wrun.tbc .wn { font-style: italic; }

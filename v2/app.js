@@ -16,6 +16,7 @@ const LANGS = {
   no: {
     months: ['JANUAR','FEBRUAR','MARS','APRIL','MAI','JUNI','JULI','AUGUST','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'],
     wd: ['M','Ti','O','To','F','L','S'], // Monday-first
+    wdLong: ['MANDAG','TIRSDAG','ONSDAG','TORSDAG','FREDAG','LØRDAG','SØNDAG'],
     week: 'uke',
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
@@ -32,6 +33,7 @@ const LANGS = {
   en: {
     months: ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'],
     wd: ['Mo','Tu','We','Th','Fr','Sa','Su'],
+    wdLong: ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'],
     week: 'wk',
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
@@ -1216,6 +1218,77 @@ function renderMonthEl(y, m) {
     + `<h2>${L().months[m]} <small>${y}</small></h2>${rows}</section>`;
 }
 
+// THE WEEK IS THE DETAIL SURFACE (Alan, 12.09). Not a day page — he will not
+// fill a day with fifty things — and not an hour grid, because most of what he
+// keeps has no clock on it. It is the diary spread he sent: seven days, each
+// given as many lines as it has events, every event whole on its own line and
+// plainly under its day. The month says the shape of the month; this says what
+// is actually in it.
+function mondayOf(ds) {
+  const d = parseDate(ds);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}
+
+function renderWeekEl(ds) {
+  const mon = mondayOf(ds);
+  const hol = holidays(mon.getFullYear());
+  const holNext = holidays(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6).getFullYear());
+  const tour = new Set(tourCalIds());
+  const todayStr = fmt(new Date());
+  let days = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
+    const key = fmt(d);
+    const h = hol[key] || holNext[key];
+    const red = i === 6 || (h && h.red);
+    const free = i === 6 || !!h || (SAT_GREY && i === 5);
+    // A RUNNING PROJECT IS NOT NEWS SEVEN TIMES (12.09). What spans the week
+    // is said once at the top of it; a day's own lines are the day's own
+    // events, which is what you came to the week to read.
+    const evs = state.events
+      .filter(e => e.start <= key && e.end >= key && e.end === e.start)
+      .sort((a, b) => {
+        const k = e => (effTime(e) ? '2' + effTime(e) : '1');
+        return k(a) < k(b) ? -1 : k(a) > k(b) ? 1 : 0;
+      });
+    const lines = evs.map(e => {
+      const span = e.end > e.start;
+      const when = e.time ? e.time : (span ? '' : '');
+      return `<p class="wev ${tour.has(e.calId) ? 'wg' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'show' : ''}"`
+        + ` data-eid="${e.id}" data-date="${key}">`
+        + `<span class="wt">${esc(when)}</span>`
+        + `<span class="wn" style="color:${evInk(e)}">${esc(e.title)}</span>`
+        + (span ? `<span class="wr">${esc(e.start)} – ${esc(e.end)}</span>` : '')
+        + '</p>';
+    }).join('');
+    // the diary keeps ruled lines whether or not the day is used
+    const blanks = Math.max(0, 2 - evs.length);
+    days += `<section class="wday ${free ? 'free' : ''} ${red ? 'red' : ''} ${key === todayStr ? 'today' : ''}" data-date="${key}">`
+      + `<h3><span class="wnum">${d.getDate()}</span> <span class="wname">${L().wdLong[i]}</span>`
+      + (h ? `<span class="whol">${esc(h.name)}</span>` : '') + '</h3>'
+      + lines + '<p class="wblank"></p>'.repeat(blanks)
+      + '</section>';
+  }
+  const end = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+  const lastKey = fmt(end), firstKey = fmt(mon);
+  const dm = ds2 => Number(ds2.slice(8, 10)) + '.' + Number(ds2.slice(5, 7)) + '.';
+  const runs = state.events
+    .filter(e => e.end > e.start && e.start <= lastKey && e.end >= firstKey)
+    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0))
+    .map(e => `<p class="wrun ${tour.has(e.calId) ? 'wg' : ''} ${isTbc(e) ? 'tbc' : ''}"`
+      + ` data-eid="${e.id}" data-date="${firstKey}">`
+      + `<span class="wn" style="color:${evInk(e)}">${esc(e.title)}</span>`
+      + `<span class="wr">${dm(e.start)} – ${dm(e.end)}</span></p>`).join('');
+  const span = mon.getMonth() === end.getMonth()
+    ? L().months[mon.getMonth()]
+    : L().months[mon.getMonth()] + ' / ' + L().months[end.getMonth()];
+  return `<section class="week"><h2>${span} <small>${end.getFullYear()}</small>`
+    + `<span class="wkno">${L().week} ${isoWeek(mon)}</span></h2>`
+    + (runs ? `<div class="wruns">${runs}</div>` : '')
+    + `${days}</section>`;
+}
+
 function render(group) {
   closePanel(true);
   const app = $('#app');
@@ -1230,14 +1303,20 @@ function render(group) {
     app.className = 'year';
     app.innerHTML = html;
     $('#period-label').textContent = state.year;
+  } else if (state.view === 'week') {
+    const ws = state.weekOf || fmt(new Date());
+    app.className = 'weekview';
+    app.innerHTML = renderWeekEl(ws);
+    const m = mondayOf(ws);
+    $('#period-label').textContent = L().week + ' ' + isoWeek(m) + ' · ' + m.getFullYear();
   } else {
-    app.className = 'strip' + (state.detailed ? ' detailed' : '');
+    app.className = 'strip';
     app.innerHTML = renderMonthEl(state.year, state.month);
     $('#period-label').textContent = L().months[state.month].charAt(0) + L().months[state.month].slice(1).toLowerCase() + ' ' + state.year;
   }
   $('#view-year').classList.toggle('active', state.view === 'year');
-  $('#view-month').classList.toggle('active', state.view === 'month' && !state.detailed);
-  $('#view-detail').classList.toggle('active', state.view === 'month' && state.detailed);
+  $('#view-month').classList.toggle('active', state.view === 'month');
+  $('#view-detail').classList.toggle('active', state.view === 'week');
   measureLane();
   fitJourneys();
   orderByTime();
@@ -1561,6 +1640,14 @@ function toast(msg, action) {
 }
 
 function step(dir) {
+  if (state.view === 'week') {
+    const d = mondayOf(state.weekOf || fmt(new Date()));
+    d.setDate(d.getDate() + dir * 7);
+    state.weekOf = fmt(d);
+    if (state.mode === 'google') window.gcalEnsureYear(d.getFullYear());
+    render();
+    return;
+  }
   if (state.view === 'year') {
     state.year += dir;
   } else {
@@ -1604,7 +1691,11 @@ $('#prev').addEventListener('click', () => step(-1));
 $('#next').addEventListener('click', () => step(1));
 $('#view-year').addEventListener('click', () => { state.view = 'year'; render(); });
 $('#view-month').addEventListener('click', () => { state.view = 'month'; state.detailed = false; render(); });
-$('#view-detail').addEventListener('click', () => { state.view = 'month'; state.detailed = true; render(); });
+$('#view-detail').addEventListener('click', () => {
+  state.view = 'week'; state.detailed = false;
+  state.weekOf = state.weekOf || fmt(new Date());
+  render();
+});
 $('#lang-chip').addEventListener('click', () => {
   state.lang = state.lang === 'no' ? 'en' : 'no';
   localStorage.setItem('almanakk2-lang', state.lang);
@@ -1658,6 +1749,11 @@ $('#app').addEventListener('click', e => {
   if (cell) { e.stopPropagation(); return openCityEdit(cell); }
   if ($('#popover')) { closePanel(); return; }
   const row = e.target.closest('.day');
+  // TOUCHING A DAY OPENS ITS WEEK (Alan, 12.09). The month says the shape of
+  // the month; the week is where the day's own lines are.
+  if (row && state.view === 'month' && !e.target.closest('.info')) {
+    state.weekOf = row.dataset.date; state.view = 'week'; render(); return;
+  }
   if (row) openDayPanel(row);
 });
 document.addEventListener('click', e => {
@@ -1674,7 +1770,7 @@ document.addEventListener('keydown', e => {
 let touchX = null;
 $('#app').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
 $('#app').addEventListener('touchend', e => {
-  if (touchX === null || state.view !== 'month') return;
+  if (touchX === null || (state.view !== 'month' && state.view !== 'week')) return;
   const dx = e.changedTouches[0].clientX - touchX;
   if (Math.abs(dx) > 60) step(dx < 0 ? 1 : -1);
   touchX = null;
