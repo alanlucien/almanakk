@@ -2111,7 +2111,7 @@ $('#app').addEventListener('click', e => {
   // see whether a second is coming. Titles still climb back up, one level a tap.
   const hit = e.target.closest('[data-eid]');
   const inDay = e.target.closest('.dayview');
-  if (!inDay && !e.target.closest('#popover') && !e.target.closest('.wblank')) {
+  if (!inDay && !e.target.closest('#popover')) {
     const dayEl = e.target.closest('.day, .wday');
     if (dayEl) {
       const date = dayEl.dataset.date;
@@ -2153,10 +2153,16 @@ $('#app').addEventListener('click', e => {
   // panel, and its blank ruled lines are where a new event goes, the way you
   // would write one on paper. One surface fewer, and the gesture is the
   // metaphor rather than a button beside it.
-  const blank = e.target.closest('.wblank');
+  // ONLY IN THE DAY (Alan, 12.09). Writing on a blank line was swallowing the
+  // single tap in the week, so the week would not close. Under his grammar a
+  // new event is reached by double-tapping an empty day, which lands in the
+  // day view with the cursor already on the line — so the week has no business
+  // catching that tap.
+  const blank = inDay && e.target.closest('.wblank');
   if (blank && !blank.querySelector('input')) {
-    const day = blank.closest('.wday');
-    openWeekEntry(blank, day && day.dataset.date);
+    // the day view's own blank lines sit in .dayview, not in a .wday
+    const holder = blank.closest('.wday, .dayview');
+    openWeekEntry(blank, (holder && holder.dataset.date) || state.dayOf);
     return;
   }
   // A MONTH'S NAME OPENS THAT MONTH (Alan, 12.09: "in year view click and a
