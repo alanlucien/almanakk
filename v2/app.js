@@ -831,22 +831,39 @@ function openWeekEntry(line, date) {
 }
 
 function layoutWeekBands() {
-  document.querySelectorAll('.wdays').forEach(box => {
-    const top0 = box.getBoundingClientRect().top;
-    box.querySelectorAll('.wband').forEach(b => {
-      const from = box.querySelector(`.wday[data-idx="${b.dataset.from}"]`);
-      const to = box.querySelector(`.wday[data-idx="${b.dataset.to}"]`);
+  document.querySelectorAll('.wdays').forEach(boxEl => {
+    const box = boxEl;
+    let box0 = null;
+    const top0 = boxEl.getBoundingClientRect().top;
+    boxEl.querySelectorAll('.wband').forEach(b => {
+      const from = boxEl.querySelector(`.wday[data-idx="${b.dataset.from}"]`);
+      const to = boxEl.querySelector(`.wday[data-idx="${b.dataset.to}"]`);
       if (!from || !to) { b.hidden = true; return; }
       // IT STARTS AT THE WORD (Alan's own hand on his wall calendar, 12.09:
       // he writes "Tunel" on the Monday and draws the line down from just
       // beside it). So the top is the NAME's line when the span begins inside
       // this week, and the top of Monday when it walked in from the week
       // before — which is where its name is written in that case too.
+      // IT HANGS OFF THE WORD ITSELF (Alan, 12.09: "drop from an invisible
+      // underline of the text, where the first letter of a new word would be
+      // after the Y in Bastøy"). Measured from the name's own box rather than
+      // computed from paddings, so it cannot drift out of step with the type.
       const head = from.querySelector(`.wspan[data-eid="${CSS.escape(b.dataset.eid)}"]`);
+      const name = head && head.querySelector('.wn');
       const a = (head || from).getBoundingClientRect(), z = to.getBoundingClientRect();
       b.hidden = false;
-      b.style.top = (a.top - top0) + 'px';
-      b.style.height = Math.max(2, z.bottom - a.top) + 'px';
+      if (name) {
+        const n = name.getBoundingClientRect();
+        const box = box0 || (box0 = boxEl.getBoundingClientRect());
+        b.style.left = Math.round(n.right - box.left + 4) + 'px';   // one space after the last letter
+        b.style.right = 'auto';
+        b.style.marginRight = '0';
+        b.style.top = (n.bottom - top0) + 'px';                     // the word's own underline
+        b.style.height = Math.max(2, z.bottom - n.bottom) + 'px';
+      } else {
+        b.style.top = (a.top - top0) + 'px';
+        b.style.height = Math.max(2, z.bottom - a.top) + 'px';
+      }
     });
   });
 }

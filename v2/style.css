@@ -551,10 +551,6 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
    immediately after its last letter — so the stagger comes from the names
    themselves rather than from a grid. */
 .week .wdays { position: relative; padding-right: 14px; }
-/* The step between one name's end and the next is deliberate, not incidental:
-   Alan's sketch stairs them well clear of each other. 9px read as a wobble;
-   18px reads as a decision. */
-.week .wspan { padding-right: calc(10px + var(--lane) * 18px); }
 .week .wband {
   position: absolute; right: 8px; width: 3px;
   margin-right: calc(var(--lane) * 18px);
@@ -692,3 +688,14 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .thumb .grid i.red { color: var(--red); }
 .thumb .grid i.now { font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--ink); }
 @media (min-width: 560px) { .thumbs { grid-template-columns: repeat(3, 1fr); } }
+
+/* THE STAIR, declared last so it wins. The rule sat above the block that sets
+   `padding: 3px 10px` on the same element, and a shorthand beats a longhand
+   that came before it — so every name kept the same right edge and the lines
+   crossed the last letter. Alan spotted it in one screenshot: the line through
+   the y of Bastøy. Each name now stops 18px further left than the one above,
+   and its line stands clear to the right of it. */
+.week .wspan { padding-right: calc(10px + var(--lane, 0) * 18px); }
+/* all-day entries carry the week, so they are set larger than the timed lines */
+.week .wspan .wn { font-size: 15px; }
+.week .wspan { padding-top: 4px; padding-bottom: 4px; }
