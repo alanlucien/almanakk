@@ -819,10 +819,58 @@ function renderMonthEl(y, m) {
   // also had a city — the Festivaluke tint Alan saw go missing on 23 Feb.
   // Now that a label can reach LEFT as well as right, it no longer needs its
   // lane to be wide enough to hold it, and the lane can be what it is for.
-  const LANE_STRIPE = 3, LABEL_MAX = 14, LANE_PAD = 1.4, LANE_GAP = 0;
+  // BANDS OVERLAP, STAGGERED BY A STRIP (Alan's two mockups, 12.09). Each band
+  // is as wide as its OWN title and starts one strip further right than the one
+  // before, so the later band paints over the earlier one and every band still
+  // shows a strip of its own colour down the month. That costs one strip per
+  // project instead of a full title width per project, and the label can stay
+  // where it belongs — at its own band's left edge, never packed onto a row.
+  const LANE_STRIPE = 3, LABEL_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0;
   const laneEm = [];
   for (let i = 0; i < nOwn + nOvl; i++) laneEm[i] = (laneBox.px ? LANE_STRIPE : 3.5) + LANE_GAP;
+  // one width per span for the whole month, so a band never changes width
+  // between rows; a title too long to fit takes its widest WORD, because that
+  // is what gets written down the band one word per row
+  const bandEm = {};
+  for (const ev of spans) {
+    const full = emWidth(ev.title) + LANE_PAD;
+    const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));
+    const widest = (words.length ? Math.max(...words.map(emWidth)) : 0) + LANE_PAD;
+    bandEm[ev.id] = laneBox.px
+      ? Math.max(LANE_STRIPE, Math.min(full <= LABEL_MAX ? full : widest, LABEL_MAX))
+      : 5.5;
+  }
   const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
+
+  // WHICH DAY A LABEL LANDS ON (Alan, 12.09). A band that begins this month has
+  // to say its name on the day it begins — that is the one label that cannot
+  // move. A repeat is only a beat, and the beat means nothing to a reader, so
+  // when a later band would paint over it the repeat moves UP: to the nearest
+  // earlier day of its own run where nothing covers it. That is what keeps
+  // "Fanny og Alexander" whole on the Sunday instead of cut to "Fanny" on the
+  // Monday that Kongen av Bastøy starts.
+  const mp = `${y}-${String(m + 1).padStart(2, '0')}-`;
+  const dayStr = d => mp + String(d).padStart(2, '0');
+  const activeOn = (ev, d) => ev.start <= dayStr(d) && ev.end >= dayStr(d);
+  const coveredOn = (ev, d) => spans.some(o => o !== ev && o._lane > ev._lane
+    && activeOn(o, d) && laneLeft(o._lane) < laneLeft(ev._lane) + (bandEm[ev.id] || 0));
+  const labelDays = {};
+  for (const ev of spans) {
+    const set = new Set();
+    for (let d = 1; d <= n; d++) {
+      if (!activeOn(ev, d)) continue;
+      const off = Math.round((parseDate(dayStr(d)) - parseDate(ev.start)) / 864e5);
+      const untilNextBeat = (14 - (off % 14)) % 14;
+      if (!(off % 14 === 0 || (d === 1 && off > 0 && untilNextBeat > 7))) continue;
+      if (off === 0 || !coveredOn(ev, d)) { set.add(d); continue; }
+      let moved = null;
+      for (let k = d - 1; k >= 1 && activeOn(ev, k); k--) {
+        if (!coveredOn(ev, k) && !set.has(k)) { moved = k; break; }
+      }
+      set.add(moved === null ? d : moved);
+    }
+    labelDays[ev.id] = set;
+  }
   // a title too long for its lane is written DOWN the band, one word per row
   const wrapPlan = {}; // event id -> { from: day, words: [...] }
   let rows = '';
@@ -878,12 +926,7 @@ function renderMonthEl(y, m) {
     // can never grow taller than one line. That is the rhythm the almanakk
     // cannot lose, and the old grid could not guarantee it.
     const laneEvs = ownEvs.concat(wgEvs);
-    const labelledAt = ev => {
-      if (!ev) return false;
-      const off = Math.round((parseDate(ds) - parseDate(ev.start)) / 864e5);
-      const untilNextBeat = (14 - (off % 14)) % 14;
-      return off % 14 === 0 || (day === 1 && off > 0 && untilNextBeat > 7);
-    };
+    const labelledAt = ev => !!ev && !!labelDays[ev.id] && labelDays[ev.id].has(day);
     // A band draws text today if it is a label row OR a continuation row of a
     // title being written one word per row. BOTH must push the line right, or
     // the line lands on top of them — the collision the first build had.
@@ -910,13 +953,13 @@ function renderMonthEl(y, m) {
     // partly, so each band's colour still shows on the row (Alan: "we still
     // see each band's color").
     let bands = '';
-    let cursorEm = 0;                          // first free em on this row
+    let lineStartEm = 0;
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       const showLabel = labelledAt(ev);
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
       const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));
-      // still one word per row when the title genuinely will not fit its room
+      // still one word per row when the title genuinely will not fit its band
       if (showLabel) {
         if (words.length > 1 && endInMonth > day && emWidth(ev.title) > LABEL_MAX - 0.4) {
           wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
@@ -930,25 +973,15 @@ function renderMonthEl(y, m) {
       if (showLabel) txt = plan ? plan.words[0] : ev.title;
       else if (plan && step > 0 && step < plan.words.length) txt = plan.words[step];
       const laneX = laneLeft(i);
-      let labelX = laneX, labelW = laneEm[i] - LANE_GAP;
-      if (txt) {
-        // the first free position on the row, whichever side of its lane that
-        // falls: pulled left across empty lanes, pushed right past a label
-        // that got there first
-        labelX = cursorEm;
-        labelW = Math.max(Math.min(emWidth(txt) + LANE_PAD, LABEL_MAX), laneEm[i] - LANE_GAP);
-        cursorEm = labelX + labelW;             // the next label starts after it
-      }
+      const w = bandEm[ev.id] || laneEm[i];
+      // the line begins after the last band that actually says something here
+      if (txt) lineStartEm = Math.max(lineStartEm, laneX + w);
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
-        + ` data-eid="${ev.id}" style="left:${laneX}em;width:${(laneEm[i] - LANE_GAP).toFixed(2)}em;`
-        + `--x:${(labelX - laneX).toFixed(2)}em;--w:${labelW.toFixed(2)}em;`
-        + `--c:${ev.color};--ci:${inkColor(ev.color)}">`
+        + ` data-eid="${ev.id}" style="left:${laneX}em;width:${w.toFixed(2)}em;`
+        + `--w:${w.toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (txt ? `<b>${esc(txt)}</b>` : '') + '</i>';
     });
-    // the line starts after the last label actually drawn, wherever it ended up
-    const lineStartEm = cursorEm;
-
     // ONE wide shared day line: Alan's headline first, shows (any calendar)
     // pinned next, then Alan's items, then wg's dimmed items
     const lineItems = todays.map(e => ({ e, wg: false }))
