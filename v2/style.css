@@ -738,3 +738,9 @@ header .spacer { display: none; }
 /* the year wants to be read as a year */
 #app.yearthumbs { padding-top: 2px; }
 header #period-label.isyear { font-size: 22px; font-weight: 700; letter-spacing: .06em; }
+
+/* the month block's own title is hidden in the month view — the header says it,
+   and the row it used is worth more as calendar (Alan, 13.09). The year view
+   keeps its titles, because there each block has to name itself. */
+.strip .month > h2 { display: none; }
+header #period-label { cursor: pointer; }

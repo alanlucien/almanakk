@@ -2051,6 +2051,13 @@ const moreMenu = $('#more');
 moreMenu.addEventListener('click', e => { if (e.target.closest('button')) moreMenu.open = false; });
 document.addEventListener('click', e => { if (!e.target.closest('#more')) moreMenu.open = false; });
 
+// THE MONTH IS NAMED ONCE (Alan, 13.09). With the header carrying the period,
+// the block's own title said September a second time and cost a day's worth of
+// height. The header's name takes over the job of opening the year.
+$('#period-label').addEventListener('click', () => {
+  if (state.view === 'month') { state.view = 'year'; render(); }
+});
+
 $('#lang-chip').addEventListener('click', () => {
   state.lang = state.lang === 'no' ? 'en' : 'no';
   localStorage.setItem('almanakk2-lang', state.lang);
