@@ -389,5 +389,5 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
    overlap in the same grid columns instead of the cell being given up, so the
    cell keeps its place and still takes the tap that plans a move — it simply
    sits on top of a line that now has further to run (Alan, 12.09). */
-.day.airright .canvas { grid-column: 2 / 4; grid-row: 1; }
-.day.airright .info { grid-column: 3 / 4; grid-row: 1; position: relative; z-index: 3; }
+.day.airright .canvas { grid-column: 3 / 5; grid-row: 1; }
+.day.airright .info { grid-column: 4 / 5; grid-row: 1; position: relative; z-index: 3; }
