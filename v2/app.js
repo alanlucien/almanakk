@@ -864,7 +864,13 @@ function layoutWeekBands() {
       const a = (head || from).getBoundingClientRect(), z = to.getBoundingClientRect();
       b.hidden = false;
       if (name) {
-        const n = name.getBoundingClientRect();
+        // THE GLYPHS, NOT THE BOX (Alan's "Yv Paris", 13.09). The name carries
+        // a right padding that stairs it clear of the name above, and the
+        // element's rect includes that padding — so the line started a whole
+        // lane's worth to the right of the word it belongs to, and the deeper
+        // the lane the worse it got.
+        const rr = document.createRange(); rr.selectNodeContents(name);
+        const n = rr.getBoundingClientRect();
         const box = box0 || (box0 = boxEl.getBoundingClientRect());
         b.style.left = Math.round(n.right - box.left + 4) + 'px';   // one space after the last letter
         b.style.right = 'auto';
