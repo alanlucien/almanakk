@@ -710,6 +710,35 @@ function clipLine() {
 
 // The week's bands are drawn after layout, because a day is as tall as the
 // number of things in it — there is no grid to hang them on.
+function openWeekEntry(line, date) {
+  if (!date) return;
+  const form = document.createElement('form');
+  form.className = 'wqa';
+  form.innerHTML = `<input type="text" placeholder="${esc(L().newPh)}" autocomplete="off">`;
+  line.textContent = '';
+  line.appendChild(form);
+  const input = form.querySelector('input');
+  input.focus();
+  const give = () => { if (form.isConnected) { line.textContent = ''; } };
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') give(); });
+  input.addEventListener('blur', () => { if (!input.value.trim()) give(); });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (form.dataset.busy) return;
+    const text = input.value.trim();
+    if (!text) return give();
+    form.dataset.busy = '1';
+    input.disabled = true;
+    try {
+      await addEvent(date, text);
+    } catch (err) {
+      toast(err.message);
+      delete form.dataset.busy;
+      input.disabled = false;
+    }
+  });
+}
+
 function layoutWeekBands() {
   document.querySelectorAll('.wdays').forEach(box => {
     const top0 = box.getBoundingClientRect().top;
@@ -1804,6 +1833,17 @@ $('#app').addEventListener('click', e => {
     const anchor = parseDate(state.weekDay || fmt(m));
     state.year = anchor.getFullYear(); state.month = anchor.getMonth();
     state.view = 'month'; render(); return;
+  }
+  // YOU WRITE ON THE NEXT FREE LINE (Alan, 12.09: "i think we do need a day
+  // panel? for when we enter events?"). No — the week already is the day
+  // panel, and its blank ruled lines are where a new event goes, the way you
+  // would write one on paper. One surface fewer, and the gesture is the
+  // metaphor rather than a button beside it.
+  const blank = e.target.closest('.wblank');
+  if (blank && !blank.querySelector('input')) {
+    const day = blank.closest('.wday');
+    openWeekEntry(blank, day && day.dataset.date);
+    return;
   }
   // TOUCHING A DAY OPENS ITS WEEK (Alan, 12.09). The month says the shape of
   // the month; the week is where the day's own lines are.

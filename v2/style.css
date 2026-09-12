@@ -530,10 +530,14 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 /* ---------- the week's bands: the month's language, turned on its side ----------
    A span's name is written on the day it enters the week, and a thin line runs
    down beside every day it covers. Nothing to decode (Alan, 12.09). */
-.week .wdays { position: relative; padding-left: calc(var(--wlanes, 0) * 7px); }
+/* THE LINES RUN DOWN THE RIGHT (Alan, 12.09). The left edge is the reading
+   edge — day numbers, clock times and titles all start there — and a rule
+   beside it competes with every one of them. On the right they sit in the
+   margin, next to the dates that belong to them. */
+.week .wdays { position: relative; padding-right: calc(var(--wlanes, 0) * 7px); }
 .week .wband {
-  position: absolute; left: 0; width: 3px; border-radius: 2px;
-  margin-left: calc(var(--lane) * 7px);
+  position: absolute; right: 0; width: 3px; border-radius: 2px;
+  margin-right: calc(var(--lane) * 7px);
   background: var(--c); opacity: .85; pointer-events: none;
 }
 .week .wband.wg { opacity: .45; }
@@ -547,3 +551,13 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .week .wspan .wr { flex: 0 0 4.6em; text-align: right; color: var(--muted); font-size: 11px; white-space: nowrap; }
 .week .wspan.wg { opacity: .62; }
 .week .wspan.tbc .wn { font-style: italic; }
+/* writing on a blank line */
+.wday .wblank { cursor: text; }
+.wday .wqa { display: block; }
+.wday .wqa input {
+  width: 100%; border: 0; outline: 0; background: none; padding: 0 10px;
+  /* 16px, because Safari zooms the whole page when you focus anything
+     smaller, and the calendar jumping sideways to type is worse than a line
+     of slightly larger text (12.09) */
+  font: inherit; font-size: 16px; color: var(--ink); line-height: 1.2;
+}
