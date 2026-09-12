@@ -1378,6 +1378,35 @@ function mondayOf(ds) {
 // in the week's context; clicking an event shows it in the day's. Same move,
 // one level down — so an event is never torn out of the day it belongs to just
 // to be changed. Every field Google keeps lives here.
+// A YEAR ON A PHONE IS A CONTENTS PAGE, NOT A YEAR (Alan, 12.09: "thumbnails
+// for each month so you can quickly jump to the right month... no elaborate
+// info"). The wide year view is 365 full rows, which is a wall chart and
+// unreadable on a phone. Twelve small grids let you find a month and open it,
+// which is the only thing the year is for on a small screen.
+function renderYearThumbs(y) {
+  const todayStr = fmt(new Date());
+  const hol = holidays(y);
+  let out = '';
+  for (let m = 0; m < 12; m++) {
+    const first = new Date(y, m, 1);
+    const lead = (first.getDay() + 6) % 7;          // Monday-first
+    const n = daysInMonth(y, m);
+    let cells = '';
+    for (let i = 0; i < lead; i++) cells += '<i></i>';
+    for (let d = 1; d <= n; d++) {
+      const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const wi = (new Date(y, m, d).getDay() + 6) % 7;
+      const h = hol[ds];
+      cells += `<i class="${wi === 6 || (h && h.red) ? 'red' : ''}${ds === todayStr ? ' now' : ''}">${d}</i>`;
+    }
+    out += `<section class="thumb" data-y="${y}" data-m="${m}">`
+      + `<h3>${L().months[m]}</h3>`
+      + `<div class="wdh">${L().wd.map(w => `<i>${w}</i>`).join('')}</div>`
+      + `<div class="grid">${cells}</div></section>`;
+  }
+  return `<div class="thumbs">${out}</div>`;
+}
+
 function renderDayEl(ds) {
   const d = parseDate(ds);
   const wi = (d.getDay() + 6) % 7;
@@ -1517,7 +1546,7 @@ function renderWeekEl(ds) {
     const blanks = Math.max(0, 2 - evs.length);
     const heads = startsOn(i).map(r =>
       `<p class="wspan ${tour.has(r.e.calId) ? 'wg' : ''} ${isTbc(r.e) ? 'tbc' : ''}"`
-      + ` data-eid="${r.e.id}" data-date="${key}">`
+      + ` data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane}">`
       + `<span class="wn" style="color:${evInk(r.e)}">${esc(r.e.title)}</span>`
       + `<span class="wr">${dm(r.e.start)} – ${dm(r.e.end)}</span></p>`).join('');
     days += `<section class="wday ${free ? 'free' : ''} ${red ? 'red' : ''} ${key === todayStr ? 'today' : ''}`
@@ -1544,7 +1573,11 @@ function renderWeekEl(ds) {
 function render(group) {
   closePanel(true);
   const app = $('#app');
-  if (state.view === 'year') {
+  if (state.view === 'year' && !group && window.matchMedia('(max-width: 820px)').matches) {
+    app.className = 'yearthumbs';
+    app.innerHTML = renderYearThumbs(state.year);
+    $('#period-label').textContent = state.year;
+  } else if (state.view === 'year') {
     const g = group || 3;
     let html = '';
     for (let start = 0; start < 12; start += g) {
@@ -2079,6 +2112,11 @@ $('#app').addEventListener('click', e => {
   // A MONTH'S NAME OPENS THAT MONTH (Alan, 12.09: "in year view click and a
   // month opens"). The same gesture at every level: the title of a thing
   // opens it, and the week's title closes back up.
+  const thumb = e.target.closest('.thumb');
+  if (thumb) {
+    state.year = Number(thumb.dataset.y); state.month = Number(thumb.dataset.m);
+    state.view = 'month'; render(); return;
+  }
   const mhead = e.target.closest('.month > h2');
   if (mhead && state.view === 'year') {
     const sec = mhead.closest('.month');
@@ -2107,7 +2145,7 @@ document.addEventListener('keydown', e => {
 let touchX = null;
 $('#app').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
 $('#app').addEventListener('touchend', e => {
-  if (touchX === null || state.view === 'year') return;   // month, week and day all swipe
+  if (touchX === null) return;   // every view steps sideways, the year by a year
   const dx = e.changedTouches[0].clientX - touchX;
   if (Math.abs(dx) > 60) step(dx < 0 ? 1 : -1);
   touchX = null;

@@ -544,10 +544,17 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
    sheet's edge so they are plainly on the page. The strip is reserved, so no
    title can run into them. Each still starts at its own name and ends where
    the run ends. */
-.week .wdays { position: relative; padding-right: calc(var(--wlanes, 0) * 7px + 12px); }
+/* EACH LINE HUGS THE END OF ITS OWN NAME (Alan, 12.09, drawing the line
+   directly under the V of TDLV). In a shared margin the line and the name it
+   belongs to were still two separate marks with a gap between them. Each name
+   now stops a lane further left than the one above it, and its line stands
+   immediately after its last letter — so the stagger comes from the names
+   themselves rather than from a grid. */
+.week .wdays { position: relative; padding-right: 14px; }
+.week .wspan { padding-right: calc(10px + var(--lane) * 9px); }
 .week .wband {
-  position: absolute; right: 12px; width: 3px;
-  margin-right: calc(var(--lane) * 7px);
+  position: absolute; right: 8px; width: 3px;
+  margin-right: calc(var(--lane) * 9px);
   background: var(--c); opacity: .85; pointer-events: none;
 }
 .week .wband.wg { opacity: .45; }
@@ -657,3 +664,28 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 }
 /* so a double tap is a double tap and not Safari's zoom */
 #app { touch-action: manipulation; }
+
+/* ---------- the year as a contents page, on a phone or an upright iPad ----------
+   Twelve small grids: find the month, open it. No events, because at this size
+   they would be specks rather than information (Alan, 12.09). */
+.thumbs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 12px; }
+.thumb {
+  background: var(--card); border: 1px solid var(--rule-strong);
+  padding: 5px 6px 7px; cursor: pointer;
+}
+.thumb h3 {
+  margin: 0 0 3px; font-size: 10px; font-weight: 700; letter-spacing: .16em;
+  text-align: center; border-bottom: 1px solid var(--rule-strong); padding-bottom: 3px;
+}
+.thumb .wdh, .thumb .grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.thumb .wdh i {
+  font-style: normal; font-size: 8px; text-align: center; color: var(--muted);
+  letter-spacing: 0; padding-bottom: 2px;
+}
+.thumb .grid i {
+  font-style: normal; font-size: 10px; text-align: center; padding: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+.thumb .grid i.red { color: var(--red); }
+.thumb .grid i.now { font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--ink); }
+@media (min-width: 560px) { .thumbs { grid-template-columns: repeat(3, 1fr); } }
