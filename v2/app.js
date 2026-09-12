@@ -570,6 +570,25 @@ const NUDGE_LEFT = 2.5;  // px it may be pulled left — only tightens one space
 // whether it fits depends on the label's own width — Alan, 12.09.
 // A flushed-right line must not land on a band label that spills right into
 // the same space. Measured after layout; it simply goes back to the left.
+// A show is pinned to the front of the line so clipping can never hide it.
+// On a line with room to spare there IS no clipping, and the pin then puts a
+// 19:00 show in front of a 09:00 rehearsal — which reads backwards, and reads
+// worse the moment the line says anything about time at all (Alan, 12.09, on
+// the 17th). So: running order whenever it fits, pinned only when it must be.
+function orderByTime() {
+  document.querySelectorAll('.day .detail').forEach(det => {
+    const evts = [...det.querySelectorAll(':scope > .evt')];
+    if (evts.length < 2) return;
+    const pad = 11;  // the detail's own 7px + 4px
+    const r = document.createRange(); r.selectNodeContents(det);
+    if (r.getBoundingClientRect().width > det.clientWidth - pad) return;  // it clips: keep the pin
+    const key = b => (b.dataset.wg === '1' ? '9' : b.dataset.t ? '1' : '0') + (b.dataset.t || '');
+    const sorted = [...evts].sort((a, b) => key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0);
+    if (sorted.every((b, i) => b === evts[i])) return;
+    sorted.forEach(b => det.appendChild(b));
+  });
+}
+
 function fitEvenings() {
   document.querySelectorAll('.day .detail.kveld').forEach(det => {
     const cv = det.closest('.canvas'); if (!cv) return;
@@ -805,7 +824,7 @@ function renderMonthEl(y, m) {
       const e = it.e, wg = it.wg;
       const txt = state.detailed ? (e.time ? e.time + ' ' : '') + e.title
         : (it._legs && it._legs.length > 2 ? journeyLabel(it._legs) : compactTitle(e));
-      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">`
+      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
         + esc(txt) + '</b>';
     };
     // starts where the labels stop — far left on a day with no band label at all
@@ -889,6 +908,7 @@ function render(group) {
   $('#view-detail').classList.toggle('active', state.view === 'month' && state.detailed);
   measureLane();
   fitJourneys();
+  orderByTime();
   fitEvenings();
   alignLinesToBands();
   updateChips();
