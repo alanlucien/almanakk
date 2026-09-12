@@ -5,6 +5,15 @@ what the app shows at the foot of Kalendere ("bygg …"); the commit is what to 
 to get exactly that version back (`git checkout <commit>` then `python3 publiser.py`).
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
+## 12.09.2026 — the day line holds one left edge (preview only, bygg 20260912b)
+- A band's hairline now falls between letters. Only the **one word** the line runs
+  through moves, up to 6px right or 2.5px left; the line's left edge never moves.
+  The first attempt shifted whole rows and Alan caught it at once. `caa53ea`
+- The long "Oslo → Bangkok" reading gives way to the arrow form where a band label
+  already fills that space, instead of printing over it. `caa53ea`
+- `?demo=1` opens the sample month with no sign-in — for the iPhone and iPad simulators.
+- **Preview only**: https://preview.almanakk-v2.pages.dev/v2/ . Production is unchanged.
+
 ## 12.09.2026 — v2 lives on Cloudflare, signs in once a month
 - v2 deployed to https://almanakk-v2.pages.dev/v2/ behind Cloudflare Access (Alan only).
 - Google's key is held on the server; no sign-in button, no hourly Google nag. `a1fc043`
