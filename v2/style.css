@@ -786,3 +786,12 @@ header #period-label.isyear b { font-size: 26px; letter-spacing: .06em; }
    thing in the header that is always the same, so it yields size instead */
 header h1 { white-space: nowrap; font-size: 12px; letter-spacing: .22em; }
 @media (max-width: 420px) { header h1 { font-size: 11px; letter-spacing: .14em; } }
+
+/* THE MONTH TAKES THE CENTRE ALONE (Alan, 13.09). With the year beside it the
+   pair was centred and the month itself sat left of the middle. The year moves
+   to the right, where it is a note rather than part of the title. */
+header #period-label { font-size: 19px; font-weight: 700; letter-spacing: .16em; }
+header #period-label.isyear { font-size: 26px; letter-spacing: .06em; }
+header #period-year {
+  font-size: 12px; letter-spacing: .08em; color: var(--muted); margin-right: .2em;
+}

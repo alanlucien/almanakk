@@ -9,7 +9,7 @@
 <title>Almanakk 2</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="../icon-192-v2.png">
-<link rel="stylesheet" href="style.css?v=20260913m">
+<link rel="stylesheet" href="style.css?v=20260913n">
 </head>
 <body>
 <header>
@@ -19,6 +19,7 @@
   </nav>
   <div class="spacer"></div>
   <nav>
+    <span id="period-year"></span>
     <button id="signin" hidden>Logg inn med Google</button>
     <!-- ONE CONTROL IN THE HEADER (Alan, 13.09). The month's own name opens the
          year, a day opens its week, a title closes back up and a swipe steps
@@ -45,11 +46,11 @@
 <!-- null here = Google sign-in in the browser (github.io). publiser.py flips it to
      '/api/gcal' in the Cloudflare build, where the key lives on the server. -->
 <script>window.ALMANAKK_PROXY = null;</script>
-<script src="../config.js?v=20260913m"></script>
-<script src="../demo-data.js?v=20260913m"></script>
-<script src="../airports.js?v=20260913m"></script>
-<script src="app.js?v=20260913m"></script>
-<script src="../gcal.js?v=20260913m"></script>
+<script src="../config.js?v=20260913n"></script>
+<script src="../demo-data.js?v=20260913n"></script>
+<script src="../airports.js?v=20260913n"></script>
+<script src="app.js?v=20260913n"></script>
+<script src="../gcal.js?v=20260913n"></script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="window.gcalReady && gcalReady()"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

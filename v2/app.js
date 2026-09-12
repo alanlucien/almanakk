@@ -1659,9 +1659,9 @@ function render(group) {
   if (state.view === 'year' && !group && window.matchMedia('(max-width: 820px)').matches) {
     app.className = 'yearthumbs';
     app.innerHTML = renderYearThumbs(state.year);
-    $('#period-label').innerHTML = `<b>${state.year}</b>`;
+    $('#period-label').textContent = state.year; $('#period-year').textContent = '';
   } else if (state.view === 'year') {
-    $('#period-label').innerHTML = `<b>${state.year}</b>`;
+    $('#period-label').textContent = state.year; $('#period-year').textContent = '';
     const g = group || 3;
     let html = '';
     for (let start = 0; start < 12; start += g) {
@@ -1677,17 +1677,17 @@ function render(group) {
     app.className = 'dayviewwrap';
     app.innerHTML = renderDayEl(dsx);
     const dd = parseDate(dsx);
-    $('#period-label').innerHTML = `<b>${dd.getDate()}. ${L().months[dd.getMonth()].toLowerCase()}</b>`;
+    $('#period-label').textContent = dd.getDate() + '. ' + L().months[dd.getMonth()].toLowerCase(); $('#period-year').textContent = dd.getFullYear();
   } else if (state.view === 'week') {
     const ws = state.weekOf || fmt(new Date());
     app.className = 'weekview';
     app.innerHTML = renderWeekEl(ws);
     const m = mondayOf(ws);
-    $('#period-label').innerHTML = `<b>${L().week} ${isoWeek(m)}</b> <i>${m.getFullYear()}</i>`;
+    $('#period-label').textContent = L().week + ' ' + isoWeek(m); $('#period-year').textContent = m.getFullYear();
   } else {
     app.className = 'strip';
     app.innerHTML = renderMonthEl(state.year, state.month);
-    $('#period-label').innerHTML = `<b>${L().months[state.month]}</b> <i>${state.year}</i>`;
+    $('#period-label').textContent = L().months[state.month]; $('#period-year').textContent = state.year;
   }
   measureLane();
   fitJourneys();
