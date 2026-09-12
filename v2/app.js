@@ -614,6 +614,12 @@ function fitJourneys() {
       j.innerHTML = j.dataset.short;
       j.classList.remove('wide');
     }
+    // still too wide for the column it now sits in: say it in codes rather
+    // than clip the week number off the end (Alan's phone, 12.09)
+    const cell = j.parentElement;
+    if (!j.classList.contains('wide') && j.scrollWidth > cell.clientWidth - 6 && j.dataset.tiny) {
+      j.innerHTML = j.dataset.tiny;
+    }
   });
 }
 
@@ -626,9 +632,11 @@ function fitJourneys() {
 // The column is placed for the ordinary late title, not the longest one: one
 // very long evening title used to drag the whole column left, which on a phone
 // wasted most of the row (Alan, 12.09 — "they could have been further to the
-// right"). A title wider than half the canvas is an outlier and keeps its own
-// right edge instead of moving the column for everyone.
-const EVENING_OUTLIER = 0.5;    // share of the canvas past which a title is an outlier
+// right"). A title half again longer than the next one down is an outlier; it
+// keeps its own right edge rather than move the column for everyone. Measured
+// against its neighbours, not against the canvas, so it behaves the same on a
+// phone as on a wall.
+const EVENING_OUTLIER = 1.5;    // how much longer than the next one down
 const EVENING_COL_MIN = 0.42;   // never left of this much across the canvas
 const EVENING_GAP = 10;         // clear air between a morning item and the column
 function alignEvenings() {
@@ -663,9 +671,10 @@ function alignEvenings() {
       }
     });
     const cvW = cands[0].cv.width;
-    const ordinary = cands.map(c => c.w).filter(w => w <= cvW * EVENING_OUTLIER);
-    const col = Math.max(cvW * EVENING_COL_MIN,
-                         cvW - 4 - (ordinary.length ? Math.max(...ordinary) : 0));
+    const widths = cands.map(c => c.w).sort((a, b) => b - a);
+    const keep = Math.max(1, Math.ceil(widths.length * 2 / 3));  // never drop the bulk
+    while (widths.length > keep && widths[0] > widths[1] * EVENING_OUTLIER) widths.shift();
+    const col = Math.max(cvW * EVENING_COL_MIN, cvW - 4 - widths[0]);
     cands.forEach(c => {
       const fits = col + c.w <= cvW - 4 && (c.i === 0 || c.headEnd + EVENING_GAP <= col);
       if (!fits) {
@@ -907,7 +916,7 @@ function renderMonthEl(y, m) {
     // "where am I"; on the day you move it should answer "where am I going".
     // Codes only — the column is narrow — and the journey then leaves the day
     // line, which is where the crowding was. A holiday still wins the cell.
-    let journeyTxt = '', journeyAlone = false, journeyShort = '';
+    let journeyTxt = '', journeyAlone = false, journeyShort = '', journeyTiny = '';
     // A MONDAY FLIGHT SHARES THE CELL (Alan, 12.09): the journey goes where
     // every other journey goes, and the week keeps its NUMBER, losing only the
     // word "uke" — "Oslo → Bangkok 9". Monday still never gives its week away;
@@ -921,6 +930,8 @@ function renderMonthEl(y, m) {
         // the empty line; sharing the day, just the arrow and where you land —
         // and the arrow grows, so it still reads as a move (Alan, 12.09).
         const wk = wi === 0 ? ' <span class="wknum">' + isoWeek(d) + '</span>' : '';
+        // narrowest reading of all, for a phone: the code, never the week
+        journeyTiny = '<span class="arw big">\u2192</span> ' + esc(cityCode(legs[legs.length - 1])) + wk;
         journeyShort = '<span class="arw big">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1])) + wk;
         // ONE RULE FOR THE TWO READINGS (Alan lost track of it, 12.09, fairly):
         // it says the whole trip whenever the whole trip fits, and drops to the
@@ -935,7 +946,7 @@ function renderMonthEl(y, m) {
     const info = h
       ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="${h.red ? 'red' : ''} ${h.name.length > 11 ? 'long' : ''} ${h.name.length > 15 ? 'xlong' : ''}">${esc(h.name)}</span></span>`
       : journeyTxt
-        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey ${journeyAlone ? 'wide' : ''}" data-short="${journeyAlone ? esc(journeyShort) : ''}">${journeyTxt}</span></span>`
+        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey ${journeyAlone ? 'wide' : ''}" data-short="${esc(journeyShort)}" data-tiny="${esc(journeyTiny)}">${journeyTxt}</span></span>`
       : cityTxt
         ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}">${esc(cityTxt)}</span></span>`
         : (wi === 0 ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}">${L().week} ${isoWeek(d)}</span>`
