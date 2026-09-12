@@ -869,8 +869,15 @@ function layoutWeekBands() {
         // element's rect includes that padding — so the line started a whole
         // lane's worth to the right of the word it belongs to, and the deeper
         // the lane the worse it got.
+        // ...but never past where the name is actually CUT. A long title is
+        // clipped with an ellipsis, and the glyph box still measures the whole
+        // untruncated string — so the line was placed off the right edge of the
+        // sheet and vanished (Alan's "P Göteborg duett — sluttprøver", 13.09).
         const rr = document.createRange(); rr.selectNodeContents(name);
-        const n = rr.getBoundingClientRect();
+        const raw = rr.getBoundingClientRect();
+        const nb = name.getBoundingClientRect();
+        const padR = parseFloat(getComputedStyle(name).paddingRight) || 0;
+        const n = { right: Math.min(raw.right, nb.right - padR), bottom: raw.bottom };
         const box = box0 || (box0 = boxEl.getBoundingClientRect());
         b.style.left = Math.round(n.right - box.left + 4) + 'px';   // one space after the last letter
         b.style.right = 'auto';
