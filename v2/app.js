@@ -650,39 +650,39 @@ function alignEvenings() {
       let i = evts.length;                       // the trailing run that is all evening
       while (i > 0 && isEve(evts[i - 1])) i--;
       if (i === evts.length) return;             // nothing late on this day
-      // measure everything from the left, so a row already flushed right does
-      // not report the position it is trying to leave
-      const lone = det.classList.contains('kveld');
-      det.classList.remove('kveld');
-      cands.push({ det, evts, i, lone });
+      // WIDTHS, NEVER POSITIONS. A row that is flushed right reports where it
+      // already sits, and reading that to decide where to put it produced a
+      // shift of a few pixels instead of a column (WebKit, 12.09). Text widths
+      // do not depend on how the row is aligned; positions do.
+      const cv = det.closest('.canvas').getBoundingClientRect();
+      const box = det.getBoundingClientRect();
+      const padL = parseFloat(getComputedStyle(det).paddingLeft) || 0;
+      const span = (from, to) => {
+        const r = document.createRange();
+        r.setStartBefore(evts[from]); r.setEndAfter(evts[to]);
+        return r.getBoundingClientRect().width;
+      };
+      const headW = i > 0 ? span(0, i - 1) : 0;
+      cands.push({ det, evts, i,
+        cvW: cv.width,
+        w: span(i, evts.length - 1),
+        at: box.left + padL - cv.left + headW,   // where it would sit from the left
+        headEnd: box.left + padL - cv.left + headW });
     });
     if (!cands.length) return;
-    cands.forEach(c => {
-      c.cv = c.det.closest('.canvas').getBoundingClientRect();
-      const tail = document.createRange();
-      tail.setStartBefore(c.evts[c.i]); tail.setEndAfter(c.evts[c.evts.length - 1]);
-      c.w = tail.getBoundingClientRect().width;
-      c.at = c.evts[c.i].getBoundingClientRect().left - c.cv.left;
-      c.headEnd = c.at;
-      if (c.i > 0) {
-        const head = document.createRange();
-        head.setStartBefore(c.evts[0]); head.setEndAfter(c.evts[c.i - 1]);
-        c.headEnd = head.getBoundingClientRect().right - c.cv.left;
-      }
-    });
-    const cvW = cands[0].cv.width;
+    const cvW = cands[0].cvW;
     const widths = cands.map(c => c.w).sort((a, b) => b - a);
     const keep = Math.max(1, Math.ceil(widths.length * 2 / 3));  // never drop the bulk
     while (widths.length > keep && widths[0] > widths[1] * EVENING_OUTLIER) widths.shift();
-    const col = Math.max(cvW * EVENING_COL_MIN, cvW - 4 - widths[0]);
+    // a 3px cushion: placed to the exact pixel, a row with something before it
+    // loses its last letters to flex shrink rather than sitting flush
+    const col = Math.max(cvW * EVENING_COL_MIN, cvW - 7 - widths[0]);
     cands.forEach(c => {
       const fits = col + c.w <= cvW - 4 && (c.i === 0 || c.headEnd + EVENING_GAP <= col);
-      if (!fits) {
-        if (c.lone) c.det.classList.add('kveld');   // too long: keep the right edge
-        return;
-      }
+
       const shift = col - c.at;
-      if (shift < 1) { if (c.lone) c.det.classList.add('kveld'); return; }
+      if (!fits || shift < 1) return;            // too long, or already past it
+      c.det.classList.remove('kveld');           // no longer merely flush right
       c.evts[c.i].classList.add('eve-col');
       c.evts[c.i].style.marginLeft = shift.toFixed(1) + 'px';
     });
@@ -701,7 +701,13 @@ function alignLinesToBands() {
       .map(b => b.getBoundingClientRect().left)
       .filter(x => x > box.left + 2 && x < box.right - 2)
       .sort((a, b) => a - b);
-    for (const x of lines) nudgeWordAt(det, x);
+    // A row pushed out to the evening column can already reach the right edge.
+    // Nudging a word right there costs the last letters, so the nudge only
+    // spends room the row actually has (Alan's 17th, 12.09).
+    const cs = getComputedStyle(det);
+    const room = det.clientWidth - (parseFloat(cs.paddingLeft) || 0)
+      - (parseFloat(cs.paddingRight) || 0) - contentWidth(det);
+    for (const x of lines) nudgeWordAt(det, x, Math.max(0, Math.min(NUDGE_RIGHT, room)));
   });
 }
 
@@ -709,7 +715,12 @@ function alignLinesToBands() {
 // line lands in the gap before it — or, if that costs more than NUDGE_MAX,
 // on the nearest gap between two of its letters. Measured from the real
 // rendered glyphs with a Range, so italics and bold are accounted for.
-function nudgeWordAt(det, lineX) {
+function contentWidth(det) {
+  const r = document.createRange(); r.selectNodeContents(det);
+  return r.getBoundingClientRect().width;
+}
+
+function nudgeWordAt(det, lineX, maxRight) {
   const walk = document.createTreeWalker(det, NodeFilter.SHOW_TEXT);
   const r = document.createRange();
   let node;
@@ -730,7 +741,7 @@ function nudgeWordAt(det, lineX) {
           if (k === i) { gap = w.left; }
           else { r.setStart(node, i); r.setEnd(node, k); gap = r.getBoundingClientRect().right; }
           const d = lineX - gap;
-          if (d < -NUDGE_LEFT || d > NUDGE_RIGHT) continue;
+          if (d < -NUDGE_LEFT || d > maxRight) continue;
           if (!shift || Math.abs(d) < Math.abs(shift)) shift = d;
         }
         if (Math.abs(shift) < 0.4) return;
