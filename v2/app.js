@@ -848,8 +848,9 @@ function layoutWeekBands() {
       // underline of the text, where the first letter of a new word would be
       // after the Y in Bastøy"). Measured from the name's own box rather than
       // computed from paddings, so it cannot drift out of step with the type.
-      const head = from.querySelector(`.wspan[data-eid="${CSS.escape(b.dataset.eid)}"]`);
-      const name = head && head.querySelector('.wn');
+      const name = from.querySelector(`.wspanname[data-eid="${CSS.escape(b.dataset.eid)}"]`);
+      const head = name && name.closest('h3');
+      const z0 = to;
       const a = (head || from).getBoundingClientRect(), z = to.getBoundingClientRect();
       b.hidden = false;
       if (name) {
@@ -859,7 +860,12 @@ function layoutWeekBands() {
         b.style.right = 'auto';
         b.style.marginRight = '0';
         b.style.top = (n.bottom - top0) + 'px';                     // the word's own underline
-        b.style.height = Math.max(2, z.bottom - n.bottom) + 'px';
+        // STOPS AT THE LAST LINE, not at the edge of the day (Alan's red line,
+        // 13.09). A day's box includes its blank ruled lines and its padding,
+        // so ending there put the arrowhead in the following day's territory.
+        const used = [...z0.querySelectorAll(':scope > h3, :scope > .wev, :scope > .wspan')].pop();
+        const foot = used ? used.getBoundingClientRect().bottom : z.bottom;
+        b.style.height = Math.max(2, foot - n.bottom) + 'px';
       } else {
         b.style.top = (a.top - top0) + 'px';
         b.style.height = Math.max(2, z.bottom - a.top) + 'px';
@@ -1564,15 +1570,29 @@ function renderWeekEl(ds) {
     }).join('');
     // the diary keeps ruled lines whether or not the day is used
     const blanks = Math.max(0, 2 - evs.length);
-    const heads = startsOn(i).map(r =>
-      `<p class="wspan ${tour.has(r.e.calId) ? 'wg' : ''} ${isTbc(r.e) ? 'tbc' : ''}"`
-      + ` data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane}">`
-      + `<span class="wn" style="color:${evInk(r.e)}">${esc(r.e.title)}</span>`
-      + `<span class="wr">${dm(r.e.start)} – ${dm(r.e.end)}</span></p>`).join('');
+    // THE NAME SITS ON THE DAY'S OWN LINE (Alan, 13.09). It had a row to
+    // itself, which cost a line and set the name adrift from the day it
+    // starts on. The dates keep the row below, where they are a note rather
+    // than a heading.
+    // ONLY THE FIRST RIDES THE DAY LINE. Two names beside a date and a weekday
+    // truncated each other on a phone, which is worse than the row it saved.
+    // A second run starting the same day keeps a row of its own.
+    const starts = startsOn(i);
+    const nameSpan = r => `<span class="wspanname ${tour.has(r.e.calId) ? 'wg' : ''} ${isTbc(r.e) ? 'tbc' : ''}"`
+      + ` data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane};color:${evInk(r.e)}">`
+      + `${esc(r.e.title)}</span>`;
+    // NO DATE RANGE (Alan crossed it out, 13.09). The line down the margin
+    // already says where the run goes and the arrow says where it stops, so
+    // "10.9. – 11.9." was the same fact in worse handwriting — and it cost a
+    // row. The full dates are still in the day view, where you edit them.
+    const headNames = starts.length ? nameSpan(starts[0]) : '';
+    const heads = starts.slice(1).map(r =>
+      `<p class="wspan own" data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane}">`
+      + nameSpan(r) + '</p>').join('');
     days += `<section class="wday ${free ? 'free' : ''} ${red ? 'red' : ''} ${key === todayStr ? 'today' : ''}`
       + `${key === state.weekDay ? ' picked' : ''}" data-idx="${i}" data-date="${key}">`
       + `<h3><span class="wnum">${d.getDate()}</span> <span class="wname">${L().wdLong[i]}</span>`
-      + (h ? `<span class="whol">${esc(h.name)}</span>` : '') + '</h3>'
+      + (h ? `<span class="whol">${esc(h.name)}</span>` : '') + headNames + '</h3>'
       + heads + lines + '<p class="wblank"></p>'.repeat(blanks)
       + '</section>';
   }

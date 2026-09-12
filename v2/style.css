@@ -748,3 +748,19 @@ header #period-label.isyear { font-size: 22px; font-weight: 700; letter-spacing:
    keeps its titles, because there each block has to name itself. */
 .strip .month > h2 { display: none; }
 header #period-label { cursor: pointer; }
+
+/* the run's name on the day's own line, stepped so each ends at its own line */
+.wday > h3 .wspanname {
+  margin-left: auto; font-weight: 700; font-size: 14px; letter-spacing: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding-right: calc(var(--lane, 0) * 18px);
+}
+.wday > h3 .wspanname + .wspanname { margin-left: .8em; }
+.wday > h3 .wspanname.wg { opacity: .62; }
+.wday > h3 .wspanname.tbc { font-style: italic; }
+/* the dates keep the row below, as a note rather than a heading */
+.week .wspan { padding-top: 1px; padding-bottom: 1px; }
+.week .wspan .wr { flex: 1; text-align: left; }
+/* a second run starting the same day keeps its own row, name and dates */
+.week .wspan.own { flex-direction: row-reverse; }
+.week .wspan.own .wspanname { margin-left: 0; font-size: 14px; }
