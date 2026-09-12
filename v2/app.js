@@ -2212,6 +2212,22 @@ $('#app').addEventListener('click', e => {
   // A MONTH'S NAME OPENS THAT MONTH (Alan, 12.09: "in year view click and a
   // month opens"). The same gesture at every level: the title of a thing
   // opens it, and the week's title closes back up.
+  // OUTSIDE THE SHEET IS BACK (Alan, 13.09). Clicking in the schedule selects
+  // or opens; clicking the margin around it climbs a level. It is the paper
+  // metaphor again — you put the page down by looking away from it — and it
+  // means closing never needs a second tap.
+  if (!e.target.closest('.month, .week, .dayview, .thumb, #popover, header')) {
+    const up = { day: 'week', week: 'month', month: 'year' }[state.view];
+    if (up) {
+      if (state.view === 'day') { state.weekOf = state.weekDay = state.dayOf; state.openEvent = null; }
+      if (state.view === 'week') {
+        const anchor = parseDate(state.weekDay || state.weekOf || fmt(new Date()));
+        state.year = anchor.getFullYear(); state.month = anchor.getMonth();
+      }
+      state.view = up; render();
+    }
+    return;
+  }
   const thumb = e.target.closest('.thumb');
   if (thumb) {
     state.year = Number(thumb.dataset.y); state.month = Number(thumb.dataset.m);
