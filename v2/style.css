@@ -523,9 +523,13 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .week .wrunhead .wbar i { background: none; width: 9px; letter-spacing: 0; }
 .week .wrun .wr { flex: 0 0 4.6em; text-align: right; }
 .week > h2 { cursor: pointer; }
-/* the day you came in on */
-.wday.picked > h3 { box-shadow: inset 3px 0 0 var(--red); }
-.wday.picked .wnum { text-decoration: underline; text-underline-offset: 2px; }
+/* THE DAY YOU CAME IN ON, boxed (Alan, 12.09: "a clearer highlight"). A thin
+   red tick on the header was not enough to find at a glance, and red is
+   already spoken for by Sundays, holidays and shows. A box round the whole day
+   is what you would draw on paper, and it says "this one" without borrowing a
+   colour that means something else. */
+.wday.picked { box-shadow: inset 0 0 0 2px var(--ink); }
+.wday.picked > h3 .wnum { font-weight: 700; }
 
 /* ---------- the week's bands: the month's language, turned on its side ----------
    A span's name is written on the day it enters the week, and a thin line runs

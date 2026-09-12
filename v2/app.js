@@ -1879,6 +1879,15 @@ function toast(msg, action) {
 }
 
 function step(dir) {
+  if (state.view === 'day') {
+    const d = parseDate(state.dayOf || fmt(new Date()));
+    d.setDate(d.getDate() + dir);
+    state.dayOf = fmt(d);
+    state.openEvent = null;              // a new day, nothing opened in it yet
+    if (state.mode === 'google') window.gcalEnsureYear(d.getFullYear());
+    render();
+    return;
+  }
   if (state.view === 'week') {
     const d = mondayOf(state.weekOf || fmt(new Date()));
     d.setDate(d.getDate() + dir * 7);
@@ -2059,7 +2068,7 @@ document.addEventListener('keydown', e => {
 let touchX = null;
 $('#app').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
 $('#app').addEventListener('touchend', e => {
-  if (touchX === null || (state.view !== 'month' && state.view !== 'week')) return;
+  if (touchX === null || state.view === 'year') return;   // month, week and day all swipe
   const dx = e.changedTouches[0].clientX - touchX;
   if (Math.abs(dx) > 60) step(dx < 0 ? 1 : -1);
   touchX = null;
