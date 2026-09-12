@@ -171,7 +171,13 @@ button.active { background: var(--ink); color: var(--card); }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 /* a thin paper seam where one band ends and the next begins */
-.day .band.bstart { box-shadow: inset 0 3px 0 var(--card); }
+/* THE SEAM MUST BE ON THE LABEL TOO (Alan, 12.09: "I've zoomed in now and
+   can't see it at all"). He was right that it was a bug, not a size. The
+   label fills the band and paints its own tint over the band's background,
+   and an inset shadow sits under child content — so the seam was drawn and
+   then covered every time a band started on a day it also labelled, which is
+   every band's first day. */
+.day .band.bstart, .day .band.bstart b { box-shadow: inset 0 var(--seam, 5px) 0 var(--card); }
 .day .band.tbc { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
 .day .band.tbc b { font-style: italic; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
 .day .band.showband b { color: var(--red); }
