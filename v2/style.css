@@ -562,6 +562,15 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
   background: var(--c); opacity: .85; pointer-events: none;
 }
 .week .wband.wg { opacity: .45; }
+/* AN ELBOW, SO THE LINE IS PLAINLY THAT TITLE'S (Alan, 13.09: "it's not
+   obviously linked to its title"). A bare vertical rule beside a word is two
+   marks; a short stroke under the end of the word that turns down is one. It
+   is how you would draw it by hand, and it is what his own wall calendar does
+   under "Tunel". */
+.week .wband::before {
+  content: ''; position: absolute; top: 0; left: -16px; width: 19px; height: 3px;
+  background: var(--c); border-radius: 1px;
+}
 /* THE ARROWHEAD HE DRAWS (Alan, 12.09, pointing at his own wall calendar:
    the line down from "Tunel" ends in a V). It is the mark that says the run
    is finished here rather than trailing off, and it is his own hand, so it
@@ -795,3 +804,12 @@ header #period-label.isyear { font-size: 26px; letter-spacing: .06em; }
 header #period-year {
   font-size: 12px; letter-spacing: .08em; color: var(--muted); margin-right: .2em;
 }
+
+/* a colour of the event's own, chosen where you edit it */
+.dayview .dmeta { flex-wrap: wrap; gap: .5em; }
+.dayview .swatches { display: flex; gap: 5px; margin-left: auto; align-items: center; }
+.dayview .sw {
+  width: 15px; height: 15px; border-radius: 50%; background: var(--c);
+  cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
+}
+.dayview .sw.on { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--ink); }

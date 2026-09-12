@@ -18,6 +18,7 @@
     1: '#7986cb', 2: '#33b679', 3: '#8e24aa', 4: '#e67c73', 5: '#f6bf26',
     6: '#f4511e', 7: '#039be5', 8: '#616161', 9: '#3f51b5', 10: '#0b8043', 11: '#d50000',
   };
+  window.gcalColors = EVENT_COLORS;   // the day view paints swatches from these
   let loadedYears = new Set();
   let rawEvents = []; // internal events from Google, all loaded years
   // Ticking a calendar throws the cache away and reloads. Without this counter a
@@ -330,7 +331,7 @@
           }
           // eventType 'fromGmail' = auto-scraped from an email; may well be
           // someone else's flight (cc'd itinerary), so it never moves the city pin
-          mine.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color, fromGmail: ev.eventType === 'fromGmail', home: !!byId[id].primary,
+          mine.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color, colorId: ev.colorId || '', fromGmail: ev.eventType === 'fromGmail', home: !!byId[id].primary,
             // the day view edits these, so they have to travel with the event
             location: ev.location || '', notes: ev.description || '' });
         }

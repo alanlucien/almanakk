@@ -726,7 +726,13 @@ function wireDayView() {
       catch (err) { toast(err.message); }
       return;
     }
-    if (e.target.dataset.close) { state.openEvent = null; render(); }
+    if (e.target.dataset.close) { state.openEvent = null; render(); return; }
+    const sw = e.target.closest('.sw');
+    if (sw) {
+      const box = sw.closest('.swatches');
+      box.querySelectorAll('.sw').forEach(x => x.classList.toggle('on', x === sw));
+      box.dataset.cid = sw.dataset.cid;
+    }
   });
   sec.addEventListener('input', e => {
     if (e.target.name !== 'location') return;
@@ -744,7 +750,9 @@ function wireDayView() {
     const v = n => (form.querySelector(`[name="${n}"]`) || {}).value || '';
     form.dataset.busy = '1';
     try {
+      const box = form.querySelector('.swatches');
       await saveEvent(ev, {
+        colorId: box ? (box.dataset.cid !== undefined ? box.dataset.cid : (ev.colorId || '')) : '',
         title: v('title').trim(), time: v('time').trim(),
         start: v('start'), end: v('end'),
         location: v('location').trim(), notes: v('notes').trim(),
@@ -765,12 +773,14 @@ async function saveEvent(ev, f) {
     if (ALMANAKK_CONFIG.clientId) throw new Error('Logg inn med Google først.');
     ev.src.t = (f.time ? f.time + ' ' : '') + f.title;
     ev.src.s = f.start; ev.src.e = f.end;
+    if (f.colorId !== undefined) ev.src.cid = f.colorId;
     loadDemo();
     return;
   }
   const patch = {
     summary: (f.time && !/^\d{1,2}[:.]\d{2}/.test(f.title) ? f.time + ' ' : '') + f.title,
     location: f.location, description: f.notes,
+    colorId: f.colorId || null,          // null = back to the calendar's own colour
   };
   if (f.start && f.end) {
     const next = parseDate(f.end); next.setDate(next.getDate() + 1);
@@ -1473,7 +1483,17 @@ function renderDayEl(ds) {
       + ` href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location || '')}"`
       + `${e.location ? '' : ' hidden'}>${L().onMap}</a></span></label>`
       + `<label>${L().fNotes}<textarea name="notes" rows="2">${esc(e.notes || '')}</textarea></label>`
-      + `<p class="dmeta"><span class="dot" style="--c:${e.color}"></span>${esc(calName(e.calId))}</p>`
+      // A COLOUR OF ITS OWN (Alan, 13.09). It is stored on the event in Google,
+      // so it follows him to his other devices. Worth knowing, and he already
+      // found this out in September: his other calendar clients throw event
+      // colours away and show the calendar's colour instead. Here it shows.
+      + `<p class="dmeta"><span class="dot" style="--c:${e.color}"></span>${esc(calName(e.calId))}`
+      + `<span class="swatches">`
+      + `<i class="sw ${e.colorId ? '' : 'on'}" data-cid="" title="${esc(calName(e.calId))}"`
+      + ` style="--c:${e.color}"></i>`
+      + Object.entries((window.gcalColors || {})).map(([id, c]) =>
+          `<i class="sw ${String(e.colorId) === id ? 'on' : ''}" data-cid="${id}" style="--c:${c}"></i>`).join('')
+      + `</span></p>`
       + `<div class="dbtns"><button type="submit" class="add">${L().save}</button>`
       + `<button type="button" class="x" data-del="${e.id}">${L().del}</button>`
       + `<button type="button" class="x" data-close="1">${L().closeEdit}</button></div>`
@@ -1531,15 +1551,13 @@ function renderWeekEl(ds) {
       return { e, from, to };
     })
     .sort((a2, b2) => a2.from - b2.from || (a2.e.start < b2.e.start ? -1 : 1));
-  // lanes, so two runs never share a line
-  const laneEnd = [];
-  runs.forEach(r => {
-    let l = 0;
-    while (laneEnd[l] !== undefined && laneEnd[l] >= r.from) l++;
-    laneEnd[l] = r.to;
-    r.lane = l;
-  });
-  const nLanes = laneEnd.length;
+  // EVERY RUN ITS OWN COLUMN (Alan, 13.09). Packing them — reusing a column
+  // once a run has ended — put Nationaltheatret and Inquiet DNOB on the same
+  // line, so it read as one line with two arrowheads and no way to tell which
+  // belonged to which. A week holds two or three runs, so packing saved
+  // nothing and cost the one thing the line is for.
+  runs.forEach((r, k) => { r.lane = k; });
+  const nLanes = runs.length;
   const startsOn = i => runs.filter(r => r.from === i);
 
   let days = '';
