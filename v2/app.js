@@ -1015,6 +1015,7 @@ function renderMonthEl(y, m) {
     const wi = weekdayIdx(d);
     const h = hol[ds];
     const red = wi === 6 || (h && h.red);
+    const free = wi === 5 || wi === 6 || !!h;   // Saturday, Sunday, holiday
     // Cities live in the info column on the right (Alan, 2026-08-25): on the
     // day you move, on the 1st so every month block states it, and repeated
     // every week on the row BELOW the week number (Tuesday) — so the week
@@ -1203,7 +1204,7 @@ function renderMonthEl(y, m) {
     // overlap in the grid rather than the column being given up, so the cell
     // stays where it is and still takes the tap that plans a move.
     const airRight = !h && !journeyTxt && !cityTxt && wi !== 0;
-    rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''} ${airRight ? 'airright' : ''}" data-date="${ds}">`
+    rows += `<div class="day ${red ? 'red' : ''} ${free ? 'free' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''} ${airRight ? 'airright' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
       + `<span class="canvas">` + bands + detail + '</span>'
       + info + `</div>`;

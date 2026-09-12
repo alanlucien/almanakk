@@ -1,11 +1,19 @@
+/* BLACK AND WHITE PAPER, the way the wall almanakk actually is (Alan, 12.09,
+   with his own 2026 wall calendar as the reference). It was brown, which is a
+   nice idea of old paper and not what the thing on his wall looks like: white
+   stock, near-black ink, thin grey rules, and red kept for Sundays and
+   holidays so that it means something. Event colours stay — they are how a
+   calendar is told from a calendar, and the almanakk's own ink was never
+   carrying that job. */
 :root {
-  --paper: #efe8d4;
-  --card: #fbf7ea;
-  --ink: #26241f;
-  --rule: #d4cbb0;
-  --rule-strong: #a89e7f;
-  --red: #b3261e;
-  --muted: #8a8265;
+  --paper: #d9d9d9;     /* around the block, so the block reads as a sheet */
+  --card: #ffffff;      /* the sheet */
+  --tint: #eaeaea;      /* Saturdays, Sundays and holidays */
+  --ink: #14140f;
+  --rule: #cfcfcf;
+  --rule-strong: #4a4a4a;
+  --red: #c0221b;
+  --muted: #767676;
 }
 
 * { box-sizing: border-box; }
@@ -141,6 +149,11 @@ button.active { background: var(--ink); color: var(--card); }
 .day .num { text-align: right; font-weight: 600; padding-right: 2px; white-space: nowrap; }
 .day .wd { color: var(--muted); white-space: nowrap; }
 .day.red .num, .day.red .wd { color: var(--red); }
+/* A NON-WORKING DAY IS TINTED, BOTH OF THEM (Alan, 12.09: the month "clearly
+   singles out Sundays and Saturdays, which this one does not"). Saturday was
+   an ordinary day here; on the wall calendar it carries the same grey as
+   Sunday, and only the NUMBER goes red on a Sunday or a holiday. */
+.day.free { background: var(--tint); }
 /* THE CANVAS — bands behind, the day line over them (Alan's model, 02.09.2026) */
 .day .canvas {
   position: relative; overflow: hidden; padding: 0;
