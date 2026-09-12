@@ -1587,7 +1587,8 @@ function renderWeekEl(ds) {
         + '</p>';
     }).join('');
     // the diary keeps ruled lines whether or not the day is used
-    const blanks = Math.max(0, 2 - evs.length);
+    // three ruled lines to a day, the way the diary rules them
+    const blanks = Math.max(0, 3 - evs.length);
     // THE NAME SITS ON THE DAY'S OWN LINE (Alan, 13.09). It had a row to
     // itself, which cost a line and set the name adrift from the day it
     // starts on. The dates keep the row below, where they are a note rather

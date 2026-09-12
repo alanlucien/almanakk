@@ -17,6 +17,7 @@
   --tint: rgba(18, 18, 12, .082);   /* the wash on Saturdays, Sundays and holidays */
   --ink: #14140f;
   --rule: #cfcfcf;
+  --rule-soft: #dedede;   /* the lines you write on, lighter than the day's own */
   --rule-strong: #1c1c1c;   /* print black, for frames and week edges */
   --red: #c0221b;
   --muted: #767676;
@@ -494,7 +495,7 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .wday .wev {
   position: relative; z-index: 1;
   margin: 0; padding: 3px 10px; display: flex; gap: .6em; align-items: baseline;
-  border-bottom: 1px solid var(--rule); font-size: 12px; cursor: pointer;
+  border-bottom: 1px solid var(--rule-soft); font-size: 12px; cursor: pointer;
 }
 .wday .wev:last-of-type { border-bottom: 0; }
 .wday .wev .wt { flex: 0 0 3.4em; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -504,7 +505,18 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .wday .wev.wg { opacity: .62; }
 .wday .wev.tbc .wn { font-style: italic; }
 /* a day with nothing keeps its ruled lines, the way the diary does */
-.wday .wblank { margin: 0; height: 1.5em; border-bottom: 1px solid var(--rule); }
+/* RULED IN TWO PARTS (Alan, 13.09, marking his own week): a short rule for the
+   hour, a gap, then the line you write on — which is how the diary rules a day
+   and why a time never sits on top of its own entry. Lighter than the rules
+   that divide the days, so the day boundaries still read first. */
+.wday .wblank {
+  margin: 0; height: 1.45em; border-bottom: 0;
+  background-image: linear-gradient(var(--rule-soft), var(--rule-soft)),
+                    linear-gradient(var(--rule-soft), var(--rule-soft));
+  background-size: 2.6em 1px, calc(100% - 4.6em) 1px;
+  background-position: 10px bottom, 4.0em bottom;
+  background-repeat: no-repeat;
+}
 .wday .wblank:last-child { border-bottom: 0; }
 /* what runs through the week, said once at the top of it */
 .week .wruns { border-bottom: 1.5px solid var(--rule-strong); }
