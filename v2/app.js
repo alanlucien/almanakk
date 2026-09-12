@@ -746,7 +746,13 @@ function layoutWeekBands() {
       const from = box.querySelector(`.wday[data-idx="${b.dataset.from}"]`);
       const to = box.querySelector(`.wday[data-idx="${b.dataset.to}"]`);
       if (!from || !to) { b.hidden = true; return; }
-      const a = from.getBoundingClientRect(), z = to.getBoundingClientRect();
+      // IT STARTS AT THE WORD (Alan's own hand on his wall calendar, 12.09:
+      // he writes "Tunel" on the Monday and draws the line down from just
+      // beside it). So the top is the NAME's line when the span begins inside
+      // this week, and the top of Monday when it walked in from the week
+      // before — which is where its name is written in that case too.
+      const head = from.querySelector(`.wspan[data-eid="${CSS.escape(b.dataset.eid)}"]`);
+      const a = (head || from).getBoundingClientRect(), z = to.getBoundingClientRect();
       b.hidden = false;
       b.style.top = (a.top - top0) + 'px';
       b.style.height = Math.max(2, z.bottom - a.top) + 'px';
@@ -1260,7 +1266,8 @@ function renderMonthEl(y, m) {
       + `<span class="canvas">` + bands + detail + '</span>'
       + info + `</div>`;
   }
-  return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}" style="--lanes:${nOwn};--wg:${nOvl}">`
+  return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}"`
+    + ` data-y="${y}" data-m="${m}" style="--lanes:${nOwn};--wg:${nOvl}">`
     + `<h2>${L().months[m]} <small>${y}</small></h2>${rows}</section>`;
 }
 
@@ -1360,7 +1367,8 @@ function renderWeekEl(ds) {
     + `<span class="wkno">${L().week} ${isoWeek(mon)}</span></h2>`
     + `<div class="wdays" style="--wlanes:${nLanes}">${days}`
     + runs.map(r => `<i class="wband ${tour.has(r.e.calId) ? 'wg' : ''}"`
-        + ` data-from="${r.from}" data-to="${r.to}" style="--c:${r.e.color};--lane:${r.lane}"></i>`).join('')
+        + ` data-eid="${r.e.id}" data-from="${r.from}" data-to="${r.to}"`
+        + ` style="--c:${r.e.color};--lane:${r.lane}"></i>`).join('')
     + `</div></section>`;
 }
 
@@ -1845,9 +1853,19 @@ $('#app').addEventListener('click', e => {
     openWeekEntry(blank, day && day.dataset.date);
     return;
   }
-  // TOUCHING A DAY OPENS ITS WEEK (Alan, 12.09). The month says the shape of
-  // the month; the week is where the day's own lines are.
-  if (row && state.view === 'month' && !e.target.closest('.info')) {
+  // A MONTH'S NAME OPENS THAT MONTH (Alan, 12.09: "in year view click and a
+  // month opens"). The same gesture at every level: the title of a thing
+  // opens it, and the week's title closes back up.
+  const mhead = e.target.closest('.month > h2');
+  if (mhead && state.view === 'year') {
+    const sec = mhead.closest('.month');
+    state.year = Number(sec.dataset.y); state.month = Number(sec.dataset.m);
+    state.view = 'month'; render(); return;
+  }
+  // TOUCHING A DAY OPENS ITS WEEK, from the year just as from the month
+  // (Alan, 12.09: "same on iphone"). The month says the shape of the month;
+  // the week is where the day's own lines are.
+  if (row && (state.view === 'month' || state.view === 'year') && !e.target.closest('.info')) {
     state.weekOf = state.weekDay = row.dataset.date; state.view = 'week'; render(); return;
   }
   if (row) openDayPanel(row);

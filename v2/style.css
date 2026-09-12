@@ -530,17 +530,23 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 /* ---------- the week's bands: the month's language, turned on its side ----------
    A span's name is written on the day it enters the week, and a thin line runs
    down beside every day it covers. Nothing to decode (Alan, 12.09). */
-/* THE LINES RUN DOWN THE RIGHT (Alan, 12.09). The left edge is the reading
-   edge — day numbers, clock times and titles all start there — and a rule
-   beside it competes with every one of them. On the right they sit in the
-   margin, next to the dates that belong to them. */
-.week .wdays { position: relative; padding-right: calc(var(--wlanes, 0) * 7px); }
+/* THE LINE IS A CONTINUATION OF THE WORD (Alan's own wall calendar, 12.09:
+   he writes the name on the day it starts and draws a line straight down
+   beside it, ending in a hook). Out in the right margin it was too far from
+   anything to be read as belonging to it. It begins at the name and runs down
+   the inside edge of the days it covers, close enough to be the same mark. */
+.week .wdays { position: relative; padding-left: calc(var(--wlanes, 0) * 6px); }
 .week .wband {
-  position: absolute; right: 0; width: 3px; border-radius: 2px;
-  margin-right: calc(var(--lane) * 7px);
+  position: absolute; left: 0; width: 2px;
+  margin-left: calc(var(--lane) * 6px);
   background: var(--c); opacity: .85; pointer-events: none;
 }
 .week .wband.wg { opacity: .45; }
+/* the small foot he draws at the end, so a run visibly stops */
+.week .wband::after {
+  content: ''; position: absolute; left: 0; bottom: 0; width: 7px; height: 2px;
+  background: var(--c);
+}
 /* the name where it starts, read like a band label rather than an event */
 .week .wspan {
   position: relative; z-index: 1;
@@ -561,3 +567,5 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
      of slightly larger text (12.09) */
   font: inherit; font-size: 16px; color: var(--ink); line-height: 1.2;
 }
+/* a month's title opens that month, in the year view */
+.year .month > h2 { cursor: pointer; }
