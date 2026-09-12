@@ -466,9 +466,12 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .week > h2 small { font-weight: 400; letter-spacing: .1em; color: var(--muted); }
 .week > h2 .wkno { margin-left: auto; font-weight: 400; letter-spacing: .1em; color: var(--muted); }
 
-.wday { position: relative; border-bottom: 1px solid var(--rule); padding-bottom: 2px; }
+/* A DAY IS CLOSED WITH A DARK RULE, its own lines are light (Alan, 12.09,
+   with the diary spread again). Every rule was the same grey, so a day ran
+   into the next one and the seven blocks did not read as seven. */
+.wday { position: relative; border-bottom: 1px solid var(--rule-strong); padding-bottom: 2px; }
 .wday:last-child { border-bottom: 0; }
-.wday.sun, .wday.red { border-bottom-color: var(--rule-strong); }
+.wday.sun, .wday.red { border-bottom-width: 1.5px; }
 .wday.free::after {
   content: ''; position: absolute; inset: 0; background: var(--tint); pointer-events: none;
 }
@@ -534,15 +537,17 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 /* ---------- the week's bands: the month's language, turned on its side ----------
    A span's name is written on the day it enters the week, and a thin line runs
    down beside every day it covers. Nothing to decode (Alan, 12.09). */
-/* THE LINE IS A CONTINUATION OF THE WORD (Alan's own wall calendar, 12.09:
-   he writes the name on the day it starts and draws a line straight down
-   beside it, ending in a hook). Out in the right margin it was too far from
-   anything to be read as belonging to it. It begins at the name and runs down
-   the inside edge of the days it covers, close enough to be the same mark. */
-.week .wdays { position: relative; padding-left: calc(var(--wlanes, 0) * 6px); }
+/* THE LINES LIVE IN A RIGHT-HAND MARGIN OF THEIR OWN (Alan, asked three
+   times, 12.09). Twice I put them wrong: hard against the right edge, where
+   they hid in the frame, and then down the left, where they crowded the
+   reading edge. They belong in a reserved strip on the right, inset from the
+   sheet's edge so they are plainly on the page. The strip is reserved, so no
+   title can run into them. Each still starts at its own name and ends where
+   the run ends. */
+.week .wdays { position: relative; padding-right: calc(var(--wlanes, 0) * 7px + 12px); }
 .week .wband {
-  position: absolute; left: 0; width: 2px;
-  margin-left: calc(var(--lane) * 6px);
+  position: absolute; right: 12px; width: 2px;
+  margin-right: calc(var(--lane) * 7px);
   background: var(--c); opacity: .85; pointer-events: none;
 }
 .week .wband.wg { opacity: .45; }
