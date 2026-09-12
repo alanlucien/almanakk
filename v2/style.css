@@ -481,7 +481,11 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
   font-size: 12px; font-weight: 400; border-bottom: 1px solid var(--rule);
 }
 .wday .wnum { font-weight: 700; font-size: 14px; }
-.wday .wname { letter-spacing: .12em; color: var(--ink-soft); }
+/* THE WEEKDAY IS AS LEGIBLE AS THE NUMBER (Alan, 12.09, with the diary page:
+   "22 MANDAG" is one line of black type, not a number shouting beside a grey
+   word). It keeps the letterspacing, which is what makes it read as a label
+   rather than as a title. */
+.wday .wname { letter-spacing: .12em; color: var(--ink); }
 .wday.red .wnum, .wday.red .wname { color: var(--red); }
 .wday .whol { margin-left: auto; font-style: italic; color: var(--red); }
 .wday.today > h3 { box-shadow: inset 3px 0 0 var(--ink); }
@@ -706,6 +710,6 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
   text-transform: uppercase; font-weight: 600; color: var(--ink-soft);
 }
 .week > h2 .wcity + .wkno, .dayview > h2 .wcity + .wkno { margin-left: .9em; }
-.dayview > h2 .dname { color: var(--ink-soft); }
+.dayview > h2 .dname { color: var(--ink); }
 /* the line you have picked in the day, before you open it */
 .dayview .dev.picked { box-shadow: inset 3px 0 0 var(--ink); }
