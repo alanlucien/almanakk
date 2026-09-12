@@ -725,12 +725,16 @@ input, textarea, select { font-size: 16px; }
    back up, a swipe steps sideways. The four view buttons and the two arrows
    were repeating what the calendar already says, so the header is the period
    and the dots, and the period sits where the eye goes first. */
-/* the period takes the middle by filling it, rather than by floating over it —
-   absolute centring put it straight on top of the buttons (13.09) */
-header nav:first-of-type { flex: 1; justify-content: center; min-width: 0; }
+/* TRULY CENTRED, and set like the sheet's own title (Alan, 13.09). Filling the
+   middle with flex only centres it when both sides weigh the same, and they do
+   not — ALMANAKK is wide, the dots are narrow. Three grid columns, 1fr auto
+   1fr, put the month on the page's centre line whatever flanks it. */
+header { display: grid; grid-template-columns: 1fr auto 1fr; }
+header nav:first-of-type { justify-content: center; min-width: 0; }
+header nav:last-of-type { justify-content: flex-end; }
 header #period-label {
-  font-size: 15px; letter-spacing: .04em; min-width: 0;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .18em;
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 header .spacer { display: none; }
 .year .month > h2, .month > h2 { cursor: pointer; }
