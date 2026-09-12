@@ -214,18 +214,20 @@ function measureLane() {
   const cs = getComputedStyle(el);
   const probe = el.querySelector('i');
   laneBox = {
-    w: el.getBoundingClientRect().width - 8, // the label's own left/right padding
     font: probe ? getComputedStyle(probe).font : cs.font,
+    px: parseFloat(cs.fontSize) || 12,
   };
   // the first paint has nothing to measure yet, so draw once more now that we do
-  if (!measured && laneBox.w > 0) { measured = true; render(); }
+  if (!measured && laneBox.px > 0) { measured = true; render(); }
 }
 let measureCtx = null;
-function fitsWidth(text, lanes) {
-  if (!laneBox.w || !laneBox.font) return false; // before the first paint: keep the old behaviour
+// Width of a band label in em, so a lane can be sized to what it must hold and
+// the same number still works at print sizes. 0 before the first paint.
+function emWidth(text) {
+  if (!laneBox.font || !laneBox.px) return 0;
   measureCtx = measureCtx || document.createElement('canvas').getContext('2d');
   measureCtx.font = laneBox.font;
-  return measureCtx.measureText(text).width <= laneBox.w * (lanes || 1);
+  return measureCtx.measureText(text).width / laneBox.px;
 }
 
 const NIGHT_UNTIL = 3 * 60 + 30;
@@ -553,6 +555,18 @@ function renderMonthEl(y, m) {
   const flights = state.cities ? buildFlightIndex() : null;
   let prevCity = null;
   let cityShown = false; // did the city actually stand on yesterday's row?
+  // A LANE IS AS WIDE AS WHAT IT HOLDS (Alan, 12.09: "prosjekt b should move
+  // left"). Equal shares left a gap between bands and stole room from the day
+  // line. Each lane takes the widest label it must carry this month, within
+  // bounds; anything wider is written one word per row, as before.
+  const LANE_MIN = 3, LANE_MAX = 11, LANE_PAD = 0.9;
+  const laneEm = [];
+  for (let i = 0; i < nOwn + nOvl; i++) {
+    let widest = 0;
+    for (const ev of spans) if (ev._lane === i) widest = Math.max(widest, emWidth(ev.title));
+    laneEm[i] = laneBox.px ? Math.max(LANE_MIN, Math.min(widest + LANE_PAD, LANE_MAX)) : 5.5;
+  }
+  const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
   // a title too long for its lane is written DOWN the band, one word per row
   const wrapPlan = {}; // event id -> { from: day, words: [...] }
   let rows = '';
@@ -621,22 +635,25 @@ function renderMonthEl(y, m) {
     // A label owns the lanes to its right up to the next band, or up to where
     // the day line starts — whichever comes first. That replaces the old
     // spill arithmetic: the free space IS the room, measured per row.
-    const roomAt = i => {
+    // how far right a label may reach: to the next band that draws text, or to
+    // where the day line begins — whichever comes first
+    const roomEm = i => {
       let j = i + 1;
       while (j < laneEvs.length && !drawsText(laneEvs[j])) j++;
-      return Math.max(1, Math.min(j, Math.max(lineFrom, i + 1)) - i);
+      const to = Math.min(j, Math.max(lineFrom, i + 1));
+      return Math.max(laneEm[i], laneLeft(to) - laneLeft(i));
     };
 
     let bands = '';
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       const showLabel = labelledAt(ev);
-      const room = roomAt(i);
+      const room = roomEm(i);
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
       const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));
       // still one word per row when the title genuinely will not fit its room
       if (showLabel) {
-        if (words.length > 1 && endInMonth > day && !fitsWidth(ev.title, room)) {
+        if (words.length > 1 && endInMonth > day && emWidth(ev.title) > room - 0.4) {
           wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
         } else {
           delete wrapPlan[ev.id];
@@ -649,7 +666,8 @@ function renderMonthEl(y, m) {
       else if (plan && step > 0 && step < plan.words.length) txt = plan.words[step];
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
-        + ` data-eid="${ev.id}" style="--l:${i};--w:${txt ? room : 1};--c:${ev.color};--ci:${inkColor(ev.color)}">`
+        + ` data-eid="${ev.id}" style="left:${laneLeft(i)}em;width:${laneEm[i]}em;`
+        + `--w:${(txt ? room : laneEm[i]).toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (txt ? `<b>${esc(txt)}</b>` : '') + '</i>';
     });
 
@@ -678,17 +696,34 @@ function renderMonthEl(y, m) {
         + esc(txt) + '</b>';
     };
     // starts where the labels stop — far left on a day with no band label at all
-    const detail = `<span class="detail" style="--from:${lineFrom}">`
-      + collapseJourneys(lineItems).map(evtHtml).join('')
-      + '</span>';
+    let movedToInfo = null;
+    const lineFinal = collapseJourneys(lineItems);
+    // A TRAVEL DAY BELONGS IN THE CITY COLUMN (Alan, 12.09). That column answers
+    // "where am I"; on the day you move it should answer "where am I going".
+    // Codes only — the column is narrow — and the journey then leaves the day
+    // line, which is where the crowding was. A holiday still wins the cell.
+    let journeyTxt = '';
+    if (!h) {
+      const own = lineFinal.filter(it => !it.wg && it._legs && it._legs.length >= 2);
+      if (own.length === 1) {
+        const legs = own[0]._legs;
+        journeyTxt = cityCode(legs[0]) + '→' + cityCode(legs[legs.length - 1]);
+        movedToInfo = own[0];
+      }
+    }
     // One cell, one line, one thing in it: a holiday, else the week number on
     // Monday, else the city. Long names step down a size rather than clip.
     const info = h
       ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="${h.red ? 'red' : ''} ${h.name.length > 11 ? 'long' : ''} ${h.name.length > 15 ? 'xlong' : ''}">${esc(h.name)}</span></span>`
+      : journeyTxt
+        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey">${esc(journeyTxt)}</span></span>`
       : cityTxt
         ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}">${esc(cityTxt)}</span></span>`
         : (wi === 0 ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}">${L().week} ${isoWeek(d)}</span>`
                     : `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"></span>`);
+    const detail = `<span class="detail" style="left:${laneLeft(lineFrom)}em">`
+      + lineFinal.filter(it => it !== movedToInfo).map(evtHtml).join('')
+      + '</span>';
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
     rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''}" data-date="${ds}">`
@@ -696,9 +731,7 @@ function renderMonthEl(y, m) {
       + `<span class="canvas">` + bands + detail + '</span>'
       + info + `</div>`;
   }
-  // one lane as a share of the canvas, keeping the old 4fr lane : 7fr line feel
-  const laneW = 400 / ((nOwn + nOvl) * 4 + 7);
-  return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}" style="--lanes:${nOwn};--wg:${nOvl};--laneW:${laneW.toFixed(3)}%">`
+  return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}" style="--lanes:${nOwn};--wg:${nOvl}">`
     + `<h2>${L().months[m]} <small>${y}</small></h2>${rows}</section>`;
 }
 

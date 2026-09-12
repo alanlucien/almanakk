@@ -151,9 +151,7 @@ button.active { background: var(--ink); color: var(--card); }
 
 /* a band is a tinted block at its lane; --l = lane, --w = lanes its label owns */
 .day .band {
-  position: absolute; top: 0; bottom: 0;
-  left: calc(var(--l) * var(--laneW, 26%));
-  width: var(--laneW, 26%);
+  position: absolute; top: 0; bottom: 0;   /* left and width are set per band, in em */
   background: color-mix(in srgb, var(--c) 14%, var(--card));
   border-left: 2px solid var(--ci, var(--c));
   font-style: normal;
@@ -162,9 +160,7 @@ button.active { background: var(--ink); color: var(--card); }
    label still reads as ONE solid block rather than a bar with a gap after it */
 .day .band b {
   position: absolute; top: 0; bottom: 0; left: 0;
-  /* the band IS one lane, so its own 100% is one lane: --w lanes = --w * 100%.
-     (A percentage here resolves against the band, not the canvas.) */
-  width: calc(var(--w) * 100%);
+  width: var(--w);
   display: flex; align-items: center;
   padding: 0 3px; box-sizing: border-box;
   background: color-mix(in srgb, var(--c) 14%, var(--card));
@@ -191,18 +187,24 @@ button.active { background: var(--ink); color: var(--card); }
 #popover .wg-mark { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--muted); color: var(--muted); border-radius: 2px; padding: 0 3px; vertical-align: middle; }
 
 /* tbc anywhere means tentative — a plan that is not booked reads italic */
-.evt.tbc, #popover p.tbc b, .info .cty.tbc, #popover .city-tag.tbc { font-style: italic; }
+.evt.tbc, #popover p.tbc b, .info .cty.tbc, .info .cty.journey.tbc, #popover .city-tag.tbc { font-style: italic; }
 
 /* single-day details: always ONE line — joined with · , clipped with … ; tap the day for the full list */
 .day .detail {
   position: absolute; top: 0; bottom: 0;
-  left: calc(var(--from, 0) * var(--laneW, 26%)); right: 0;
+  right: 0;                       /* left is set per row, in em */
   display: flex; align-items: center;
-  padding: 0 4px; box-sizing: border-box;
+  /* a band and the first word of the line must not touch — Alan, 12.09 */
+  padding: 0 4px 0 7px; box-sizing: border-box;
   z-index: 2;                     /* over the tints — the whole point */
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.day .detail > b { overflow: hidden; text-overflow: ellipsis; }
+/* Where the line crosses a band, the words open a gap in it rather than lying
+   on the tint — Alan, 12.09. On open paper the backdrop is invisible. */
+.day .detail > b {
+  overflow: hidden; text-overflow: ellipsis;
+  background: var(--card); padding: 0 3px; margin-right: 1px;
+}
 .day .detail .evt { font-weight: 400; display: inline; }
 .day .detail .evt + .evt::before { content: ' · '; color: var(--muted); }
 .day .detail .evt.wgd { opacity: .55; } /* wg items: visibly "theirs", clipped first */
@@ -358,3 +360,6 @@ main.strip { height: 100%; overflow-y: auto; }
 
 /* v2 marker in the header */
 header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-left: .15em; }
+
+/* a travel day in the city column reads as a route, not a place */
+.info .cty.journey { letter-spacing: .02em; }
