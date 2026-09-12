@@ -559,7 +559,7 @@ function renderMonthEl(y, m) {
   // left"). Equal shares left a gap between bands and stole room from the day
   // line. Each lane takes the widest label it must carry this month, within
   // bounds; anything wider is written one word per row, as before.
-  const LANE_MIN = 3, LANE_MAX = 11, LANE_PAD = 0.9, LANE_GAP = 0.55;
+  const LANE_MIN = 3, LANE_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0;
   const laneEm = [];
   for (let i = 0; i < nOwn + nOvl; i++) {
     let widest = 0;
@@ -629,8 +629,11 @@ function renderMonthEl(y, m) {
       const step = day - plan.from;
       return step > 0 && step < plan.words.length;
     };
+    // Past every band on the row, not just the ones showing a label. Letting the
+    // line lie on a bare tint reclaimed space, but a band's edge cut through the
+    // words — Alan, 12.09. Lanes now fit their labels, so little is lost.
     let lineFrom = 0;
-    laneEvs.forEach((ev, i) => { if (drawsText(ev)) lineFrom = i + 1; });
+    laneEvs.forEach((ev, i) => { if (ev) lineFrom = i + 1; });
 
     // A label owns the lanes to its right up to the next band, or up to where
     // the day line starts — whichever comes first. That replaces the old
@@ -639,7 +642,7 @@ function renderMonthEl(y, m) {
     // where the day line begins — whichever comes first
     const roomEm = i => {
       let j = i + 1;
-      while (j < laneEvs.length && !drawsText(laneEvs[j])) j++;
+      while (j < laneEvs.length && !laneEvs[j]) j++;
       const to = Math.min(j, Math.max(lineFrom, i + 1));
       return Math.max(laneEm[i], laneLeft(to) - laneLeft(i));
     };
@@ -702,13 +705,19 @@ function renderMonthEl(y, m) {
     // "where am I"; on the day you move it should answer "where am I going".
     // Codes only — the column is narrow — and the journey then leaves the day
     // line, which is where the crowding was. A holiday still wins the cell.
-    let journeyTxt = '';
+    let journeyTxt = '', journeyAlone = false;
     if (!h) {
       const own = lineFinal.filter(it => !it.wg && it._legs && it._legs.length >= 2);
       if (own.length === 1) {
         const legs = own[0]._legs;
-        journeyTxt = '→ ' + cityLabel(legs[legs.length - 1]);
         movedToInfo = own[0];
+        // With the day to itself it says the whole thing and reaches left into
+        // the empty line; sharing the day, just the arrow and where you land —
+        // and the arrow grows, so it still reads as a move (Alan, 12.09).
+        journeyTxt = lineFinal.length === 1
+          ? esc(cityLabel(legs[0])) + ' <span class="arw">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1]))
+          : '<span class="arw big">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1]));
+        journeyAlone = lineFinal.length === 1;
       }
     }
     // One cell, one line, one thing in it: a holiday, else the week number on
@@ -716,7 +725,7 @@ function renderMonthEl(y, m) {
     const info = h
       ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="${h.red ? 'red' : ''} ${h.name.length > 11 ? 'long' : ''} ${h.name.length > 15 ? 'xlong' : ''}">${esc(h.name)}</span></span>`
       : journeyTxt
-        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey">${esc(journeyTxt)}</span></span>`
+        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey ${journeyAlone ? 'wide' : ''}">${journeyTxt}</span></span>`
       : cityTxt
         ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}">${esc(cityTxt)}</span></span>`
         : (wi === 0 ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}">${L().week} ${isoWeek(d)}</span>`
