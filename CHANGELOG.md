@@ -5,6 +5,14 @@ what the app shows at the foot of Kalendere ("bygg …"); the commit is what to 
 to get exactly that version back (`git checkout <commit>` then `python3 publiser.py`).
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
+## 12.09.2026 — evening variant, on the preview only behind ?kveld=1
+- A day with ONE event timed 18:00 or later sits flush right instead of left.
+  Alan's time-axis idea, reduced to the part that can tell the truth: the right
+  edge is fixed, so it says "evening" without pretending to say a clock time.
+  Off by default. Compare: .../v2/ against .../v2/?kveld=1
+- Fixed on the way: a clock in a show's title was read as the performance number,
+  so "19:00 Forestilling" rendered as "00 19".
+
 ## 12.09.2026 — the day line holds one left edge (preview only, bygg 20260912b)
 - A band's hairline now falls between letters. Only the **one word** the line runs
   through moves, up to 6px right or 2.5px left; the line's left edge never moves.
