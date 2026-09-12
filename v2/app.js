@@ -2173,13 +2173,12 @@ $('#app').addEventListener('click', e => {
     state.year = Number(sec.dataset.y); state.month = Number(sec.dataset.m);
     state.view = 'month'; render(); return;
   }
-  // TOUCHING A DAY OPENS ITS WEEK, from the year just as from the month
-  // (Alan, 12.09: "same on iphone"). The month says the shape of the month;
-  // the week is where the day's own lines are.
-  if (row && (state.view === 'month' || state.view === 'year') && !e.target.closest('.info')) {
-    state.weekOf = state.weekDay = row.dataset.date; state.view = 'week'; render(); return;
-  }
-  if (row) openDayPanel(row);
+  // NOTHING FALLS THROUGH TO v1's DAY PANEL ANY MORE (Alan, 12.09: "single tap
+  // brings up the old weird add event menu from v1 — we want it in the new day
+  // view"). Adding, editing and deleting all live in the day view now, so the
+  // old popover has no job left and no way in. Two dead branches removed with
+  // it: an earlier copy of "a day opens its week", which the gesture grammar
+  // above already handles, and the fallback that opened the panel.
 });
 document.addEventListener('click', e => {
   if (!e.target.closest('#popover') && !e.target.closest('.day')) closePanel();
