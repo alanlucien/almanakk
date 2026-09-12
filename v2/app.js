@@ -708,6 +708,23 @@ function clipLine() {
   });
 }
 
+// The week's bands are drawn after layout, because a day is as tall as the
+// number of things in it — there is no grid to hang them on.
+function layoutWeekBands() {
+  document.querySelectorAll('.wdays').forEach(box => {
+    const top0 = box.getBoundingClientRect().top;
+    box.querySelectorAll('.wband').forEach(b => {
+      const from = box.querySelector(`.wday[data-idx="${b.dataset.from}"]`);
+      const to = box.querySelector(`.wday[data-idx="${b.dataset.to}"]`);
+      if (!from || !to) { b.hidden = true; return; }
+      const a = from.getBoundingClientRect(), z = to.getBoundingClientRect();
+      b.hidden = false;
+      b.style.top = (a.top - top0) + 'px';
+      b.style.height = Math.max(2, z.bottom - a.top) + 'px';
+    });
+  });
+}
+
 function alignTourItems() {
   document.querySelectorAll('.day .detail').forEach(det => {
     const items = [...det.querySelectorAll(':scope > .evt[data-wg="1"]')];
@@ -1236,6 +1253,37 @@ function renderWeekEl(ds) {
   const holNext = holidays(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6).getFullYear());
   const tour = new Set(tourCalIds());
   const todayStr = fmt(new Date());
+  const end = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+  const lastKey = fmt(end), firstKey = fmt(mon);
+  const dm = ds2 => Number(ds2.slice(8, 10)) + '.' + Number(ds2.slice(5, 7)) + '.';
+  // THE SAME LANGUAGE AS THE MONTH, TURNED ON ITS SIDE (Alan, 12.09: the
+  // seven-cell ruler "needs coding and deciphering, and it has hope as the
+  // blue dot in the year calendar for Apple"). He is right. A band is a band:
+  // its name is written where it starts, and a thin line runs down beside the
+  // days it covers. Nothing to decode, and it is the reading he already knows
+  // from the month. A span that began before this week writes its name on the
+  // Monday, because that is where it enters the page.
+  const keyOf = i => fmt(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i));
+  const runs = state.events
+    .filter(e => e.end > e.start && e.start <= lastKey && e.end >= firstKey)
+    .map(e => {
+      let from = 0, to = 6;
+      for (let i = 0; i < 7; i++) if (keyOf(i) >= e.start) { from = i; break; }
+      for (let i = 6; i >= 0; i--) if (keyOf(i) <= e.end) { to = i; break; }
+      return { e, from, to };
+    })
+    .sort((a2, b2) => a2.from - b2.from || (a2.e.start < b2.e.start ? -1 : 1));
+  // lanes, so two runs never share a line
+  const laneEnd = [];
+  runs.forEach(r => {
+    let l = 0;
+    while (laneEnd[l] !== undefined && laneEnd[l] >= r.from) l++;
+    laneEnd[l] = r.to;
+    r.lane = l;
+  });
+  const nLanes = laneEnd.length;
+  const startsOn = i => runs.filter(r => r.from === i);
+
   let days = '';
   for (let i = 0; i < 7; i++) {
     const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
@@ -1264,48 +1312,27 @@ function renderWeekEl(ds) {
     }).join('');
     // the diary keeps ruled lines whether or not the day is used
     const blanks = Math.max(0, 2 - evs.length);
+    const heads = startsOn(i).map(r =>
+      `<p class="wspan ${tour.has(r.e.calId) ? 'wg' : ''} ${isTbc(r.e) ? 'tbc' : ''}"`
+      + ` data-eid="${r.e.id}" data-date="${key}">`
+      + `<span class="wn" style="color:${evInk(r.e)}">${esc(r.e.title)}</span>`
+      + `<span class="wr">${dm(r.e.start)} – ${dm(r.e.end)}</span></p>`).join('');
     days += `<section class="wday ${free ? 'free' : ''} ${red ? 'red' : ''} ${key === todayStr ? 'today' : ''}`
-      + `${key === state.weekDay ? ' picked' : ''}" data-date="${key}">`
+      + `${key === state.weekDay ? ' picked' : ''}" data-idx="${i}" data-date="${key}">`
       + `<h3><span class="wnum">${d.getDate()}</span> <span class="wname">${L().wdLong[i]}</span>`
       + (h ? `<span class="whol">${esc(h.name)}</span>` : '') + '</h3>'
-      + lines + '<p class="wblank"></p>'.repeat(blanks)
+      + heads + lines + '<p class="wblank"></p>'.repeat(blanks)
       + '</section>';
   }
-  const end = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
-  const lastKey = fmt(end), firstKey = fmt(mon);
-  const dm = ds2 => Number(ds2.slice(8, 10)) + '.' + Number(ds2.slice(5, 7)) + '.';
-  // WHERE IN THE WEEK IT RUNS, NOT JUST THAT IT DOES (Alan, 12.09: "what if
-  // there are events running two or three days inside the week?"). Seven cells
-  // in the week's own order, filled for the days it covers, in the event's own
-  // colour. A tour that runs Tue to Thu says so at a glance; one that runs the
-  // whole week fills the ruler. Italics could only have said "not all of it".
-  const keyOf = i => fmt(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i));
-  const ruler = e => {
-    let cells = '';
-    for (let i = 0; i < 7; i++) {
-      const k = keyOf(i);
-      const on = e.start <= k && e.end >= k;
-      cells += `<i class="${on ? 'on' : ''}"></i>`;
-    }
-    return `<span class="wbar" style="--c:${e.color}">${cells}</span>`;
-  };
-  const runs = state.events
-    .filter(e => e.end > e.start && e.start <= lastKey && e.end >= firstKey)
-    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0))
-    .map(e => `<p class="wrun ${tour.has(e.calId) ? 'wg' : ''} ${isTbc(e) ? 'tbc' : ''}"`
-      + ` data-eid="${e.id}" data-date="${firstKey}">`
-      + `<span class="wn" style="color:${evInk(e)}">${esc(e.title)}</span>`
-      + ruler(e)
-      + `<span class="wr">${dm(e.start)} – ${dm(e.end)}</span></p>`).join('');
   const span = mon.getMonth() === end.getMonth()
     ? L().months[mon.getMonth()]
     : L().months[mon.getMonth()] + ' / ' + L().months[end.getMonth()];
   return `<section class="week"><h2>${span} <small>${end.getFullYear()}</small>`
     + `<span class="wkno">${L().week} ${isoWeek(mon)}</span></h2>`
-    + (runs ? `<div class="wruns"><p class="wrunhead"><span class="wn"></span>`
-        + `<span class="wbar">${L().wd.map(w => `<i>${w}</i>`).join('')}</span>`
-        + `<span class="wr"></span></p>${runs}</div>` : '')
-    + `${days}</section>`;
+    + `<div class="wdays" style="--wlanes:${nLanes}">${days}`
+    + runs.map(r => `<i class="wband ${tour.has(r.e.calId) ? 'wg' : ''}"`
+        + ` data-from="${r.from}" data-to="${r.to}" style="--c:${r.e.color};--lane:${r.lane}"></i>`).join('')
+    + `</div></section>`;
 }
 
 function render(group) {
@@ -1343,6 +1370,7 @@ function render(group) {
   alignByTime();
   alignTourItems();
   clipLine();
+  layoutWeekBands();
   alignLinesToBands();
   updateChips();
 }

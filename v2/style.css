@@ -526,3 +526,24 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 /* the day you came in on */
 .wday.picked > h3 { box-shadow: inset 3px 0 0 var(--red); }
 .wday.picked .wnum { text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---------- the week's bands: the month's language, turned on its side ----------
+   A span's name is written on the day it enters the week, and a thin line runs
+   down beside every day it covers. Nothing to decode (Alan, 12.09). */
+.week .wdays { position: relative; padding-left: calc(var(--wlanes, 0) * 7px); }
+.week .wband {
+  position: absolute; left: 0; width: 3px; border-radius: 2px;
+  margin-left: calc(var(--lane) * 7px);
+  background: var(--c); opacity: .85; pointer-events: none;
+}
+.week .wband.wg { opacity: .45; }
+/* the name where it starts, read like a band label rather than an event */
+.week .wspan {
+  position: relative; z-index: 1;
+  margin: 0; padding: 3px 10px; display: flex; gap: .6em; align-items: baseline;
+  border-bottom: 1px solid var(--rule); font-size: 12px; cursor: pointer;
+}
+.week .wspan .wn { flex: 1; min-width: 0; font-weight: 700; }
+.week .wspan .wr { flex: 0 0 4.6em; text-align: right; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.week .wspan.wg { opacity: .62; }
+.week .wspan.tbc .wn { font-style: italic; }
