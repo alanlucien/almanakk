@@ -560,6 +560,26 @@ function inkColor(hex) {
 const NUDGE_RIGHT = 6;   // px a word may be pushed right; past this it reads as a gap
 const NUDGE_LEFT = 2.5;  // px it may be pulled left — only tightens one space
 
+// The long "Oslo → Bergen" form reaches left across an empty day line. Empty
+// means empty: on a day whose band carries a label, that space is taken, and
+// the long form printed straight over it. Measured after layout, because
+// whether it fits depends on the label's own width — Alan, 12.09.
+function fitJourneys() {
+  document.querySelectorAll('.day .info .cty.journey.wide').forEach(j => {
+    const row = j.closest('.day'); const cv = row && row.querySelector('.canvas');
+    if (!cv) return;
+    let taken = cv.getBoundingClientRect().left;
+    cv.querySelectorAll('.band b, .detail').forEach(el => {
+      if (!el.textContent.trim()) return;
+      taken = Math.max(taken, el.getBoundingClientRect().right);
+    });
+    if (j.getBoundingClientRect().left < taken + 4 && j.dataset.short) {
+      j.innerHTML = j.dataset.short;
+      j.classList.remove('wide');
+    }
+  });
+}
+
 function alignLinesToBands() {
   document.querySelectorAll('.day .canvas').forEach(cv => {
     const det = cv.querySelector('.detail');
@@ -777,7 +797,7 @@ function renderMonthEl(y, m) {
     // "where am I"; on the day you move it should answer "where am I going".
     // Codes only — the column is narrow — and the journey then leaves the day
     // line, which is where the crowding was. A holiday still wins the cell.
-    let journeyTxt = '', journeyAlone = false;
+    let journeyTxt = '', journeyAlone = false, journeyShort = '';
     if (!h) {
       const own = lineFinal.filter(it => !it.wg && it._legs && it._legs.length >= 2);
       if (own.length === 1) {
@@ -786,9 +806,10 @@ function renderMonthEl(y, m) {
         // With the day to itself it says the whole thing and reaches left into
         // the empty line; sharing the day, just the arrow and where you land —
         // and the arrow grows, so it still reads as a move (Alan, 12.09).
+        journeyShort = '<span class="arw big">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1]));
         journeyTxt = lineFinal.length === 1
           ? esc(cityLabel(legs[0])) + ' <span class="arw">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1]))
-          : '<span class="arw big">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1]));
+          : journeyShort;
         journeyAlone = lineFinal.length === 1;
       }
     }
@@ -797,7 +818,7 @@ function renderMonthEl(y, m) {
     const info = h
       ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="${h.red ? 'red' : ''} ${h.name.length > 11 ? 'long' : ''} ${h.name.length > 15 ? 'xlong' : ''}">${esc(h.name)}</span></span>`
       : journeyTxt
-        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey ${journeyAlone ? 'wide' : ''}">${journeyTxt}</span></span>`
+        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey ${journeyAlone ? 'wide' : ''}" data-short="${journeyAlone ? esc(journeyShort) : ''}">${journeyTxt}</span></span>`
       : cityTxt
         ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}">${esc(cityTxt)}</span></span>`
         : (wi === 0 ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}">${L().week} ${isoWeek(d)}</span>`
@@ -839,6 +860,7 @@ function render(group) {
   $('#view-month').classList.toggle('active', state.view === 'month' && !state.detailed);
   $('#view-detail').classList.toggle('active', state.view === 'month' && state.detailed);
   measureLane();
+  fitJourneys();
   alignLinesToBands();
   updateChips();
 }
