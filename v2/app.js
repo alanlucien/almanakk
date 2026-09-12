@@ -1604,6 +1604,35 @@ function renderWeekEl(ds) {
     + `</div></section>`;
 }
 
+// THE BACK BUTTON SHOULD GO BACK A VIEW, NOT LEAVE (Alan, 12.09). Month, week
+// and day were only ever state, so the browser had nothing to return to and
+// the back gesture walked out of the app. Every change of view now leaves a
+// history entry, and going back restores the one before it. Recorded from
+// inside render, so it cannot fall out of step with a navigation added later.
+let navKey = null, navRestoring = false;
+function navSnap() {
+  return {
+    view: state.view, year: state.year, month: state.month,
+    weekOf: state.weekOf, weekDay: state.weekDay,
+    dayOf: state.dayOf, openEvent: state.openEvent,
+  };
+}
+function markHistory() {
+  const snap = navSnap();
+  const key = Object.values(snap).join('|');
+  if (key === navKey) return;
+  if (navKey === null) history.replaceState(snap, '');
+  else if (!navRestoring) history.pushState(snap, '');
+  navKey = key;
+}
+window.addEventListener('popstate', e => {
+  if (!e.state) return;                 // nothing of ours: let the browser leave
+  navRestoring = true;
+  Object.assign(state, e.state);
+  render();
+  navRestoring = false;
+});
+
 function render(group) {
   closePanel(true);
   const app = $('#app');
@@ -1651,6 +1680,7 @@ function render(group) {
   clipLine();
   layoutWeekBands();
   wireDayView();
+  markHistory();
   if (state.addOnOpen) {
     state.addOnOpen = false;
     const line = document.querySelector('.dayview .wblank');

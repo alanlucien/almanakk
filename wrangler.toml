@@ -10,3 +10,12 @@ pages_build_output_dir = "dist"
 [[kv_namespaces]]
 binding = "KV"
 id = "8935882923314b36a43688fa05509f30"
+
+# Pages keeps PREVIEW and PRODUCTION apart: bindings above reach production
+# only. Without this the preview lane had no KV and no secrets, so its function
+# could not mint a Google token and Alan's phone showed an empty calendar
+# (12.09.2026). Same namespace on purpose — one refresh token, both lanes.
+[env.preview]
+[[env.preview.kv_namespaces]]
+binding = "KV"
+id = "8935882923314b36a43688fa05509f30"

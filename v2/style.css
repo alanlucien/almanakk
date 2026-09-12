@@ -713,3 +713,9 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .dayview > h2 .dname { color: var(--ink); }
 /* the line you have picked in the day, before you open it */
 .dayview .dev.picked { box-shadow: inset 3px 0 0 var(--ink); }
+
+/* SAFARI ZOOMS THE PAGE ON ANY FIELD UNDER 16px (Alan, twice). Setting it on
+   each field one at a time kept missing one — the city planner's, the day
+   panel's — and a single miss is enough to throw the whole calendar sideways
+   the moment the keyboard appears. So: every field, everywhere. */
+input, textarea, select { font-size: 16px; }
