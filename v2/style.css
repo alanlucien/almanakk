@@ -707,3 +707,5 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 }
 .week > h2 .wcity + .wkno, .dayview > h2 .wcity + .wkno { margin-left: .9em; }
 .dayview > h2 .dname { color: var(--ink-soft); }
+/* the line you have picked in the day, before you open it */
+.dayview .dev.picked { box-shadow: inset 3px 0 0 var(--ink); }
