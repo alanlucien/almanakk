@@ -791,7 +791,6 @@ function tapOrDouble(single, double) {
 function openDay(date, eventId) {
   state.dayOf = date;
   state.openEvent = eventId || null;
-  state.pickEvent = eventId || null;
   // nothing on the day at all: put the cursor on its line rather than make him
   // find it (Alan: "if empty day - straight to add event")
   // "Empty" means nothing of the day's OWN. A project running through it is
@@ -1443,8 +1442,7 @@ function renderDayEl(ds) {
     const open = String(e.id) === String(state.openEvent);
     const span = e.end > e.start;
     if (!open) {
-      return `<p class="dev ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}`
-        + `${String(e.id) === String(state.pickEvent) ? ' picked' : ''}" data-eid="${e.id}">`
+      return `<p class="dev ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}" data-eid="${e.id}">`
         + `<span class="wt">${esc(e.time || '')}</span>`
         + `<span class="wn" style="color:${evInk(e)}">${esc(e.title)}</span>`
         + (span ? `<span class="wr">${esc(e.start)} – ${esc(e.end)}</span>` : '')
@@ -2118,35 +2116,35 @@ $('#app').addEventListener('click', e => {
     if (dayEl) {
       const date = dayEl.dataset.date;
       const ev = hit && state.events.find(x => String(x.id) === String(hit.dataset.eid));
-      // ONE GRAMMAR EVERYWHERE (Alan, 12.09): two taps always OPEN, and they
-      // always land on the day. One tap always CLOSES what you opened. In the
-      // month and the year there is nothing to close, so one tap rests.
+      // TWO TAPS ALWAYS LAND ON THE DAY — on an event to edit it, on an empty
+      // day ready to write. One tap opens the week from the month, and closes
+      // the week back to the month. (Alan's final grammar, 12.09.)
       tapOrDouble(
         () => {
-          if (state.view !== 'week') return;       // the month is the ground floor
-          const anchor = parseDate(state.weekDay || date);
-          state.year = anchor.getFullYear(); state.month = anchor.getMonth();
-          state.view = 'month'; render();
+          if (state.view === 'week') {
+            const anchor = parseDate(state.weekDay || date);
+            state.year = anchor.getFullYear(); state.month = anchor.getMonth();
+            state.view = 'month'; render(); return;
+          }
+          state.weekOf = state.weekDay = date; state.view = 'week'; render();
         },
         () => openDay(date, ev ? ev.id : null),
       );
       return;
     }
   }
-  // INSIDE THE DAY, one tap SELECTS and two taps EDIT (Alan, 12.09: "single
-  // tap does not close, that selects the next event"). The day is already the
-  // bottom of the stack, so there is nothing below it to open — the two
-  // gestures split into picking a line and opening it. The day's own title is
-  // what closes it.
+  // IN THE DAY: one tap opens an event to edit, two taps anywhere go back to
+  // the month (Alan's final grammar, 12.09).
   if (inDay && !e.target.closest('.dedit') && !e.target.closest('.wblank')) {
     const evHit = hit && state.events.find(x => String(x.id) === String(hit.dataset.eid));
-    if (!evHit) {
-      if (state.openEvent || state.pickEvent) { state.openEvent = state.pickEvent = null; render(); }
-      return;
-    }
+    const toMonth = () => {
+      const anchor = parseDate(state.dayOf || fmt(new Date()));
+      state.year = anchor.getFullYear(); state.month = anchor.getMonth();
+      state.view = 'month'; state.openEvent = null; render();
+    };
     tapOrDouble(
-      () => { state.pickEvent = evHit.id; state.openEvent = null; render(); },
-      () => { state.openEvent = evHit.id; state.pickEvent = evHit.id; render(); },
+      () => { if (evHit) { state.openEvent = evHit.id; render(); } },
+      toMonth,
     );
     return;
   }
