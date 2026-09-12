@@ -2120,7 +2120,19 @@ document.addEventListener('click', e => { if (!e.target.closest('#more')) moreMe
 // THE MONTH IS NAMED ONCE (Alan, 13.09). With the header carrying the period,
 // the block's own title said September a second time and cost a day's worth of
 // height. The header's name takes over the job of opening the year.
+// THE HEADER'S OWN TITLE CLIMBS TOO (Alan, 13.09). It names the level you are
+// on, so tapping it should leave that level — the same as the sheet's title,
+// which is easy to miss on a phone.
 $('#period-label').addEventListener('click', () => {
+  if (state.view === 'day') {
+    state.weekOf = state.weekDay = state.dayOf; state.openEvent = null;
+    state.view = 'week'; render(); return;
+  }
+  if (state.view === 'week') {
+    const anchor = parseDate(state.weekDay || state.weekOf || fmt(new Date()));
+    state.year = anchor.getFullYear(); state.month = anchor.getMonth();
+    state.view = 'month'; render(); return;
+  }
   if (state.view === 'month') { state.view = 'year'; render(); }
 });
 
