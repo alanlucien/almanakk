@@ -82,3 +82,21 @@ below it; branch `preview-flow-line` shows why a CSS grid cannot do it. Keep it 
 Blocked popup on Safari/iOS is **fixed**: `CAN_SILENT` is false there (`gcal.js:37`). Also done: boot dead-ends; flight-leg parsing (booking refs, country+city, one-legged, connecting journeys); `→ Roma` markers with `tbc`; cc'd `fromGmail` flights never move the pin; full IATA table; cache busting; sheet and ANTIGONE 2027 imported; the three-calendar split.
 
 **`README.md` contradicts the code:** its "Not done yet" list says deploy to a real URL and add a PWA manifest + service worker. Both are done.
+
+## Header, to do with the week view (Alan, 12.09.2026)
+
+He finds the top bar cluttered. Two specific things:
+
+- **The month name is said twice** on the phone — once in the header ("Februar
+  2026") and again at the top of the month block ("FEBRUAR 2026"). The block's
+  own title is the one that belongs to the paper, so the header's should go on
+  narrow screens. Easy, and safe.
+- **The ‹ › buttons are tiny and awkward**, and he says you do not need them
+  when you can swipe. TRUE IN MONTH VIEW ONLY: the swipe handler returns early
+  unless `state.view === 'month'`, so year view has no other way to change year.
+  Removing them outright would strand that view. Either give year view a swipe
+  first and then hide them on touch, or keep them and make them a proper size.
+
+DO THIS WITH THE WEEK VIEW, not before. The header gains a view button when
+week and day arrive, so tidying it now means tidying it twice.
+
