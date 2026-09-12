@@ -703,14 +703,19 @@ function alignByTime() {
     const cvW = cands[0].cvW;
     const wE = ordinary(cands.filter(c => c.eW > 0).map(c => c.eW));
     const wA = ordinary(cands.filter(c => c.aW > 0).map(c => c.aW));
-    // the evening column first, then the afternoon one as far right as it can
-    // be while still clearing it
+    // The evening column is placed by what it must hold. The afternoon one is
+    // placed at MIDDAY — halfway to it — and not derived from it: deriving it
+    // put the afternoon's last letters right up against the evening column on
+    // a wide screen, and pushed it off the row entirely on a narrow one
+    // (Alan, 12.09). Midday is the same fraction of the row at every size.
     const E = wE ? Math.max(cvW * SLOT_COL_MIN, cvW - 7 - wE) : 0;
-    let A = wA ? (E ? E - SLOT_GAP - wA : cvW - 7 - wA) : 0;
-    if (A < cvW * 0.2) A = 0;                               // no room worth having
+    let A = wA ? (E ? E / 2 : cvW - 7 - wA) : 0;
+    if (A < cvW * SLOT_COL_MIN / 2) A = 0;                  // too near the left to read as midday
     cands.forEach(c => {
       let pos = c.base + c.headW;
       const clear = c.headW ? SLOT_GAP : 0;
+      // room to the right is the evening column only on a day that HAS an
+      // evening item; otherwise the afternoon may run on to the end of the row
       if (c.aW && A && A >= pos + clear && A + c.aW <= (c.eW ? E - SLOT_GAP : cvW - 4)) {
         c.evts[c.iA].classList.add('tcol');
         c.evts[c.iA].style.marginLeft = (A - pos).toFixed(1) + 'px';
