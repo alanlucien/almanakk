@@ -559,7 +559,9 @@ function inkColor(hex) {
 // Only a band's left border is a line. Where a tint merely stops there is
 // nothing to dodge, and treating that as a line moved rows with nothing
 // crossing them at all — which is what he caught.
-const KVELD = /[?&]kveld\b/.test(location.search);   // preview switch
+// On by default since 12.09, the day Alan approved it. ?kveld=0 turns the
+// time columns off and gives the plain left-aligned day line back.
+const KVELD = !/[?&]kveld=0\b/.test(location.search);
 const EVENING_FROM = 18;                            // an "evening" starts here
 const NUDGE_RIGHT = 6;   // px a word may be pushed right; past this it reads as a gap
 const NUDGE_LEFT = 2.5;  // px it may be pulled left — only tightens one space
