@@ -9,4 +9,4 @@ pages_build_output_dir = "dist"
 # called ALMANAKK_STATE and paste its id here (publiser.py --lag-kv gjør det).
 [[kv_namespaces]]
 binding = "KV"
-id = "REPLACE-WITH-KV-ID"
+id = "8935882923314b36a43688fa05509f30"
