@@ -21,7 +21,7 @@ window.DEMO_EVENTS = [
   { c: 'privat', t: 'Middag hos mor', s: '2026-02-20' },
   // a week of rows whose text runs under a band edge — the case the day line
   // is measured against (see alignLinesToBands in app.js)
-  { c: 'festival', t: 'Festivaluke (demo)', s: '2026-02-23', e: '2026-02-28' },
+  { c: 'festival', t: 'Festivaluke', s: '2026-02-23', e: '2026-02-28' },
   { c: 'privat', t: '09:15 OSL - CPH - BKK', s: '2026-02-23' },
   { c: 'arbeid', t: '14:00 Kostymeprøve', s: '2026-02-25' },
   { c: 'arbeid', t: '10:00 Produksjonsmøte Vildanden', s: '2026-02-26' },
