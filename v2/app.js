@@ -700,7 +700,9 @@ function alignByTime() {
         headW: span(0, iA - 1), aW: span(iA, iE - 1), eW: span(iE, evts.length - 1) });
     });
     if (!cands.length) return;
-    const cvW = cands[0].cvW;
+    // the narrowest canvas in the month is the ordinary one; a row that has
+    // borrowed the city cell must not drag the columns right for everyone
+    const cvW = Math.min(...cands.map(c => c.cvW));
     const wE = ordinary(cands.filter(c => c.eW > 0).map(c => c.eW));
     const wA = ordinary(cands.filter(c => c.aW > 0).map(c => c.aW));
     // The evening column is placed by what it must hold. The afternoon one is
@@ -716,14 +718,14 @@ function alignByTime() {
       const clear = c.headW ? SLOT_GAP : 0;
       // room to the right is the evening column only on a day that HAS an
       // evening item; otherwise the afternoon may run on to the end of the row
-      if (c.aW && A && A >= pos + clear && A + c.aW <= (c.eW ? E - SLOT_GAP : cvW - 4)) {
+      if (c.aW && A && A >= pos + clear && A + c.aW <= (c.eW ? E - SLOT_GAP : c.cvW - 4)) {
         c.evts[c.iA].classList.add('tcol');
         c.evts[c.iA].style.marginLeft = (A - pos).toFixed(1) + 'px';
         pos = A;
       }
       pos += c.aW;
       const clearE = pos > c.base ? SLOT_GAP : 0;
-      if (c.eW && E && E >= pos + clearE && E + c.eW <= cvW - 4) {
+      if (c.eW && E && E >= pos + clearE && E + c.eW <= c.cvW - 4) {
         c.evts[c.iE].classList.add('tcol');
         c.evts[c.iE].style.marginLeft = (E - pos).toFixed(1) + 'px';
       } else if (c.lone) {
@@ -1021,7 +1023,12 @@ function renderMonthEl(y, m) {
       + '</span>';
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
-    rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''}" data-date="${ds}">`
+    // NOTHING IN THE CITY CELL, SO LEND IT TO THE LINE (Alan, 12.09: "there is
+    // air to the right of it and no city, so that would be okay"). The two
+    // overlap in the grid rather than the column being given up, so the cell
+    // stays where it is and still takes the tap that plans a move.
+    const airRight = !h && !journeyTxt && !cityTxt && wi !== 0;
+    rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''} ${airRight ? 'airright' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
       + `<span class="canvas">` + bands + detail + '</span>'
       + info + `</div>`;
