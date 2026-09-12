@@ -1264,7 +1264,8 @@ function renderWeekEl(ds) {
     }).join('');
     // the diary keeps ruled lines whether or not the day is used
     const blanks = Math.max(0, 2 - evs.length);
-    days += `<section class="wday ${free ? 'free' : ''} ${red ? 'red' : ''} ${key === todayStr ? 'today' : ''}" data-date="${key}">`
+    days += `<section class="wday ${free ? 'free' : ''} ${red ? 'red' : ''} ${key === todayStr ? 'today' : ''}`
+      + `${key === state.weekDay ? ' picked' : ''}" data-date="${key}">`
       + `<h3><span class="wnum">${d.getDate()}</span> <span class="wname">${L().wdLong[i]}</span>`
       + (h ? `<span class="whol">${esc(h.name)}</span>` : '') + '</h3>'
       + lines + '<p class="wblank"></p>'.repeat(blanks)
@@ -1273,19 +1274,37 @@ function renderWeekEl(ds) {
   const end = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
   const lastKey = fmt(end), firstKey = fmt(mon);
   const dm = ds2 => Number(ds2.slice(8, 10)) + '.' + Number(ds2.slice(5, 7)) + '.';
+  // WHERE IN THE WEEK IT RUNS, NOT JUST THAT IT DOES (Alan, 12.09: "what if
+  // there are events running two or three days inside the week?"). Seven cells
+  // in the week's own order, filled for the days it covers, in the event's own
+  // colour. A tour that runs Tue to Thu says so at a glance; one that runs the
+  // whole week fills the ruler. Italics could only have said "not all of it".
+  const keyOf = i => fmt(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i));
+  const ruler = e => {
+    let cells = '';
+    for (let i = 0; i < 7; i++) {
+      const k = keyOf(i);
+      const on = e.start <= k && e.end >= k;
+      cells += `<i class="${on ? 'on' : ''}"></i>`;
+    }
+    return `<span class="wbar" style="--c:${e.color}">${cells}</span>`;
+  };
   const runs = state.events
     .filter(e => e.end > e.start && e.start <= lastKey && e.end >= firstKey)
     .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0))
     .map(e => `<p class="wrun ${tour.has(e.calId) ? 'wg' : ''} ${isTbc(e) ? 'tbc' : ''}"`
       + ` data-eid="${e.id}" data-date="${firstKey}">`
       + `<span class="wn" style="color:${evInk(e)}">${esc(e.title)}</span>`
+      + ruler(e)
       + `<span class="wr">${dm(e.start)} – ${dm(e.end)}</span></p>`).join('');
   const span = mon.getMonth() === end.getMonth()
     ? L().months[mon.getMonth()]
     : L().months[mon.getMonth()] + ' / ' + L().months[end.getMonth()];
   return `<section class="week"><h2>${span} <small>${end.getFullYear()}</small>`
     + `<span class="wkno">${L().week} ${isoWeek(mon)}</span></h2>`
-    + (runs ? `<div class="wruns">${runs}</div>` : '')
+    + (runs ? `<div class="wruns"><p class="wrunhead"><span class="wn"></span>`
+        + `<span class="wbar">${L().wd.map(w => `<i>${w}</i>`).join('')}</span>`
+        + `<span class="wr"></span></p>${runs}</div>` : '')
     + `${days}</section>`;
 }
 
@@ -1749,10 +1768,19 @@ $('#app').addEventListener('click', e => {
   if (cell) { e.stopPropagation(); return openCityEdit(cell); }
   if ($('#popover')) { closePanel(); return; }
   const row = e.target.closest('.day');
+  // THE WEEK'S TITLE TAKES YOU BACK UP (Alan, 12.09: "if i click the square at
+  // the top of the week again, it collapses back to month view"). The same
+  // place you came from, so the gesture reverses itself.
+  if (state.view === 'week' && e.target.closest('.week > h2')) {
+    const m = mondayOf(state.weekOf || fmt(new Date()));
+    const anchor = parseDate(state.weekDay || fmt(m));
+    state.year = anchor.getFullYear(); state.month = anchor.getMonth();
+    state.view = 'month'; render(); return;
+  }
   // TOUCHING A DAY OPENS ITS WEEK (Alan, 12.09). The month says the shape of
   // the month; the week is where the day's own lines are.
   if (row && state.view === 'month' && !e.target.closest('.info')) {
-    state.weekOf = row.dataset.date; state.view = 'week'; render(); return;
+    state.weekOf = state.weekDay = row.dataset.date; state.view = 'week'; render(); return;
   }
   if (row) openDayPanel(row);
 });

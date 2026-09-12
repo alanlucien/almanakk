@@ -509,3 +509,20 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .week .wrun .wr { color: var(--muted); font-size: 11px; white-space: nowrap; }
 .week .wrun.wg { opacity: .62; }
 .week .wrun.tbc .wn { font-style: italic; }
+
+/* the seven-cell week ruler: where in the week a span actually runs */
+.week .wruns .wbar { flex: 0 0 auto; display: flex; gap: 1px; align-items: center; }
+.week .wruns .wbar i {
+  width: 9px; height: 8px; background: var(--rule); border-radius: 1px;
+  font-style: normal; font-size: 8px; line-height: 8px; text-align: center; color: var(--muted);
+}
+.week .wruns .wbar i.on { background: color-mix(in srgb, var(--c) 70%, var(--card)); }
+.week .wrunhead { margin: 0; padding: 2px 10px 0; display: flex; gap: .6em; align-items: center; }
+.week .wrunhead .wn { flex: 1; }
+.week .wrunhead .wr { flex: 0 0 4.6em; }
+.week .wrunhead .wbar i { background: none; width: 9px; letter-spacing: 0; }
+.week .wrun .wr { flex: 0 0 4.6em; text-align: right; }
+.week > h2 { cursor: pointer; }
+/* the day you came in on */
+.wday.picked > h3 { box-shadow: inset 3px 0 0 var(--red); }
+.wday.picked .wnum { text-decoration: underline; text-underline-offset: 2px; }
