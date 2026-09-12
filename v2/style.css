@@ -199,12 +199,7 @@ button.active { background: var(--ink); color: var(--card); }
   z-index: 2;                     /* over the tints — the whole point */
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* Where the line crosses a band, the words open a gap in it rather than lying
-   on the tint — Alan, 12.09. On open paper the backdrop is invisible. */
-.day .detail > b {
-  overflow: hidden; text-overflow: ellipsis;
-  background: var(--card); padding: 0 3px; margin-right: 1px;
-}
+.day .detail > b { overflow: hidden; text-overflow: ellipsis; }
 .day .detail .evt { font-weight: 400; display: inline; }
 .day .detail .evt + .evt::before { content: ' · '; color: var(--muted); }
 .day .detail .evt.wgd { opacity: .55; } /* wg items: visibly "theirs", clipped first */
@@ -362,4 +357,4 @@ main.strip { height: 100%; overflow-y: auto; }
 header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-left: .15em; }
 
 /* a travel day in the city column reads as a route, not a place */
-.info .cty.journey { letter-spacing: .02em; }
+.info .cty.journey { font-weight: 700; letter-spacing: .02em; }

@@ -559,12 +559,12 @@ function renderMonthEl(y, m) {
   // left"). Equal shares left a gap between bands and stole room from the day
   // line. Each lane takes the widest label it must carry this month, within
   // bounds; anything wider is written one word per row, as before.
-  const LANE_MIN = 3, LANE_MAX = 11, LANE_PAD = 0.9;
+  const LANE_MIN = 3, LANE_MAX = 11, LANE_PAD = 0.9, LANE_GAP = 0.55;
   const laneEm = [];
   for (let i = 0; i < nOwn + nOvl; i++) {
     let widest = 0;
     for (const ev of spans) if (ev._lane === i) widest = Math.max(widest, emWidth(ev.title));
-    laneEm[i] = laneBox.px ? Math.max(LANE_MIN, Math.min(widest + LANE_PAD, LANE_MAX)) : 5.5;
+    laneEm[i] = (laneBox.px ? Math.max(LANE_MIN, Math.min(widest + LANE_PAD, LANE_MAX)) : 5.5) + LANE_GAP;
   }
   const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
   // a title too long for its lane is written DOWN the band, one word per row
@@ -666,8 +666,8 @@ function renderMonthEl(y, m) {
       else if (plan && step > 0 && step < plan.words.length) txt = plan.words[step];
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
-        + ` data-eid="${ev.id}" style="left:${laneLeft(i)}em;width:${laneEm[i]}em;`
-        + `--w:${(txt ? room : laneEm[i]).toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
+        + ` data-eid="${ev.id}" style="left:${laneLeft(i)}em;width:${(laneEm[i] - LANE_GAP).toFixed(2)}em;`
+        + `--w:${(txt ? room - LANE_GAP : laneEm[i] - LANE_GAP).toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (txt ? `<b>${esc(txt)}</b>` : '') + '</i>';
     });
 
@@ -707,7 +707,7 @@ function renderMonthEl(y, m) {
       const own = lineFinal.filter(it => !it.wg && it._legs && it._legs.length >= 2);
       if (own.length === 1) {
         const legs = own[0]._legs;
-        journeyTxt = cityCode(legs[0]) + '→' + cityCode(legs[legs.length - 1]);
+        journeyTxt = '→ ' + cityLabel(legs[legs.length - 1]);
         movedToInfo = own[0];
       }
     }
