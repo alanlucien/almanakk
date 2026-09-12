@@ -655,3 +655,5 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
   flex: 0 0 auto; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
   color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--rule);
 }
+/* so a double tap is a double tap and not Safari's zoom */
+#app { touch-action: manipulation; }

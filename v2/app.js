@@ -2066,6 +2066,21 @@ document.addEventListener('keydown', e => {
 
 // Swipe between months in strip view.
 let touchX = null;
+// DOUBLE TAP GOES ALL THE WAY UP (Alan, 12.09). A title tap climbs one level,
+// day to week to month, which is the careful way. A double tap is the
+// impatient one and lands straight on the month. It deliberately ignores
+// events, forms and the blank lines you write on, because each of those has
+// already done something on the first tap and jumping the view from under you
+// afterwards would be a trap.
+$('#app').addEventListener('dblclick', e => {
+  if (state.view !== 'week' && state.view !== 'day') return;
+  if (e.target.closest('[data-eid], form, .wblank, input, textarea, button')) return;
+  const anchor = parseDate(state.dayOf || state.weekDay || state.weekOf || fmt(new Date()));
+  state.year = anchor.getFullYear(); state.month = anchor.getMonth();
+  state.view = 'month'; state.openEvent = null;
+  render();
+});
+
 $('#app').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
 $('#app').addEventListener('touchend', e => {
   if (touchX === null || state.view === 'year') return;   // month, week and day all swipe
