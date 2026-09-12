@@ -26,4 +26,13 @@ window.DEMO_EVENTS = [
   { c: 'arbeid', t: '14:00 Kostymeprøve', s: '2026-02-25' },
   { c: 'arbeid', t: '10:00 Produksjonsmøte Vildanden', s: '2026-02-26' },
   { c: 'privat', t: 'Middag hos mor', s: '2026-02-27' },
+  // lone evenings, for the ?kveld=1 variant; and one day that has an evening
+  // event but not alone, which must stay left
+  { c: 'arbeid', t: '19:00 Forestilling', s: '2026-02-05' },
+  { c: 'privat', t: '21:00 Kino', s: '2026-02-10' },
+  { c: 'arbeid', t: '09:00 Morgenmøte', s: '2026-02-12' },
+  { c: 'arbeid', t: '09:00 Prøve', s: '2026-02-17' },
+  { c: 'arbeid', t: '19:00 Forestilling', s: '2026-02-17' },
+  { c: 'privat', t: '20:30 Konsert', s: '2026-02-19' },
+  { c: 'arbeid', t: '18:30 Middag med produsent', s: '2026-02-24' },
 ];

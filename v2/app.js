@@ -266,7 +266,9 @@ const ORDINALS = {
 };
 function showLabel(title) {
   if (!isShow({ title })) return null;
-  let t = title, num = null;
+  // a clock in the title is never the performance number: "19:00 Forestilling"
+  // was reading 19 as the count and rendering "00 19" (found 12.09)
+  let t = title.replace(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/g, ' '), num = null;
   const digit = t.match(/(?:^|[^\d])(\d{1,2})(?!\d)/); // 1–2 digits: a count, not a year
   if (digit) { num = digit[1]; t = t.replace(digit[0], digit[0].replace(digit[1], ' ')); }
   else {
@@ -557,6 +559,8 @@ function inkColor(hex) {
 // Only a band's left border is a line. Where a tint merely stops there is
 // nothing to dodge, and treating that as a line moved rows with nothing
 // crossing them at all — which is what he caught.
+const KVELD = /[?&]kveld\b/.test(location.search);   // preview switch
+const EVENING_FROM = 18;                            // an "evening" starts here
 const NUDGE_RIGHT = 6;   // px a word may be pushed right; past this it reads as a gap
 const NUDGE_LEFT = 2.5;  // px it may be pulled left — only tightens one space
 
@@ -564,6 +568,20 @@ const NUDGE_LEFT = 2.5;  // px it may be pulled left — only tightens one space
 // means empty: on a day whose band carries a label, that space is taken, and
 // the long form printed straight over it. Measured after layout, because
 // whether it fits depends on the label's own width — Alan, 12.09.
+// A flushed-right line must not land on a band label that spills right into
+// the same space. Measured after layout; it simply goes back to the left.
+function fitEvenings() {
+  document.querySelectorAll('.day .detail.kveld').forEach(det => {
+    const cv = det.closest('.canvas'); if (!cv) return;
+    let taken = cv.getBoundingClientRect().left;
+    cv.querySelectorAll('.band b').forEach(b => {
+      if (b.textContent.trim()) taken = Math.max(taken, b.getBoundingClientRect().right);
+    });
+    const r = document.createRange(); r.selectNodeContents(det);
+    if (r.getBoundingClientRect().left < taken + 4) det.classList.remove('kveld');
+  });
+}
+
 function fitJourneys() {
   document.querySelectorAll('.day .info .cty.journey.wide').forEach(j => {
     const row = j.closest('.day'); const cv = row && row.querySelector('.canvas');
@@ -823,8 +841,18 @@ function renderMonthEl(y, m) {
         ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}">${esc(cityTxt)}</span></span>`
         : (wi === 0 ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}">${L().week} ${isoWeek(d)}</span>`
                     : `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"></span>`);
-    const detail = `<span class="detail" style="left:${laneLeft(lineFrom)}em">`
-      + lineFinal.filter(it => it !== movedToInfo).map(evtHtml).join('')
+    // EVENING VARIANT (preview, ?kveld=1 — Alan, 12.09). His idea was a time
+    // axis down the day line: morning left, midday middle, evening right. A
+    // real axis cannot work here, because the line starts after the last band
+    // and so has no fixed origin — "midday" would sit in a different place on
+    // every row. Two states can: the RIGHT edge never moves, so a lone evening
+    // event flushed right tells the truth that a middle position would not.
+    // Only on a day with ONE thing on the line, so the rhythm is untouched.
+    const shown = lineFinal.filter(it => it !== movedToInfo);
+    const only = shown.length === 1 ? effTime(shown[0].e) : null;
+    const kveld = KVELD && only && Number(only.slice(0, 2)) >= EVENING_FROM;
+    const detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${laneLeft(lineFrom)}em">`
+      + shown.map(evtHtml).join('')
       + '</span>';
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
@@ -861,6 +889,7 @@ function render(group) {
   $('#view-detail').classList.toggle('active', state.view === 'month' && state.detailed);
   measureLane();
   fitJourneys();
+  fitEvenings();
   alignLinesToBands();
   updateChips();
 }

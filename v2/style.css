@@ -368,3 +368,8 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
   position: absolute; right: 4px; top: 0; bottom: 0;
   display: flex; align-items: center; white-space: nowrap;
 }
+
+/* the evening variant (?kveld=1): one late event on the day sits flush right.
+   The right edge is fixed, so this says "evening" without pretending to say
+   a clock time the way a middle position would — Alan, 12.09. */
+.day .detail.kveld { justify-content: flex-end; }
