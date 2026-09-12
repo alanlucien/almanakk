@@ -825,7 +825,7 @@ function renderMonthEl(y, m) {
   // shows a strip of its own colour down the month. That costs one strip per
   // project instead of a full title width per project, and the label can stay
   // where it belongs — at its own band's left edge, never packed onto a row.
-  const LANE_STRIPE = 3, LABEL_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0;
+  const LANE_STRIPE = 4, LABEL_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0;
   const laneEm = [];
   for (let i = 0; i < nOwn + nOvl; i++) laneEm[i] = (laneBox.px ? LANE_STRIPE : 3.5) + LANE_GAP;
   // one width per span for the whole month, so a band never changes width
@@ -839,6 +839,23 @@ function renderMonthEl(y, m) {
     bandEm[ev.id] = laneBox.px
       ? Math.max(LANE_STRIPE, Math.min(full <= LABEL_MAX ? full : widest, LABEL_MAX))
       : 5.5;
+  }
+  // ONE WIDTH PER LANE, AND EVERY LANE MUST OUTREACH THE ONE BEFORE IT (Alan,
+  // 12.09: "that festivaluke is entirely inside kongen av bastøy is
+  // problematic if the colour is the same"). A later band paints over an
+  // earlier one, so if it also ENDED left of it, it would be swallowed whole
+  // and two projects would read as one. Each lane therefore ends at least a
+  // strip right of its neighbour: the earlier band keeps a strip on the left,
+  // the later one keeps the right edge, and neither can disappear.
+  const laneW = [];
+  let reach = 0;
+  for (let i = 0; i < nOwn + nOvl; i++) {
+    let w = LANE_STRIPE;
+    for (const ev of spans) if (ev._lane === i) w = Math.max(w, bandEm[ev.id]);
+    const left = i * LANE_STRIPE;
+    if (i && left + w < reach + LANE_STRIPE) w = reach + LANE_STRIPE - left;
+    laneW[i] = w;
+    reach = left + w;
   }
   const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
 
@@ -973,7 +990,7 @@ function renderMonthEl(y, m) {
       if (showLabel) txt = plan ? plan.words[0] : ev.title;
       else if (plan && step > 0 && step < plan.words.length) txt = plan.words[step];
       const laneX = laneLeft(i);
-      const w = bandEm[ev.id] || laneEm[i];
+      const w = laneW[i] || laneEm[i];   // the lane's width, so a band is a straight column
       // the line begins after the last band that actually says something here
       if (txt) lineStartEm = Math.max(lineStartEm, laneX + w);
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''}`
