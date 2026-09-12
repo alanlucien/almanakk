@@ -177,7 +177,15 @@ button.active { background: var(--ink); color: var(--card); }
    and an inset shadow sits under child content — so the seam was drawn and
    then covered every time a band started on a day it also labelled, which is
    every band's first day. */
-.day .band.bstart, .day .band.bstart b { box-shadow: inset 0 var(--seam, 5px) 0 var(--card); }
+/* A GAP ALONE CANNOT DO THIS AT BOTH SIZES (Alan, 12.09: "too much on
+   iphone, not visible on desktop"). The seam was paper over a tint that is
+   only 14% away from paper, so on a 46px phone row it read as a hole and on a
+   21px desktop row it read as nothing. It is now a 1px rule in the band's own
+   ink with a 2px paper gap above it: the rule is one pixel at every size, so
+   it is always legible and never shouts. */
+.day .band.bstart, .day .band.bstart b {
+  box-shadow: inset 0 2px 0 var(--card), inset 0 3px 0 var(--ci, var(--c));
+}
 .day .band.tbc { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
 .day .band.tbc b { font-style: italic; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
 .day .band.showband b { color: var(--red); }
