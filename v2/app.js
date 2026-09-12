@@ -2157,6 +2157,9 @@ $('#app').addEventListener('click', e => {
   if (cell) { e.stopPropagation(); return openCityEdit(cell); }
   if ($('#popover')) { closePanel(); return; }
   const row = e.target.closest('.day');
+  // A TITLE CLIMBS, AND IT IS ASKED FIRST (Alan, 13.09). These sat below the
+  // tap/double-tap blocks, which catch everything inside a view — so the day's
+  // own title was being read as "a tap in the day" and did nothing.
   if (state.view === 'day' && e.target.closest('.dayview > h2')) {
     state.weekOf = state.weekDay = state.dayOf;
     state.view = 'week'; state.openEvent = null; render(); return;
