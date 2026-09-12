@@ -623,6 +623,12 @@ function fitJourneys() {
 // can be while the longest late title that month still fits whole. A title
 // too long even for that keeps its right edge and simply starts earlier —
 // the column is where evenings BEGIN, not a box they are trapped in.
+// The column is placed for the ordinary late title, not the longest one: one
+// very long evening title used to drag the whole column left, which on a phone
+// wasted most of the row (Alan, 12.09 — "they could have been further to the
+// right"). A title wider than half the canvas is an outlier and keeps its own
+// right edge instead of moving the column for everyone.
+const EVENING_OUTLIER = 0.5;    // share of the canvas past which a title is an outlier
 const EVENING_COL_MIN = 0.42;   // never left of this much across the canvas
 const EVENING_GAP = 10;         // clear air between a morning item and the column
 function alignEvenings() {
@@ -657,8 +663,9 @@ function alignEvenings() {
       }
     });
     const cvW = cands[0].cv.width;
+    const ordinary = cands.map(c => c.w).filter(w => w <= cvW * EVENING_OUTLIER);
     const col = Math.max(cvW * EVENING_COL_MIN,
-                         cvW - 4 - Math.max(...cands.map(c => c.w)));
+                         cvW - 4 - (ordinary.length ? Math.max(...ordinary) : 0));
     cands.forEach(c => {
       const fits = col + c.w <= cvW - 4 && (c.i === 0 || c.headEnd + EVENING_GAP <= col);
       if (!fits) {
@@ -776,7 +783,7 @@ function renderMonthEl(y, m) {
       // as a mistake. Only Tue/Wed/Thu count: a flight late in the week would
       // leave the first four days blank. A MONDAY flight cannot say it in this
       // column at all (Monday is the week number's), so Tuesday still speaks.
-      const flownThisWeek = wi === 1 && [0, 1, 2].some(k => {
+      const flownThisWeek = wi === 1 && [-1, 0, 1, 2].some(k => {
         const x = new Date(d); x.setDate(x.getDate() + k);
         return flights.some(f => f.date === fmt(x));
       });
@@ -901,12 +908,11 @@ function renderMonthEl(y, m) {
     // Codes only — the column is narrow — and the journey then leaves the day
     // line, which is where the crowding was. A holiday still wins the cell.
     let journeyTxt = '', journeyAlone = false, journeyShort = '';
-    // MONDAY BELONGS TO THE WEEK NUMBER (Alan, 2026-08-25), and that did not
-    // stop being true when the journey moved into this column on 12.09: a
-    // flight landing on a Monday was quietly eating "uke 9". On a Monday the
-    // journey stays on the day line, and Bangkok gets named on the Tuesday —
-    // once, where the city always appears. No city under the same city.
-    if (!h && wi !== 0) {
+    // A MONDAY FLIGHT SHARES THE CELL (Alan, 12.09): the journey goes where
+    // every other journey goes, and the week keeps its NUMBER, losing only the
+    // word "uke" — "Oslo → Bangkok 9". Monday still never gives its week away;
+    // it just stops needing a whole cell to say it.
+    if (!h) {
       const own = lineFinal.filter(it => !it.wg && it._legs && it._legs.length >= 2);
       if (own.length === 1) {
         const legs = own[0]._legs;
@@ -914,11 +920,14 @@ function renderMonthEl(y, m) {
         // With the day to itself it says the whole thing and reaches left into
         // the empty line; sharing the day, just the arrow and where you land —
         // and the arrow grows, so it still reads as a move (Alan, 12.09).
-        journeyShort = '<span class="arw big">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1]));
-        journeyTxt = lineFinal.length === 1
-          ? esc(cityLabel(legs[0])) + ' <span class="arw">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1]))
-          : journeyShort;
-        journeyAlone = lineFinal.length === 1;
+        const wk = wi === 0 ? ' <span class="wknum">' + isoWeek(d) + '</span>' : '';
+        journeyShort = '<span class="arw big">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1])) + wk;
+        // ONE RULE FOR THE TWO READINGS (Alan lost track of it, 12.09, fairly):
+        // it says the whole trip whenever the whole trip fits, and drops to the
+        // arrow and where you land when it does not. Nothing else decides it.
+        journeyTxt = esc(cityLabel(legs[0])) + ' <span class="arw">\u2192</span> '
+          + esc(cityLabel(legs[legs.length - 1])) + wk;
+        journeyAlone = true;
       }
     }
     // One cell, one line, one thing in it: a holiday, else the week number on
