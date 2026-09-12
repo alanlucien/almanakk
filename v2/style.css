@@ -825,3 +825,12 @@ header #period-year {
   cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
 }
 .dayview .sw.on { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--ink); }
+
+/* AIR UNDER THE DAY'S HEADLINE (Alan, 13.09). The first event was sitting
+   straight against the date, so the two read as one block. */
+.dayview > h2 { padding-bottom: 10px; }
+.dayview > h2 + * { border-top: 0; }
+
+/* a short city name can afford to be read at a glance; a long one cannot,
+   so only the short ones step up */
+.week > h2 .wcity.short, .dayview > h2 .wcity.short { font-size: 12px; letter-spacing: .09em; }

@@ -1513,7 +1513,7 @@ function renderDayEl(ds) {
     + `<span class="dname">${L().wdLong[wi]}</span>`
     + `<small>${L().months[d.getMonth()]} ${d.getFullYear()}</small>`
     + (h ? `<span class="whol">${esc(h.name)}</span>` : '')
-    + (dcity ? `<span class="wcity">${esc(dcity)}</span>` : '')
+    + (dcity ? `<span class="wcity ${dcity.length <= 7 ? 'short' : ''}">${esc(dcity)}</span>` : '')
     + `<span class="wkno">${L().week} ${isoWeek(d)}</span></h2>`
     + (rows || `<p class="wblank"></p>`)
     + `<p class="wblank"></p></section>`;
@@ -1632,7 +1632,7 @@ function renderWeekEl(ds) {
     wcity = an && zn && an !== zn ? an + ' / ' + zn : (zn || an || '');
   }
   return `<section class="week"><h2>${span} <small>${end.getFullYear()}</small>`
-    + (wcity ? `<span class="wcity">${esc(wcity)}</span>` : '')
+    + (wcity ? `<span class="wcity ${wcity.length <= 7 ? 'short' : ''}">${esc(wcity)}</span>` : '')
     + `<span class="wkno">${L().week} ${isoWeek(mon)}</span></h2>`
     + `<div class="wdays" style="--wlanes:${nLanes}">${days}`
     // the arrowhead means FINISHED, so only a run that actually ends inside
