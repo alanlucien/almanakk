@@ -641,55 +641,89 @@ function fitJourneys() {
 // keeps its own right edge rather than move the column for everyone. Measured
 // against its neighbours, not against the canvas, so it behaves the same on a
 // phone as on a wall.
-const EVENING_OUTLIER = 1.5;    // how much longer than the next one down
-const EVENING_COL_MIN = 0.42;   // never left of this much across the canvas
-const EVENING_GAP = 10;         // clear air between a morning item and the column
-function alignEvenings() {
+const SLOT_OUTLIER = 1.5;        // how much longer than the next one down
+const SLOT_COL_MIN = 0.42;      // the evening column never left of this
+const AFTERNOON_FROM = 12;      // when the afternoon column starts counting
+const SLOT_GAP = 10;            // clear air between one slot and the next
+// Alan, 12.09: "why is there not a right nudge for afternoon events?" Because
+// the first answer to his time-axis idea was that the day line has no fixed
+// origin — it starts after the last band, so a position measured from it means
+// a different hour on every row. Anchoring to the CANVAS fixed that, and once
+// the evening column proved it, a second column costs nothing new. So: morning
+// keeps the left edge, afternoon meets one column, evening meets another. Two
+// fixed places, not a sliding scale — a word is five hours wide at this size,
+// so a continuous axis would still be a lie.
+function alignByTime() {
   if (!KVELD) return;
-  const isEve = b => b.dataset.t && Number(b.dataset.t.slice(0, 2)) >= EVENING_FROM;
+  const hour = b => b.dataset.t ? Number(b.dataset.t.slice(0, 2)) : -1;
+  // widest, ignoring one that is half again longer than the next down
+  const ordinary = ws => {
+    const w = ws.slice().sort((x, y) => y - x);
+    if (!w.length) return 0;
+    const keep = Math.max(1, Math.ceil(w.length * 2 / 3));
+    while (w.length > keep && w[0] > w[1] * SLOT_OUTLIER) w.shift();
+    return w[0];
+  };
   document.querySelectorAll('.month').forEach(mon => {
     const cands = [];
     mon.querySelectorAll('.day .detail').forEach(det => {
       const evts = [...det.querySelectorAll(':scope > .evt')];
       if (!evts.length) return;
-      let i = evts.length;                       // the trailing run that is all evening
-      while (i > 0 && isEve(evts[i - 1])) i--;
-      if (i === evts.length) return;             // nothing late on this day
-      // WIDTHS, NEVER POSITIONS. A row that is flushed right reports where it
-      // already sits, and reading that to decide where to put it produced a
-      // shift of a few pixels instead of a column (WebKit, 12.09). Text widths
-      // do not depend on how the row is aligned; positions do.
+      let iA = evts.length, iE = evts.length;
+      for (let k = evts.length - 1; k >= 0; k--) {
+        const h = hour(evts[k]);
+        if (h >= EVENING_FROM && iA === evts.length) iE = k;
+        else if (h >= AFTERNOON_FROM) iA = k;
+        else break;
+      }
+      if (iA > iE) iA = iE;
+      if (iA === evts.length) return;                       // nothing after noon
+      // a clipped line keeps its pinned order, and runs cut from an unsorted
+      // line would put the wrong thing in a column
+      for (let k = 0; k < iA; k++) if (hour(evts[k]) >= AFTERNOON_FROM) return;
       const cv = det.closest('.canvas').getBoundingClientRect();
+      const lone = det.classList.contains('kveld');
+      det.classList.remove('kveld');
+      // WIDTHS, NEVER POSITIONS: a row already flushed right reports the place
+      // it is trying to leave, and the two browsers disagree about when that
+      // reading goes stale. Text widths and the box's own left do not move.
       const box = det.getBoundingClientRect();
       const padL = parseFloat(getComputedStyle(det).paddingLeft) || 0;
       const span = (from, to) => {
+        if (from > to) return 0;
         const r = document.createRange();
         r.setStartBefore(evts[from]); r.setEndAfter(evts[to]);
         return r.getBoundingClientRect().width;
       };
-      const headW = i > 0 ? span(0, i - 1) : 0;
-      cands.push({ det, evts, i,
-        cvW: cv.width,
-        w: span(i, evts.length - 1),
-        at: box.left + padL - cv.left + headW,   // where it would sit from the left
-        headEnd: box.left + padL - cv.left + headW });
+      cands.push({ det, evts, iA, iE, lone, cvW: cv.width,
+        base: box.left + padL - cv.left,
+        headW: span(0, iA - 1), aW: span(iA, iE - 1), eW: span(iE, evts.length - 1) });
     });
     if (!cands.length) return;
     const cvW = cands[0].cvW;
-    const widths = cands.map(c => c.w).sort((a, b) => b - a);
-    const keep = Math.max(1, Math.ceil(widths.length * 2 / 3));  // never drop the bulk
-    while (widths.length > keep && widths[0] > widths[1] * EVENING_OUTLIER) widths.shift();
-    // a 3px cushion: placed to the exact pixel, a row with something before it
-    // loses its last letters to flex shrink rather than sitting flush
-    const col = Math.max(cvW * EVENING_COL_MIN, cvW - 7 - widths[0]);
+    const wE = ordinary(cands.filter(c => c.eW > 0).map(c => c.eW));
+    const wA = ordinary(cands.filter(c => c.aW > 0).map(c => c.aW));
+    // the evening column first, then the afternoon one as far right as it can
+    // be while still clearing it
+    const E = wE ? Math.max(cvW * SLOT_COL_MIN, cvW - 7 - wE) : 0;
+    let A = wA ? (E ? E - SLOT_GAP - wA : cvW - 7 - wA) : 0;
+    if (A < cvW * 0.2) A = 0;                               // no room worth having
     cands.forEach(c => {
-      const fits = col + c.w <= cvW - 4 && (c.i === 0 || c.headEnd + EVENING_GAP <= col);
-
-      const shift = col - c.at;
-      if (!fits || shift < 1) return;            // too long, or already past it
-      c.det.classList.remove('kveld');           // no longer merely flush right
-      c.evts[c.i].classList.add('eve-col');
-      c.evts[c.i].style.marginLeft = shift.toFixed(1) + 'px';
+      let pos = c.base + c.headW;
+      const clear = c.headW ? SLOT_GAP : 0;
+      if (c.aW && A && A >= pos + clear && A + c.aW <= (c.eW ? E - SLOT_GAP : cvW - 4)) {
+        c.evts[c.iA].classList.add('tcol');
+        c.evts[c.iA].style.marginLeft = (A - pos).toFixed(1) + 'px';
+        pos = A;
+      }
+      pos += c.aW;
+      const clearE = pos > c.base ? SLOT_GAP : 0;
+      if (c.eW && E && E >= pos + clearE && E + c.eW <= cvW - 4) {
+        c.evts[c.iE].classList.add('tcol');
+        c.evts[c.iE].style.marginLeft = (E - pos).toFixed(1) + 'px';
+      } else if (c.lone) {
+        c.det.classList.add('kveld');                       // too long: keep the right edge
+      }
     });
   });
 }
@@ -1017,7 +1051,7 @@ function render(group) {
   fitJourneys();
   orderByTime();
   fitEvenings();
-  alignEvenings();
+  alignByTime();
   alignLinesToBands();
   updateChips();
 }
