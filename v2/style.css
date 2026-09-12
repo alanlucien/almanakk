@@ -585,16 +585,24 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 
 .dayview .dev {
   margin: 0; padding: 6px 10px; display: flex; gap: .6em; align-items: baseline;
-  border-bottom: 1px solid var(--rule); font-size: 13px; cursor: pointer;
+  border-bottom: 1px solid var(--rule); font-size: 14px; cursor: pointer;
 }
-.dayview .dev .wt { flex: 0 0 3.6em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dayview .dev .wt { flex: 0 0 3.4em; color: var(--muted); font-variant-numeric: tabular-nums; }
 .dayview .dev .wn { flex: 1; min-width: 0; }
 .dayview .dev .wr { color: var(--muted); font-size: 11px; white-space: nowrap; }
 .dayview .dev.show .wn { font-weight: 600; color: var(--red); }
 .dayview .dev.wg { opacity: .62; }
 
-/* the open one: every field Google keeps, on paper rather than in a form box */
-.dayview .dedit { padding: 8px 10px 10px; border-bottom: 1.5px solid var(--rule-strong); background: var(--card); }
+/* the open one: every field Google keeps, on paper rather than in a form box.
+   Closed off top AND bottom with the heavy rule, so the thing being edited is
+   plainly separate from the rest of the day rather than floating among it
+   (Alan, 12.09: "better line separating... above Tittel and below Lagre"). */
+.dayview .dedit {
+  padding: 10px 10px 12px; background: var(--card);
+  border-top: 1.5px solid var(--rule-strong);
+  border-bottom: 1.5px solid var(--rule-strong);
+}
+.dayview .dedit + .dev { border-top: 0; }
 .dayview .dedit label { display: block; font-size: 10px; letter-spacing: .12em; color: var(--muted); margin-bottom: 7px; }
 .dayview .dedit input, .dayview .dedit textarea {
   display: block; width: 100%; margin-top: 2px; padding: 3px 0;
