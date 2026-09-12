@@ -153,6 +153,12 @@ button.active { background: var(--ink); color: var(--card); }
    singles out Sundays and Saturdays, which this one does not"). Saturday was
    an ordinary day here; on the wall calendar it carries the same grey as
    Sunday, and only the NUMBER goes red on a Sunday or a holiday. */
+/* THE WEEK ENDS WITH A LINE (Alan, 12.09, from his cardboard one). Sunday is
+   the last day of a Monday-first week, so the rule under it is the week's own
+   edge — and on the printed sheet it is the heavy one, which is what gives a
+   wall calendar its rhythm of blocks rather than a ladder of equal rungs. */
+.day.sun { border-bottom: 1px solid var(--rule-strong); }
+
 /* A WASH OVER THE ROW, NOT A GROUND UNDER IT (Alan, 12.09: "annoying that the
    banners take away the weekend colours, it screws with your eyes"). As a
    background it only showed where no band ran, so the weekend stripe broke
