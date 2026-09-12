@@ -828,8 +828,19 @@ function renderMonthEl(y, m) {
   // project instead of a full title width per project, and the label can stay
   // where it belongs — at its own band's left edge, never packed onto a row.
   const LANE_STRIPE = 4, LABEL_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0;
+  // A TOUR BAND IS NOT ONE OF ALAN'S (Alan, 12.09: "the banner for winter
+   // guests should be further to the right"). Overlay lanes get a wider gap
+   // before them, which both says they are someone else's and gives his own
+   // last band room to say its name — "Jury duty" was being cut to "Jury dut"
+   // by ANTIGONE PARIS starting on the same row, and neither label could move
+   // because both were start labels.
+  const WG_GAP = 4;
   const laneEm = [];
-  for (let i = 0; i < nOwn + nOvl; i++) laneEm[i] = (laneBox.px ? LANE_STRIPE : 3.5) + LANE_GAP;
+  for (let i = 0; i < nOwn + nOvl; i++) {
+    laneEm[i] = (laneBox.px ? LANE_STRIPE : 3.5) + LANE_GAP
+      + (nOvl && nOwn && i === nOwn - 1 ? WG_GAP : 0);
+  }
+  const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
   // one width per span for the whole month, so a band never changes width
   // between rows; a title too long to fit takes its widest WORD, because that
   // is what gets written down the band one word per row
@@ -854,12 +865,11 @@ function renderMonthEl(y, m) {
   for (let i = 0; i < nOwn + nOvl; i++) {
     let w = LANE_STRIPE;
     for (const ev of spans) if (ev._lane === i) w = Math.max(w, bandEm[ev.id]);
-    const left = i * LANE_STRIPE;
+    const left = laneLeft(i);
     if (i && left + w < reach + LANE_STRIPE) w = reach + LANE_STRIPE - left;
     laneW[i] = w;
     reach = left + w;
   }
-  const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
 
   // WHICH DAY A LABEL LANDS ON (Alan, 12.09). A band that begins this month has
   // to say its name on the day it begins — that is the one label that cannot
