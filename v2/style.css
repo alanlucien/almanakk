@@ -542,10 +542,16 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
   background: var(--c); opacity: .85; pointer-events: none;
 }
 .week .wband.wg { opacity: .45; }
-/* the small foot he draws at the end, so a run visibly stops */
-.week .wband::after {
-  content: ''; position: absolute; left: 0; bottom: 0; width: 7px; height: 2px;
-  background: var(--c);
+/* THE ARROWHEAD HE DRAWS (Alan, 12.09, pointing at his own wall calendar:
+   the line down from "Tunel" ends in a V). It is the mark that says the run
+   is finished here rather than trailing off, and it is his own hand, so it
+   needs no explaining. Only a run that ENDS inside this week gets one — one
+   that carries on into the next just runs off the bottom edge, which is the
+   difference between "done" and "still going". Centred on the 2px rule. */
+.week .wband.ends::after {
+  content: ''; position: absolute; left: -3px; bottom: -5px;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 6px solid var(--c);
 }
 /* the name where it starts, read like a band label rather than an event */
 .week .wspan {

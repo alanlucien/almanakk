@@ -1512,7 +1512,9 @@ function renderWeekEl(ds) {
   return `<section class="week"><h2>${span} <small>${end.getFullYear()}</small>`
     + `<span class="wkno">${L().week} ${isoWeek(mon)}</span></h2>`
     + `<div class="wdays" style="--wlanes:${nLanes}">${days}`
-    + runs.map(r => `<i class="wband ${tour.has(r.e.calId) ? 'wg' : ''}"`
+    // the arrowhead means FINISHED, so only a run that actually ends inside
+    // this week gets one; one that carries on simply runs off the bottom edge
+    + runs.map(r => `<i class="wband ${tour.has(r.e.calId) ? 'wg' : ''} ${r.e.end <= lastKey ? 'ends' : ''}"`
         + ` data-eid="${r.e.id}" data-from="${r.from}" data-to="${r.to}"`
         + ` style="--c:${r.e.color};--lane:${r.lane}"></i>`).join('')
     + `</div></section>`;
