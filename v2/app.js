@@ -1566,6 +1566,12 @@ function renderWeekEl(ds) {
   const nLanes = runs.length;
   const startsOn = i => runs.filter(r => r.from === i);
 
+  // A BUSY WEEK STOPS BUYING AIR (Alan, 13.09: "in a big week with many events,
+  // then do not give so much space — I almost cannot see the end of Sunday").
+  // Blank ruled lines are what a quiet week has instead of entries; a full one
+  // does not need them, and seven days of them push Sunday off the screen.
+  const weekLoad = state.events.filter(e => e.end === e.start && e.start >= firstKey && e.start <= lastKey).length;
+  const minLines = weekLoad >= 16 ? 1 : weekLoad >= 10 ? 2 : 3;
   let days = '';
   for (let i = 0; i < 7; i++) {
     const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
@@ -1582,7 +1588,23 @@ function renderWeekEl(ds) {
         const k = e => (effTime(e) ? '2' + effTime(e) : '1');
         return k(a) < k(b) ? -1 : k(a) > k(b) ? 1 : 0;
       });
-    const lines = evs.map(e => {
+    // ONLY THE FIRST RIDES THE DAY LINE. Two names beside a date and a weekday
+    // truncated each other on a phone, which is worse than the row it saved.
+    // A second run starting the same day keeps a row of its own.
+    const starts = startsOn(i);
+    const nameSpan = r => `<span class="wspanname ${tour.has(r.e.calId) ? 'wg' : ''} ${isTbc(r.e) ? 'tbc' : ''}"`
+      + ` data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane};color:${evInk(r.e)}">`
+      + `${esc(r.e.title)}</span>`;
+    // AN ALL-DAY ENTRY BELONGS TO THE DAY (Alan: "is Prøve Vildanden an all-day
+    // event? then it should be on the same line as Sunday 20"). It rides the
+    // day's own line when no run is starting there to claim it — a run's name
+    // is context for the whole week and outranks one day's entry.
+    const allDay = evs.filter(e => !effTime(e));
+    const rider = !starts.length && allDay.length ? allDay[0] : null;
+    const headNames = starts.length ? nameSpan(starts[0])
+      : rider ? `<span class="wspanname dayrider" data-eid="${rider.id}" data-date="${key}"`
+        + ` style="--lane:0;color:${evInk(rider)}">${esc(rider.title)}</span>` : '';
+    const lines = evs.filter(e => e !== rider).map(e => {
       const span = e.end > e.start;
       const when = e.time ? e.time : (span ? '' : '');
       return `<p class="wev ${tour.has(e.calId) ? 'wg' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'show' : ''}"`
@@ -1593,24 +1615,15 @@ function renderWeekEl(ds) {
         + '</p>';
     }).join('');
     // the diary keeps ruled lines whether or not the day is used
-    // three ruled lines to a day, the way the diary rules them
-    const blanks = Math.max(0, 3 - evs.length);
+    const blanks = Math.max(0, minLines - evs.length);
     // THE NAME SITS ON THE DAY'S OWN LINE (Alan, 13.09). It had a row to
     // itself, which cost a line and set the name adrift from the day it
     // starts on. The dates keep the row below, where they are a note rather
     // than a heading.
-    // ONLY THE FIRST RIDES THE DAY LINE. Two names beside a date and a weekday
-    // truncated each other on a phone, which is worse than the row it saved.
-    // A second run starting the same day keeps a row of its own.
-    const starts = startsOn(i);
-    const nameSpan = r => `<span class="wspanname ${tour.has(r.e.calId) ? 'wg' : ''} ${isTbc(r.e) ? 'tbc' : ''}"`
-      + ` data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane};color:${evInk(r.e)}">`
-      + `${esc(r.e.title)}</span>`;
     // NO DATE RANGE (Alan crossed it out, 13.09). The line down the margin
     // already says where the run goes and the arrow says where it stops, so
     // "10.9. – 11.9." was the same fact in worse handwriting — and it cost a
     // row. The full dates are still in the day view, where you edit them.
-    const headNames = starts.length ? nameSpan(starts[0]) : '';
     const heads = starts.slice(1).map(r =>
       `<p class="wspan own" data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane}">`
       + nameSpan(r) + '</p>').join('');
@@ -2240,11 +2253,13 @@ $('#app').addEventListener('click', e => {
   // A MONTH'S NAME OPENS THAT MONTH (Alan, 12.09: "in year view click and a
   // month opens"). The same gesture at every level: the title of a thing
   // opens it, and the week's title closes back up.
-  // OUTSIDE THE SHEET IS BACK (Alan, 13.09). Clicking in the schedule selects
-  // or opens; clicking the margin around it climbs a level. It is the paper
-  // metaphor again — you put the page down by looking away from it — and it
-  // means closing never needs a second tap.
+  // THE MARGINS STEP, LIKE THE SWIPE (Alan, 13.09). Tapping left of the sheet
+  // goes back a week, month, year or day; tapping right goes forward. The
+  // middle of the margin still climbs a level, and the titles always do.
   if (!e.target.closest('.month, .week, .dayview, .thumb, #popover, header')) {
+    const w = window.innerWidth;
+    if (e.clientX < w * 0.25) { step(-1); return; }
+    if (e.clientX > w * 0.75) { step(1); return; }
     const up = { day: 'week', week: 'month', month: 'year' }[state.view];
     if (up) {
       if (state.view === 'day') { state.weekOf = state.weekDay = state.dayOf; state.openEvent = null; }

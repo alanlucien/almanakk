@@ -843,3 +843,5 @@ header #period-year {
 .wday .wblank { height: 1.15em; }
 .wday .wev { padding-top: 2px; padding-bottom: 2px; }
 .week .wspan { padding-top: 0; padding-bottom: 0; }
+/* an all-day entry riding the day's own line is an entry, not a heading */
+.wday > h3 .wspanname.dayrider { font-weight: 400; }
