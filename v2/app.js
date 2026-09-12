@@ -629,11 +629,12 @@ function renderMonthEl(y, m) {
       const step = day - plan.from;
       return step > 0 && step < plan.words.length;
     };
-    // Past every band on the row, not just the ones showing a label. Letting the
-    // line lie on a bare tint reclaimed space, but a band's edge cut through the
-    // words — Alan, 12.09. Lanes now fit their labels, so little is lost.
+    // Past the bands SHOWING A LABEL only: a band away from its label is just a
+    // tint, and the line may lie on it. Clearing every band cost too much room
+    // (Alan, 12.09); what made it read badly was a 2px edge cutting the words,
+    // so the edge is now hairline and the tint carries the identity.
     let lineFrom = 0;
-    laneEvs.forEach((ev, i) => { if (ev) lineFrom = i + 1; });
+    laneEvs.forEach((ev, i) => { if (drawsText(ev)) lineFrom = i + 1; });
 
     // A label owns the lanes to its right up to the next band, or up to where
     // the day line starts — whichever comes first. That replaces the old
@@ -642,7 +643,7 @@ function renderMonthEl(y, m) {
     // where the day line begins — whichever comes first
     const roomEm = i => {
       let j = i + 1;
-      while (j < laneEvs.length && !laneEvs[j]) j++;
+      while (j < laneEvs.length && !drawsText(laneEvs[j])) j++;
       const to = Math.min(j, Math.max(lineFrom, i + 1));
       return Math.max(laneEm[i], laneLeft(to) - laneLeft(i));
     };
