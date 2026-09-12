@@ -982,7 +982,7 @@ function renderMonthEl(y, m) {
     // partly, so each band's colour still shows on the row (Alan: "we still
     // see each band's color").
     let bands = '';
-    let lineStartEm = 0;
+    let lineStartEm = 0, ownEndEm = 0, wgHalfEm = 0;
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       const showLabel = labelledAt(ev);
@@ -1004,7 +1004,11 @@ function renderMonthEl(y, m) {
       const laneX = laneLeft(i);
       const w = laneW[i] || laneEm[i];   // the lane's width, so a band is a straight column
       // the line begins after the last band that actually says something here
-      if (txt) lineStartEm = Math.max(lineStartEm, laneX + w);
+      if (txt) {
+        lineStartEm = Math.max(lineStartEm, laneX + w);
+        if (ev._wg) wgHalfEm = Math.max(wgHalfEm, laneX + w / 2);
+        else ownEndEm = Math.max(ownEndEm, laneX + w);
+      }
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="left:${laneX}em;width:${w.toFixed(2)}em;`
@@ -1085,6 +1089,16 @@ function renderMonthEl(y, m) {
     // event flushed right tells the truth that a middle position would not.
     // Only on a day with ONE thing on the line, so the rhythm is untouched.
     const shown = lineFinal.filter(it => it !== movedToInfo);
+    // A TOUR'S OWN DAY EVENTS BELONG TO THAT TOUR (Alan, 12.09). On a day whose
+    // line holds nothing but the tour's items, they may begin HALFWAY into the
+    // tour's own banner instead of waiting for it to end — the same argument as
+    // the staircase, that a thing which belongs inside another may overlap it
+    // as long as both stay readable. Halfway, not fully: the banner has to go
+    // on reading as a banner. A day with anything of Alan's on the line is left
+    // alone, since his events would be the ones pushed into.
+    if (wgHalfEm && shown.length && shown.every(it => it.wg)) {
+      lineStartEm = Math.max(ownEndEm, wgHalfEm);
+    }
     const only = shown.length === 1 ? effTime(shown[0].e) : null;
     const kveld = KVELD && only && Number(only.slice(0, 2)) >= EVENING_FROM;
     const detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em">`
@@ -1574,6 +1588,10 @@ if (/[?&]demo\b/.test(location.search)) {
   ALMANAKK_CONFIG.clientId = '';
   window.ALMANAKK_PROXY = null;
   state.year = DEMO_YEAR; state.month = DEMO_MONTH;
+  // the tour calendar is tagged as an overlay so the demo shows a wg band;
+  // tour tagging is a per-calendar setting and otherwise unreachable here
+  try { localStorage.setItem('almanakk-tourcals', '["turne"]'); } catch (e) {}
+  state.wg = true;
 }
 if (!ALMANAKK_CONFIG.clientId) {
   const b = $('#banner');
