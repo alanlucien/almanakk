@@ -617,6 +617,39 @@ function fitJourneys() {
   });
 }
 
+// Alan, 12.09, with a green line drawn down his February: the late events
+// should share ONE left edge, not each start wherever its own length happens
+// to put it. So the month gets a single evening column, as far right as it
+// can be while the longest late title that month still fits whole. A title
+// too long even for that keeps its right edge and simply starts earlier —
+// the column is where evenings BEGIN, not a box they are trapped in.
+const EVENING_COL_MIN = 0.42;   // never left of this much across the canvas
+function alignEvenings() {
+  document.querySelectorAll('.month').forEach(mon => {
+    const rows = [...mon.querySelectorAll('.day .detail.kveld')];
+    if (!rows.length) return;
+    const r = document.createRange();
+    const measured = rows.map(det => {
+      const cv = det.closest('.canvas').getBoundingClientRect();
+      r.selectNodeContents(det);
+      return { det, cv, w: r.getBoundingClientRect().width,
+               own: det.getBoundingClientRect().left - cv.left };
+    });
+    const cvW = measured[0].cv.width;
+    const padR = 4, padL = 7;
+    const col = Math.max(cvW * EVENING_COL_MIN,
+                         cvW - padR - Math.max(...measured.map(m => m.w)));
+    measured.forEach(({ det, w, own }) => {
+      const pad = col - own;
+      // no room to start at the column, or a band already owns that space:
+      // leave it flush right, which still ends where the others end
+      if (pad < padL || col + w > cvW - padR) return;
+      det.classList.add('kveld-col');
+      det.style.paddingLeft = pad.toFixed(1) + 'px';
+    });
+  });
+}
+
 function alignLinesToBands() {
   document.querySelectorAll('.day .canvas').forEach(cv => {
     const det = cv.querySelector('.detail');
@@ -835,7 +868,12 @@ function renderMonthEl(y, m) {
     // Codes only — the column is narrow — and the journey then leaves the day
     // line, which is where the crowding was. A holiday still wins the cell.
     let journeyTxt = '', journeyAlone = false, journeyShort = '';
-    if (!h) {
+    // MONDAY BELONGS TO THE WEEK NUMBER (Alan, 2026-08-25), and that did not
+    // stop being true when the journey moved into this column on 12.09: a
+    // flight landing on a Monday was quietly eating "uke 9". On a Monday the
+    // journey stays on the day line, and Bangkok gets named on the Tuesday —
+    // once, where the city always appears. No city under the same city.
+    if (!h && wi !== 0) {
       const own = lineFinal.filter(it => !it.wg && it._legs && it._legs.length >= 2);
       if (own.length === 1) {
         const legs = own[0]._legs;
@@ -910,6 +948,7 @@ function render(group) {
   fitJourneys();
   orderByTime();
   fitEvenings();
+  alignEvenings();
   alignLinesToBands();
   updateChips();
 }
