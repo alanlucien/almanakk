@@ -6,12 +6,18 @@
    calendar is told from a calendar, and the almanakk's own ink was never
    carrying that job. */
 :root {
-  --paper: #d9d9d9;     /* around the block, so the block reads as a sheet */
+  /* BLACK RULES, NOT GREY FIELDS (Alan, 12.09, seeing the iPad and phone side
+     by side: "it's very monochrome with the grey area around and above"). The
+     app had three greys doing the separating — surround, header, banner — and
+     three greys next to each other read as fog. The printed sheet separates
+     with black rules on white and no grey at all, so that is what does the
+     work here now: the paper goes almost white and the frames go near-black. */
+  --paper: #f0f0f0;     /* barely there — the frames do the separating */
   --card: #ffffff;      /* the sheet */
   --tint: rgba(18, 18, 12, .082);   /* the wash on Saturdays, Sundays and holidays */
   --ink: #14140f;
   --rule: #cfcfcf;
-  --rule-strong: #4a4a4a;
+  --rule-strong: #1c1c1c;   /* print black, for frames and week edges */
   --red: #c0221b;
   --muted: #767676;
 }
@@ -37,8 +43,8 @@ header {
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  background: var(--paper);
-  border-bottom: 1px solid var(--rule-strong);
+  background: var(--card);
+  border-bottom: 2px solid var(--rule-strong);
 }
 header h1 { font-size: 15px; letter-spacing: .3em; margin: 0; }
 header nav { display: flex; align-items: center; gap: 6px; }
@@ -100,6 +106,7 @@ button.active { background: var(--ink); color: var(--card); }
 .qa-target .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, #999); display: inline-block; flex: none; }
 
 #banner {
+  background: var(--card);
   padding: 5px 14px;
   font-size: 12px;
   color: var(--muted);
@@ -117,7 +124,7 @@ button.active { background: var(--ink); color: var(--card); }
 
 .month {
   background: var(--card);
-  border: 1px solid var(--rule-strong);
+  border: 1.5px solid var(--rule-strong);
 }
 .month h2 {
   margin: 0;
