@@ -812,17 +812,16 @@ function renderMonthEl(y, m) {
   const flights = state.cities ? buildFlightIndex() : null;
   let prevCity = null;
   let cityShown = false; // did the city actually stand on yesterday's row?
-  // A LANE IS AS WIDE AS WHAT IT HOLDS (Alan, 12.09: "prosjekt b should move
-  // left"). Equal shares left a gap between bands and stole room from the day
-  // line. Each lane takes the widest label it must carry this month, within
-  // bounds; anything wider is written one word per row, as before.
-  const LANE_MIN = 3, LANE_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0;
+  // A LANE IS A STRIPE YOU FOLLOW DOWN THE MONTH, not a box sized to its
+  // longest label. It used to be the latter, and "Fanny og Alexander" made it
+  // 134px on all 28 rows to serve four label rows; two projects then filled a
+  // phone row completely and a third lane fell off the edge of any row that
+  // also had a city — the Festivaluke tint Alan saw go missing on 23 Feb.
+  // Now that a label can reach LEFT as well as right, it no longer needs its
+  // lane to be wide enough to hold it, and the lane can be what it is for.
+  const LANE_STRIPE = 3, LABEL_MAX = 14, LANE_PAD = 1.4, LANE_GAP = 0;
   const laneEm = [];
-  for (let i = 0; i < nOwn + nOvl; i++) {
-    let widest = 0;
-    for (const ev of spans) if (ev._lane === i) widest = Math.max(widest, emWidth(ev.title));
-    laneEm[i] = (laneBox.px ? Math.max(LANE_MIN, Math.min(widest + LANE_PAD, LANE_MAX)) : 5.5) + LANE_GAP;
-  }
+  for (let i = 0; i < nOwn + nOvl; i++) laneEm[i] = (laneBox.px ? LANE_STRIPE : 3.5) + LANE_GAP;
   const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
   // a title too long for its lane is written DOWN the band, one word per row
   const wrapPlan = {}; // event id -> { from: day, words: [...] }
@@ -900,20 +899,6 @@ function renderMonthEl(y, m) {
     // tint, and the line may lie on it. Clearing every band cost too much room
     // (Alan, 12.09); what made it read badly was a 2px edge cutting the words,
     // so the edge is now hairline and the tint carries the identity.
-    let lineFrom = 0;
-    laneEvs.forEach((ev, i) => { if (drawsText(ev)) lineFrom = i + 1; });
-
-    // A label owns the lanes to its right up to the next band, or up to where
-    // the day line starts — whichever comes first. That replaces the old
-    // spill arithmetic: the free space IS the room, measured per row.
-    // how far right a label may reach: to the next band that draws text, or to
-    // where the day line begins — whichever comes first
-    const roomEm = i => {
-      let j = i + 1;
-      while (j < laneEvs.length && !drawsText(laneEvs[j])) j++;
-      const to = Math.min(j, Math.max(lineFrom, i + 1));
-      return Math.max(laneEm[i], laneLeft(to) - laneLeft(i));
-    };
 
     // A LABEL MAY REACH LEFT AS WELL AS RIGHT (Alan, 12.09). A lane is as wide
     // as the longest label it carries all month — "Fanny og Alexander" makes it
@@ -929,12 +914,11 @@ function renderMonthEl(y, m) {
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       const showLabel = labelledAt(ev);
-      const room = roomEm(i);
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
       const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));
       // still one word per row when the title genuinely will not fit its room
       if (showLabel) {
-        if (words.length > 1 && endInMonth > day && emWidth(ev.title) > room - 0.4) {
+        if (words.length > 1 && endInMonth > day && emWidth(ev.title) > LABEL_MAX - 0.4) {
           wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
         } else {
           delete wrapPlan[ev.id];
@@ -948,10 +932,12 @@ function renderMonthEl(y, m) {
       const laneX = laneLeft(i);
       let labelX = laneX, labelW = laneEm[i] - LANE_GAP;
       if (txt) {
-        labelX = Math.min(laneX, cursorEm);    // pull left into whatever is free
-        const limit = laneX + room - LANE_GAP; // still may not pass the next label
-        labelW = Math.min(Math.max(emWidth(txt) + LANE_PAD, laneEm[i] - LANE_GAP), limit - labelX);
-        cursorEm = labelX + labelW;
+        // the first free position on the row, whichever side of its lane that
+        // falls: pulled left across empty lanes, pushed right past a label
+        // that got there first
+        labelX = cursorEm;
+        labelW = Math.max(Math.min(emWidth(txt) + LANE_PAD, LABEL_MAX), laneEm[i] - LANE_GAP);
+        cursorEm = labelX + labelW;             // the next label starts after it
       }
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
