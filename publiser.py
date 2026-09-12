@@ -3,7 +3,8 @@
 
     python3 publiser.py --bygg        # bare bygg dist/ (trygt, laster ingenting opp)
     python3 publiser.py --prov        # kjør lokalt: wrangler pages dev, med PROVE=alan@...
-    python3 publiser.py               # bygg og publiser (spør først)
+    python3 publiser.py --preview     # publiser til preview.almanakk-v2.pages.dev (rører ikke prod)
+    python3 publiser.py               # bygg og publiser til PRODUKSJON (spør først)
 
 Hvorfor et byggesteg: repoet inneholder Front/ og inventory/ med Alans
 personlige kalenderdata. De skal ALDRI opp på Pages. Derfor kopieres bare
@@ -44,6 +45,8 @@ def main():
     a = argparse.ArgumentParser()
     a.add_argument("--bygg", action="store_true")
     a.add_argument("--prov", action="store_true")
+    a.add_argument("--preview", action="store_true",
+                   help="egen adresse bak samme innlogging; Alan bruker prod daglig, så alt nytt går hit først")
     a = a.parse_args()
     bygg()
     if a.bygg: return
@@ -51,7 +54,12 @@ def main():
         subprocess.run(["npx", "-y", "wrangler@latest", "pages", "dev", str(DIST),
                         "--kv", "KV", "--binding", f"PROVE={PROVE_EPOST}", "--port", "8124"], cwd=HER)
         return
-    if input("Publisere almanakk-v2 til Cloudflare Pages? [ja/N] ").strip().lower() != "ja":
+    if a.preview:
+        r = subprocess.run(["npx", "-y", "wrangler@latest", "pages", "deploy", str(DIST),
+                            "--project-name", "almanakk-v2", "--branch", "preview", "--commit-dirty=true"], cwd=HER)
+        print("\npreview: https://preview.almanakk-v2.pages.dev/v2/  (samme innlogging; prod uendret)")
+        sys.exit(r.returncode)
+    if input("Publisere almanakk-v2 til PRODUKSJON? Alan bruker den daglig. [ja/N] ").strip().lower() != "ja":
         sys.exit("avbrutt")
     r = subprocess.run(["npx", "-y", "wrangler@latest", "pages", "deploy", str(DIST),
                         "--project-name", "almanakk-v2", "--commit-dirty=true"], cwd=HER)
