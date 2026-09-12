@@ -605,10 +605,15 @@ function fitJourneys() {
   document.querySelectorAll('.day .info .cty.journey.wide').forEach(j => {
     const row = j.closest('.day'); const cv = row && row.querySelector('.canvas');
     if (!cv) return;
+    // WHERE THE WORDS END, not where their box ends. The day line's box runs
+    // to the far right of the canvas whatever it holds, so measuring the box
+    // made every day with any event at all look full, and the long reading was
+    // dropped on days with most of the row empty (Alan's 18th, 12.09).
     let taken = cv.getBoundingClientRect().left;
     cv.querySelectorAll('.band b, .detail').forEach(el => {
       if (!el.textContent.trim()) return;
-      taken = Math.max(taken, el.getBoundingClientRect().right);
+      const r = document.createRange(); r.selectNodeContents(el);
+      taken = Math.max(taken, r.getBoundingClientRect().right);
     });
     if (j.getBoundingClientRect().left < taken + 4 && j.dataset.short) {
       j.innerHTML = j.dataset.short;

@@ -204,7 +204,12 @@ button.active { background: var(--ink); color: var(--card); }
 .day .detail .evt + .evt::before { content: ' · '; color: var(--muted); }
 .day .detail .evt.wgd { opacity: .55; } /* wg items: visibly "theirs", clipped first */
 .day .detail .evt.showevt { opacity: 1; font-weight: 600; } /* shows pop at full red, never dimmed */
-.day .info { font-size: 10px; color: var(--muted); text-align: right; border-left: 1px dotted var(--rule); align-self: center; white-space: nowrap; text-overflow: ellipsis; }
+/* No rule down the left of this column. It used to have a dotted one, but the
+   cell is centred on its content, so the border was only as tall as whatever
+   that row happened to hold: a speck on an empty day, a full stroke beside a
+   week number. Alan saw the specks and asked what they were, which is the
+   answer — they were an accident, not a separator (12.09). */
+.day .info { font-size: 10px; color: var(--muted); text-align: right; align-self: center; white-space: nowrap; text-overflow: ellipsis; }
 .day .info.red { color: var(--red); font-weight: 600; }
 .day.today { outline: 2px solid #d97706; outline-offset: -2px; }
 
