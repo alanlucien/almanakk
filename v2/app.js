@@ -624,28 +624,51 @@ function fitJourneys() {
 // too long even for that keeps its right edge and simply starts earlier —
 // the column is where evenings BEGIN, not a box they are trapped in.
 const EVENING_COL_MIN = 0.42;   // never left of this much across the canvas
+const EVENING_GAP = 10;         // clear air between a morning item and the column
 function alignEvenings() {
+  if (!KVELD) return;
+  const isEve = b => b.dataset.t && Number(b.dataset.t.slice(0, 2)) >= EVENING_FROM;
   document.querySelectorAll('.month').forEach(mon => {
-    const rows = [...mon.querySelectorAll('.day .detail.kveld')];
-    if (!rows.length) return;
-    const r = document.createRange();
-    const measured = rows.map(det => {
-      const cv = det.closest('.canvas').getBoundingClientRect();
-      r.selectNodeContents(det);
-      return { det, cv, w: r.getBoundingClientRect().width,
-               own: det.getBoundingClientRect().left - cv.left };
+    const cands = [];
+    mon.querySelectorAll('.day .detail').forEach(det => {
+      const evts = [...det.querySelectorAll(':scope > .evt')];
+      if (!evts.length) return;
+      let i = evts.length;                       // the trailing run that is all evening
+      while (i > 0 && isEve(evts[i - 1])) i--;
+      if (i === evts.length) return;             // nothing late on this day
+      // measure everything from the left, so a row already flushed right does
+      // not report the position it is trying to leave
+      const lone = det.classList.contains('kveld');
+      det.classList.remove('kveld');
+      cands.push({ det, evts, i, lone });
     });
-    const cvW = measured[0].cv.width;
-    const padR = 4, padL = 7;
+    if (!cands.length) return;
+    cands.forEach(c => {
+      c.cv = c.det.closest('.canvas').getBoundingClientRect();
+      const tail = document.createRange();
+      tail.setStartBefore(c.evts[c.i]); tail.setEndAfter(c.evts[c.evts.length - 1]);
+      c.w = tail.getBoundingClientRect().width;
+      c.at = c.evts[c.i].getBoundingClientRect().left - c.cv.left;
+      c.headEnd = c.at;
+      if (c.i > 0) {
+        const head = document.createRange();
+        head.setStartBefore(c.evts[0]); head.setEndAfter(c.evts[c.i - 1]);
+        c.headEnd = head.getBoundingClientRect().right - c.cv.left;
+      }
+    });
+    const cvW = cands[0].cv.width;
     const col = Math.max(cvW * EVENING_COL_MIN,
-                         cvW - padR - Math.max(...measured.map(m => m.w)));
-    measured.forEach(({ det, w, own }) => {
-      const pad = col - own;
-      // no room to start at the column, or a band already owns that space:
-      // leave it flush right, which still ends where the others end
-      if (pad < padL || col + w > cvW - padR) return;
-      det.classList.add('kveld-col');
-      det.style.paddingLeft = pad.toFixed(1) + 'px';
+                         cvW - 4 - Math.max(...cands.map(c => c.w)));
+    cands.forEach(c => {
+      const fits = col + c.w <= cvW - 4 && (c.i === 0 || c.headEnd + EVENING_GAP <= col);
+      if (!fits) {
+        if (c.lone) c.det.classList.add('kveld');   // too long: keep the right edge
+        return;
+      }
+      const shift = col - c.at;
+      if (shift < 1) { if (c.lone) c.det.classList.add('kveld'); return; }
+      c.evts[c.i].classList.add('eve-col');
+      c.evts[c.i].style.marginLeft = shift.toFixed(1) + 'px';
     });
   });
 }
@@ -747,7 +770,17 @@ function renderMonthEl(y, m) {
       const city = move && move.dest;
       // Monday belongs to the week number — never a city there (Alan, 2026-08-25).
       // Otherwise: on the day you move, and repeated weekly on Tuesday.
-      const repeat = wi === 1 && !cityShown;
+      // ALAN, 12.09: the Tuesday repeat exists so you always know where you
+      // are. A week that already has a travel day does not need it — the
+      // flight's own row says the city, and a city under the same city reads
+      // as a mistake. Only Tue/Wed/Thu count: a flight late in the week would
+      // leave the first four days blank. A MONDAY flight cannot say it in this
+      // column at all (Monday is the week number's), so Tuesday still speaks.
+      const flownThisWeek = wi === 1 && [0, 1, 2].some(k => {
+        const x = new Date(d); x.setDate(x.getDate() + k);
+        return flights.some(f => f.date === fmt(x));
+      });
+      const repeat = wi === 1 && !cityShown && !flownThisWeek;
       if (city && wi !== 0 && (city !== prevCity || repeat)) {
         cityTxt = cityLabel(city);
         cityTbc = !!move.tbc; // planned, not booked: reads italic
