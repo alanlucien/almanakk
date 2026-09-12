@@ -551,10 +551,13 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
    immediately after its last letter — so the stagger comes from the names
    themselves rather than from a grid. */
 .week .wdays { position: relative; padding-right: 14px; }
-.week .wspan { padding-right: calc(10px + var(--lane) * 9px); }
+/* The step between one name's end and the next is deliberate, not incidental:
+   Alan's sketch stairs them well clear of each other. 9px read as a wobble;
+   18px reads as a decision. */
+.week .wspan { padding-right: calc(10px + var(--lane) * 18px); }
 .week .wband {
   position: absolute; right: 8px; width: 3px;
-  margin-right: calc(var(--lane) * 9px);
+  margin-right: calc(var(--lane) * 18px);
   background: var(--c); opacity: .85; pointer-events: none;
 }
 .week .wband.wg { opacity: .45; }
