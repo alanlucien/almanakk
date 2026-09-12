@@ -159,8 +159,11 @@ button.active { background: var(--ink); color: var(--card); }
 /* the label carries its own tint across the room it owns, so a band with a
    label still reads as ONE solid block rather than a bar with a gap after it */
 .day .band b {
-  position: absolute; top: 0; bottom: 0; left: 0;
+  /* --x lets a label reach LEFT into lanes that carry nothing on this row;
+     it takes its own tint with it, so the row still says whose label it is */
+  position: absolute; top: 0; bottom: 0; left: var(--x, 0);
   width: var(--w);
+  z-index: 1;
   display: flex; align-items: center;
   padding: 0 3px; box-sizing: border-box;
   background: color-mix(in srgb, var(--c) 14%, var(--card));

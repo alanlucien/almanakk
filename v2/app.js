@@ -915,7 +915,17 @@ function renderMonthEl(y, m) {
       return Math.max(laneEm[i], laneLeft(to) - laneLeft(i));
     };
 
+    // A LABEL MAY REACH LEFT AS WELL AS RIGHT (Alan, 12.09). A lane is as wide
+    // as the longest label it carries all month — "Fanny og Alexander" makes it
+    // 134px — and it holds that width on all 28 rows to serve four label rows.
+    // On a phone two projects then ate 258 of 357px, and a label in the third
+    // lane could not start until 342. So a label now begins at the first
+    // position free on ITS OWN ROW, not at its lane's x, and packs against the
+    // label before it. It carries its own tint with it: they overlap only
+    // partly, so each band's colour still shows on the row (Alan: "we still
+    // see each band's color").
     let bands = '';
+    let cursorEm = 0;                          // first free em on this row
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       const showLabel = labelledAt(ev);
@@ -935,12 +945,23 @@ function renderMonthEl(y, m) {
       let txt = '';
       if (showLabel) txt = plan ? plan.words[0] : ev.title;
       else if (plan && step > 0 && step < plan.words.length) txt = plan.words[step];
+      const laneX = laneLeft(i);
+      let labelX = laneX, labelW = laneEm[i] - LANE_GAP;
+      if (txt) {
+        labelX = Math.min(laneX, cursorEm);    // pull left into whatever is free
+        const limit = laneX + room - LANE_GAP; // still may not pass the next label
+        labelW = Math.min(Math.max(emWidth(txt) + LANE_PAD, laneEm[i] - LANE_GAP), limit - labelX);
+        cursorEm = labelX + labelW;
+      }
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
-        + ` data-eid="${ev.id}" style="left:${laneLeft(i)}em;width:${(laneEm[i] - LANE_GAP).toFixed(2)}em;`
-        + `--w:${(txt ? room - LANE_GAP : laneEm[i] - LANE_GAP).toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
+        + ` data-eid="${ev.id}" style="left:${laneX}em;width:${(laneEm[i] - LANE_GAP).toFixed(2)}em;`
+        + `--x:${(labelX - laneX).toFixed(2)}em;--w:${labelW.toFixed(2)}em;`
+        + `--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (txt ? `<b>${esc(txt)}</b>` : '') + '</i>';
     });
+    // the line starts after the last label actually drawn, wherever it ended up
+    const lineStartEm = cursorEm;
 
     // ONE wide shared day line: Alan's headline first, shows (any calendar)
     // pinned next, then Alan's items, then wg's dimmed items
@@ -1018,7 +1039,7 @@ function renderMonthEl(y, m) {
     const shown = lineFinal.filter(it => it !== movedToInfo);
     const only = shown.length === 1 ? effTime(shown[0].e) : null;
     const kveld = KVELD && only && Number(only.slice(0, 2)) >= EVENING_FROM;
-    const detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${laneLeft(lineFrom)}em">`
+    const detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em">`
       + shown.map(evtHtml).join('')
       + '</span>';
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
