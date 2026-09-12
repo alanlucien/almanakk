@@ -719,3 +719,22 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
    panel's — and a single miss is enough to throw the whole calendar sideways
    the moment the keyboard appears. So: every field, everywhere. */
 input, textarea, select { font-size: 16px; }
+
+/* ---------- one control in the header (Alan, 13.09) ----------
+   The month's own name opens the year, a day opens its week, a title closes
+   back up, a swipe steps sideways. The four view buttons and the two arrows
+   were repeating what the calendar already says, so the header is the period
+   and the dots, and the period sits where the eye goes first. */
+/* the period takes the middle by filling it, rather than by floating over it —
+   absolute centring put it straight on top of the buttons (13.09) */
+header nav:first-of-type { flex: 1; justify-content: center; min-width: 0; }
+header #period-label {
+  font-size: 15px; letter-spacing: .04em; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+header .spacer { display: none; }
+.year .month > h2, .month > h2 { cursor: pointer; }
+
+/* the year wants to be read as a year */
+#app.yearthumbs { padding-top: 2px; }
+header #period-label.isyear { font-size: 22px; font-weight: 700; letter-spacing: .06em; }

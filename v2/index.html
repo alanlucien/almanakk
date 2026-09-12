@@ -9,25 +9,23 @@
 <title>Almanakk 2</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="../icon-192-v2.png">
-<link rel="stylesheet" href="style.css?v=20260912ck">
+<link rel="stylesheet" href="style.css?v=20260913b">
 </head>
 <body>
 <header>
   <h1>ALMANAKK <span class="v2">2</span></h1>
   <nav>
-    <button id="prev" title="Forrige">‹</button>
     <strong id="period-label"></strong>
-    <button id="next" title="Neste">›</button>
   </nav>
   <div class="spacer"></div>
   <nav>
-    <button id="view-year" title="År" aria-label="År"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg></button>
-    <button id="view-month" title="Måned" aria-label="Måned"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-    <button id="view-detail" title="Detaljer — hver hendelse på egen linje" aria-label="Detaljer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 6h.01M4 12h.01M4 18h.01M9 6h11M9 12h11M9 18h11"/></svg></button>
     <button id="tour-chip" hidden title="Legg wg-turnékalenderne over som bånd">wg</button>
     <button id="signin" hidden>Logg inn med Google</button>
-    <!-- everything you set once and leave lives behind the dots, so the header
-         keeps one row on a phone and the month starts higher up the screen -->
+    <!-- ONE CONTROL IN THE HEADER (Alan, 13.09). The month's own name opens the
+         year, a day opens its week, a title closes back up and a swipe steps
+         sideways — so the four view buttons and the two arrows were saying
+         again what the calendar already says. Everything you set once and
+         leave lives behind the dots. -->
     <details id="more">
       <summary title="Mer" aria-label="Mer">⋯</summary>
       <div id="more-list">
@@ -47,11 +45,11 @@
 <!-- null here = Google sign-in in the browser (github.io). publiser.py flips it to
      '/api/gcal' in the Cloudflare build, where the key lives on the server. -->
 <script>window.ALMANAKK_PROXY = null;</script>
-<script src="../config.js?v=20260912ck"></script>
-<script src="../demo-data.js?v=20260912ck"></script>
-<script src="../airports.js?v=20260912ck"></script>
-<script src="app.js?v=20260912ck"></script>
-<script src="../gcal.js?v=20260912ck"></script>
+<script src="../config.js?v=20260913b"></script>
+<script src="../demo-data.js?v=20260913b"></script>
+<script src="../airports.js?v=20260913b"></script>
+<script src="app.js?v=20260913b"></script>
+<script src="../gcal.js?v=20260913b"></script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="window.gcalReady && gcalReady()"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

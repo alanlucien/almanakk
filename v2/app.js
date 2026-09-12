@@ -1668,9 +1668,6 @@ function render(group) {
     app.innerHTML = renderMonthEl(state.year, state.month);
     $('#period-label').textContent = L().months[state.month].charAt(0) + L().months[state.month].slice(1).toLowerCase() + ' ' + state.year;
   }
-  $('#view-year').classList.toggle('active', state.view === 'year');
-  $('#view-month').classList.toggle('active', state.view === 'month');
-  $('#view-detail').classList.toggle('active', state.view === 'week');
   measureLane();
   fitJourneys();
   orderByTime();
@@ -1680,6 +1677,7 @@ function render(group) {
   clipLine();
   layoutWeekBands();
   wireDayView();
+  $('#period-label').classList.toggle('isyear', state.view === 'year');
   markHistory();
   if (state.addOnOpen) {
     state.addOnOpen = false;
@@ -1691,11 +1689,6 @@ function render(group) {
 }
 
 function applyLang() {
-  // the three views are glyphs, not words: at 375px the words wrapped the header
-  // onto a second line, and a row that mixes words with symbols reads as a mistake
-  for (const [sel, label] of [['#view-year', L().year], ['#view-month', L().month], ['#view-detail', L().detail]]) {
-    const b = $(sel); b.title = label; b.setAttribute('aria-label', label);
-  }
   $('#print').textContent = L().print;
   $('#signin').textContent = L().signin;
   $('#cal-picker summary').textContent = L().cals;
@@ -2058,15 +2051,6 @@ const moreMenu = $('#more');
 moreMenu.addEventListener('click', e => { if (e.target.closest('button')) moreMenu.open = false; });
 document.addEventListener('click', e => { if (!e.target.closest('#more')) moreMenu.open = false; });
 
-$('#prev').addEventListener('click', () => step(-1));
-$('#next').addEventListener('click', () => step(1));
-$('#view-year').addEventListener('click', () => { state.view = 'year'; render(); });
-$('#view-month').addEventListener('click', () => { state.view = 'month'; state.detailed = false; render(); });
-$('#view-detail').addEventListener('click', () => {
-  state.view = 'week'; state.detailed = false;
-  state.weekOf = state.weekOf || fmt(new Date());
-  render();
-});
 $('#lang-chip').addEventListener('click', () => {
   state.lang = state.lang === 'no' ? 'en' : 'no';
   localStorage.setItem('almanakk2-lang', state.lang);
@@ -2203,7 +2187,11 @@ $('#app').addEventListener('click', e => {
     state.year = Number(thumb.dataset.y); state.month = Number(thumb.dataset.m);
     state.view = 'month'; render(); return;
   }
+  // A MONTH'S NAME OPENS THE YEAR (Alan, 13.09) — the level above it, the way
+  // the week's title opens the month. In the year view the same title opens
+  // that month instead, because there the year is what you are already in.
   const mhead = e.target.closest('.month > h2');
+  if (mhead && state.view === 'month') { state.view = 'year'; render(); return; }
   if (mhead && state.view === 'year') {
     const sec = mhead.closest('.month');
     state.year = Number(sec.dataset.y); state.month = Number(sec.dataset.m);
