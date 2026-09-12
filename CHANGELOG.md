@@ -5,6 +5,19 @@ what the app shows at the foot of Kalendere ("bygg …"); the commit is what to 
 to get exactly that version back (`git checkout <commit>` then `python3 publiser.py`).
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
+## 12.09.2026 — LIVE: the day line reads as time, and bands overlap (bygg 20260912ad)
+- Morning at the left, afternoon at a midday column, evening at a column of its own.
+  On by default; `?kveld=0` gives the plain left-aligned line back. `1f0cadf`
+- Bands overlap in a staircase: each is as wide as its own title, starts a strip
+  further right, and must end further right, so none can be swallowed.
+- A repeat band label moves up a day rather than be painted over; a start label never moves.
+- A band's first day is marked by a 1px rule in its own ink, on the row's line.
+- A band hairline falls between letters: only the crossed word moves, never the line.
+- A day with no city lends that cell to its line.
+- A Monday flight keeps the week's number: "Oslo → Bangkok 9".
+- A travel day Mon–Thu silences that week's Tuesday city.
+- Fixed: a clock in a show title read as the performance number ("19:00 Forestilling" → "00 19").
+
 ## 12.09.2026 — evening variant, on the preview only behind ?kveld=1
 - A day with ONE event timed 18:00 or later sits flush right instead of left.
   Alan's time-axis idea, reduced to the part that can tell the truth: the right
