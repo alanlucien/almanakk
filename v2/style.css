@@ -8,7 +8,7 @@
 :root {
   --paper: #d9d9d9;     /* around the block, so the block reads as a sheet */
   --card: #ffffff;      /* the sheet */
-  --tint: #eaeaea;      /* Saturdays, Sundays and holidays */
+  --tint: rgba(18, 18, 12, .082);   /* the wash on Saturdays, Sundays and holidays */
   --ink: #14140f;
   --rule: #cfcfcf;
   --rule-strong: #4a4a4a;
@@ -153,7 +153,16 @@ button.active { background: var(--ink); color: var(--card); }
    singles out Sundays and Saturdays, which this one does not"). Saturday was
    an ordinary day here; on the wall calendar it carries the same grey as
    Sunday, and only the NUMBER goes red on a Sunday or a holiday. */
-.day.free { background: var(--tint); }
+/* A WASH OVER THE ROW, NOT A GROUND UNDER IT (Alan, 12.09: "annoying that the
+   banners take away the weekend colours, it screws with your eyes"). As a
+   background it only showed where no band ran, so the weekend stripe broke
+   wherever a project did — which is the opposite of the wall sheet, where the
+   grey crosses everything on the row. It now lies over the bands and under the
+   day line, so the stripe is unbroken and the band keeps its colour. */
+.day.free::after {
+  content: ''; position: absolute; inset: 0; z-index: 1;
+  background: var(--tint); pointer-events: none;
+}
 /* THE CANVAS — bands behind, the day line over them (Alan's model, 02.09.2026) */
 .day .canvas {
   position: relative; overflow: hidden; padding: 0;
