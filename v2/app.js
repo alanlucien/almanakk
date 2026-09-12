@@ -780,6 +780,27 @@ async function saveEvent(ev, f) {
   await window.gcalUpdateEvent(ev, patch);
 }
 
+// A tap that might be half of a double. 260ms is long enough to catch a real
+// double tap and short enough not to feel like a pause.
+let tapTimer = null;
+function tapOrDouble(single, double) {
+  if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; double(); return; }
+  tapTimer = setTimeout(() => { tapTimer = null; single(); }, 260);
+}
+
+function openDay(date, eventId) {
+  state.dayOf = date;
+  state.openEvent = eventId || null;
+  // nothing on the day at all: put the cursor on its line rather than make him
+  // find it (Alan: "if empty day - straight to add event")
+  // "Empty" means nothing of the day's OWN. A project running through it is
+  // context, not an entry, and a week where something is on all month would
+  // otherwise never count as free.
+  state.addOnOpen = !eventId && !state.events.some(x => x.start === date && x.end === date);
+  state.view = 'day';
+  render();
+}
+
 function openWeekEntry(line, date) {
   if (!date) return;
   const form = document.createElement('form');
@@ -1563,6 +1584,11 @@ function render(group) {
   clipLine();
   layoutWeekBands();
   wireDayView();
+  if (state.addOnOpen) {
+    state.addOnOpen = false;
+    const line = document.querySelector('.dayview .wblank');
+    if (line) openWeekEntry(line, state.dayOf);
+  }
   alignLinesToBands();
   updateChips();
 }
@@ -2010,21 +2036,34 @@ $('#app').addEventListener('click', e => {
     state.year = anchor.getFullYear(); state.month = anchor.getMonth();
     state.view = 'month'; render(); return;
   }
-  // AN EVENT OPENS IN ITS DAY (Alan, 12.09). From the month, from the week,
-  // from the day itself — the same click, and it never leaves the day it
-  // belongs to just to be edited.
+  // ONE TAP GOES DOWN A LEVEL, TWO TAPS GO DOWN TWO (Alan, 12.09).
+  //   month/year  tap → the week      double → the day
+  //   week        tap → the day       double → the day, with that event open
+  //   an empty day, double-tapped, opens straight onto its writing line.
+  // Both gestures live on the same target, so the single one waits a moment to
+  // see whether a second is coming. Titles still climb back up, one level a tap.
   const hit = e.target.closest('[data-eid]');
-  if (hit && !e.target.closest('.dedit') && !e.target.closest('#popover')) {
-    const ev = state.events.find(x => String(x.id) === String(hit.dataset.eid));
-    if (ev) {
-      state.dayOf = hit.dataset.date || (state.view === 'day' ? state.dayOf : null)
-        || (ev.start > (state.weekDay || '') ? ev.start : state.weekDay) || ev.start;
-      if (state.view === 'month' || state.view === 'year') state.dayOf = hit.closest('.day')?.dataset.date || ev.start;
-      state.openEvent = ev.id;
-      state.view = 'day';
-      render();
+  const inDay = e.target.closest('.dayview');
+  if (!inDay && !e.target.closest('#popover') && !e.target.closest('.wblank')) {
+    const dayEl = e.target.closest('.day, .wday');
+    if (dayEl) {
+      const date = dayEl.dataset.date;
+      const ev = hit && state.events.find(x => String(x.id) === String(hit.dataset.eid));
+      tapOrDouble(
+        () => {                                   // one tap: down a level
+          if (state.view === 'week') { openDay(date, null); return; }
+          state.weekOf = state.weekDay = date; state.view = 'week'; render();
+        },
+        () => openDay(date, ev ? ev.id : null),    // two taps: down to the day
+      );
       return;
     }
+  }
+  // INSIDE THE DAY: an event opens for edit, and a tap beside one closes it
+  // again (Alan: "double tap next to an event ... with edit event closed").
+  if (inDay && !e.target.closest('.dedit') && !e.target.closest('.wblank')) {
+    if (hit) { state.openEvent = hit.dataset.eid; render(); return; }
+    if (state.openEvent) { state.openEvent = null; render(); return; }
   }
   // YOU WRITE ON THE NEXT FREE LINE (Alan, 12.09: "i think we do need a day
   // panel? for when we enter events?"). No — the week already is the day
@@ -2066,21 +2105,6 @@ document.addEventListener('keydown', e => {
 
 // Swipe between months in strip view.
 let touchX = null;
-// DOUBLE TAP GOES ALL THE WAY UP (Alan, 12.09). A title tap climbs one level,
-// day to week to month, which is the careful way. A double tap is the
-// impatient one and lands straight on the month. It deliberately ignores
-// events, forms and the blank lines you write on, because each of those has
-// already done something on the first tap and jumping the view from under you
-// afterwards would be a trap.
-$('#app').addEventListener('dblclick', e => {
-  if (state.view !== 'week' && state.view !== 'day') return;
-  if (e.target.closest('[data-eid], form, .wblank, input, textarea, button')) return;
-  const anchor = parseDate(state.dayOf || state.weekDay || state.weekOf || fmt(new Date()));
-  state.year = anchor.getFullYear(); state.month = anchor.getMonth();
-  state.view = 'month'; state.openEvent = null;
-  render();
-});
-
 $('#app').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
 $('#app').addEventListener('touchend', e => {
   if (touchX === null || state.view === 'year') return;   // month, week and day all swipe
