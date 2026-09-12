@@ -655,6 +655,36 @@ const SLOT_GAP = 10;            // clear air between one slot and the next
 // keeps the left edge, afternoon meets one column, evening meets another. Two
 // fixed places, not a sliding scale — a word is five hours wide at this size,
 // so a continuous axis would still be a lie.
+// A TOUR'S OWN DAY EVENTS BELONG TO THAT TOUR (Alan, 12.09). They begin
+// HALFWAY into the tour's banner rather than waiting for it to end — the same
+// argument as the staircase, that a thing which belongs inside another may
+// overlap it while both stay readable. Halfway, not fully: the banner has to
+// go on reading as a banner. And on EVERY row the banner runs, not only the
+// row it is labelled on, so the tour's items make a column of their own down
+// the tour (Alan: "if that is the wg event it belongs in the wg row
+// alignment"). They never move left into Alan's own events.
+function alignTourItems() {
+  document.querySelectorAll('.day .detail').forEach(det => {
+    const items = [...det.querySelectorAll(':scope > .evt[data-wg="1"]')];
+    if (!items.length) return;
+    const first = items[0];
+    if ([...det.children].indexOf(first) + items.length !== det.children.length) return;
+    const cv = det.closest('.canvas');
+    const band = cv && cv.querySelector('.band.wg');
+    if (!band) return;
+    const b = band.getBoundingClientRect(), c = cv.getBoundingClientRect();
+    const half = b.left + b.width / 2;
+    const at = first.getBoundingClientRect().left;
+    const shift = half - at;
+    if (shift < 1) return;                       // already at or past it
+    const r = document.createRange();            // how wide the tour's items are
+    r.setStartBefore(first); r.setEndAfter(items[items.length - 1]);
+    if (half + r.getBoundingClientRect().width > c.right - 4) return;
+    first.classList.add('tcol');
+    first.style.marginLeft = shift.toFixed(1) + 'px';
+  });
+}
+
 function alignByTime() {
   if (!KVELD) return;
   const hour = b => b.dataset.t ? Number(b.dataset.t.slice(0, 2)) : -1;
@@ -669,7 +699,15 @@ function alignByTime() {
   document.querySelectorAll('.month').forEach(mon => {
     const cands = [];
     mon.querySelectorAll('.day .detail').forEach(det => {
-      const evts = [...det.querySelectorAll(':scope > .evt')];
+      const all = [...det.querySelectorAll(':scope > .evt')];
+      if (!all.length) return;
+      // A TOUR'S ITEMS ARE PINNED LAST WHATEVER THE CLOCK SAYS, so they are no
+      // part of the time reading. While they counted, a 15:00 tour item at the
+      // end of a row made the trailing run a non-evening one, and Alan's 21:00
+      // was swept into the afternoon block with it (his 10th, 12.09).
+      let last = all.length;
+      while (last > 0 && all[last - 1].dataset.wg === '1') last--;
+      const evts = all.slice(0, last);
       if (!evts.length) return;
       let iA = evts.length, iE = evts.length;
       for (let k = evts.length - 1; k >= 0; k--) {
@@ -982,7 +1020,7 @@ function renderMonthEl(y, m) {
     // partly, so each band's colour still shows on the row (Alan: "we still
     // see each band's color").
     let bands = '';
-    let lineStartEm = 0, ownEndEm = 0, wgHalfEm = 0;
+    let lineStartEm = 0;
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       const showLabel = labelledAt(ev);
@@ -1004,11 +1042,7 @@ function renderMonthEl(y, m) {
       const laneX = laneLeft(i);
       const w = laneW[i] || laneEm[i];   // the lane's width, so a band is a straight column
       // the line begins after the last band that actually says something here
-      if (txt) {
-        lineStartEm = Math.max(lineStartEm, laneX + w);
-        if (ev._wg) wgHalfEm = Math.max(wgHalfEm, laneX + w / 2);
-        else ownEndEm = Math.max(ownEndEm, laneX + w);
-      }
+      if (txt) lineStartEm = Math.max(lineStartEm, laneX + w);
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="left:${laneX}em;width:${w.toFixed(2)}em;`
@@ -1089,16 +1123,6 @@ function renderMonthEl(y, m) {
     // event flushed right tells the truth that a middle position would not.
     // Only on a day with ONE thing on the line, so the rhythm is untouched.
     const shown = lineFinal.filter(it => it !== movedToInfo);
-    // A TOUR'S OWN DAY EVENTS BELONG TO THAT TOUR (Alan, 12.09). On a day whose
-    // line holds nothing but the tour's items, they may begin HALFWAY into the
-    // tour's own banner instead of waiting for it to end — the same argument as
-    // the staircase, that a thing which belongs inside another may overlap it
-    // as long as both stay readable. Halfway, not fully: the banner has to go
-    // on reading as a banner. A day with anything of Alan's on the line is left
-    // alone, since his events would be the ones pushed into.
-    if (wgHalfEm && shown.length && shown.every(it => it.wg)) {
-      lineStartEm = Math.max(ownEndEm, wgHalfEm);
-    }
     const only = shown.length === 1 ? effTime(shown[0].e) : null;
     const kveld = KVELD && only && Number(only.slice(0, 2)) >= EVENING_FROM;
     const detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em">`
@@ -1147,6 +1171,7 @@ function render(group) {
   orderByTime();
   fitEvenings();
   alignByTime();
+  alignTourItems();
   alignLinesToBands();
   updateChips();
 }

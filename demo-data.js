@@ -38,4 +38,11 @@ window.DEMO_EVENTS = [
   // a tour day event, for the wg banner overlap
   { c: 'turne', t: '11:00 Modellmøte', s: '2026-02-11' },
   { c: 'turne', t: '10:00 Teknisk gjennomgang', s: '2026-02-09' },
+  // filling the tour week up, to see what a crowded row does to a lone
+  // evening event on the row below the banner (Alan, 12.09)
+  { c: 'arbeid', t: '09:00 Befaring DNK', s: '2026-02-10' },
+  { c: 'privat', t: '13:00 Tannlege', s: '2026-02-10' },
+  { c: 'turne', t: '15:00 Innspilling', s: '2026-02-10' },
+  { c: 'arbeid', t: 'Deadline søknad', s: '2026-02-12' },
+  { c: 'turne', t: '09:30 Teknisk prøve', s: '2026-02-13' },
 ];
