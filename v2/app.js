@@ -546,12 +546,76 @@ function inkColor(hex) {
   return `rgb(${r},${g},${b})`;
 }
 
-// TRIED AND REVERTED, 12.09. Alan's idea was to nudge each day line a few
-// pixels so a band's edge falls between letters rather than through one. It
-// worked, but only some rows move, and then their text no longer starts where
-// the rows above and below start. He spotted it at once: a column whose left
-// edge wanders is worse than a letter with a hairline across it. Do not
-// re-attempt per-row; any fix has to keep one shared left edge for the month.
+// A band's hairline should fall BETWEEN letters, never through one.
+// Alan, 12.09: "if there had been a line in the middle of the word VILDANDEN,
+// why do you have to nudge the whole event title to the right? You could've
+// just moved the individual word." Exactly right — the first attempt shifted
+// the entire line, so a row's text no longer started where its neighbours'
+// did, and that wandering left edge is far more visible than a hairline over
+// a letter. So: the line's left edge NEVER moves. Only the one word the line
+// actually crosses is pushed right, and whatever follows flows after it.
+// Only a band's left border is a line. Where a tint merely stops there is
+// nothing to dodge, and treating that as a line moved rows with nothing
+// crossing them at all — which is what he caught.
+const NUDGE_RIGHT = 6;   // px a word may be pushed right; past this it reads as a gap
+const NUDGE_LEFT = 2.5;  // px it may be pulled left — only tightens one space
+
+function alignLinesToBands() {
+  document.querySelectorAll('.day .canvas').forEach(cv => {
+    const det = cv.querySelector('.detail');
+    if (!det) return;
+    det.querySelectorAll('.nudge').forEach(sp => { sp.replaceWith(...sp.childNodes); });
+    det.normalize();
+    if (!det.textContent.trim()) return;
+    const box = det.getBoundingClientRect();
+    const lines = [...cv.querySelectorAll('.band')]
+      .map(b => b.getBoundingClientRect().left)
+      .filter(x => x > box.left + 2 && x < box.right - 2)
+      .sort((a, b) => a - b);
+    for (const x of lines) nudgeWordAt(det, x);
+  });
+}
+
+// Push the single word that `lineX` runs through far enough right that the
+// line lands in the gap before it — or, if that costs more than NUDGE_MAX,
+// on the nearest gap between two of its letters. Measured from the real
+// rendered glyphs with a Range, so italics and bold are accounted for.
+function nudgeWordAt(det, lineX) {
+  const walk = document.createTreeWalker(det, NodeFilter.SHOW_TEXT);
+  const r = document.createRange();
+  let node;
+  while ((node = walk.nextNode())) {
+    const t = node.nodeValue;
+    let i = 0;
+    while (i < t.length) {
+      if (/\s/.test(t[i])) { i++; continue; }
+      let j = i; while (j < t.length && !/\s/.test(t[j])) j++;
+      r.setStart(node, i); r.setEnd(node, j);
+      const w = r.getBoundingClientRect();
+      // strictly INSIDE the word: a line in the space beside it is already fine
+      if (w.width && lineX > w.left + 0.5 && lineX < w.right - 0.5) {
+        // every gap this word offers: before it, then between each letter pair
+        let shift = 0;
+        for (let k = i; k <= j; k++) {
+          let gap;
+          if (k === i) { gap = w.left; }
+          else { r.setStart(node, i); r.setEnd(node, k); gap = r.getBoundingClientRect().right; }
+          const d = lineX - gap;
+          if (d < -NUDGE_LEFT || d > NUDGE_RIGHT) continue;
+          if (!shift || Math.abs(d) < Math.abs(shift)) shift = d;
+        }
+        if (Math.abs(shift) < 0.4) return;
+        r.setStart(node, i); r.setEnd(node, j);
+        const sp = document.createElement('span');
+        sp.className = 'nudge';
+        sp.style.marginLeft = shift.toFixed(1) + 'px';
+        r.surroundContents(sp);
+        return;                                       // one word per line
+      }
+      i = j;
+    }
+  }
+}
 
 function renderMonthEl(y, m) {
   const { spans, details, nOwn, nOvl } = monthLayout(y, m, visibleEvents(), overlayEvents());
@@ -775,6 +839,7 @@ function render(group) {
   $('#view-month').classList.toggle('active', state.view === 'month' && !state.detailed);
   $('#view-detail').classList.toggle('active', state.view === 'month' && state.detailed);
   measureLane();
+  alignLinesToBands();
   updateChips();
 }
 
@@ -1209,6 +1274,13 @@ $('#app').addEventListener('touchend', e => {
   touchX = null;
 }, { passive: true });
 
+// ?demo=1 forces sample data and lands on the month that has it, so the app
+// can be looked at on a phone or a tablet without signing anything in.
+if (/[?&]demo\b/.test(location.search)) {
+  ALMANAKK_CONFIG.clientId = '';
+  window.ALMANAKK_PROXY = null;
+  state.year = DEMO_YEAR; state.month = DEMO_MONTH;
+}
 if (!ALMANAKK_CONFIG.clientId) {
   const b = $('#banner');
   b.hidden = false;
