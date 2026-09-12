@@ -2,3 +2,7 @@
 .claude/
 inventory/
 Front/
+.mcp.json
+dist/
+.dev.vars
+.wrangler/

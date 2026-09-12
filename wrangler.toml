@@ -1,0 +1,12 @@
+# Almanakk v2 on Cloudflare Pages. Deploy with `python3 publiser.py`, never a
+# bare `wrangler pages deploy` — the script builds dist/ so nothing personal
+# (Front/, inventory/) can ever be uploaded, and this file carries the bindings.
+name = "almanakk-v2"
+compatibility_date = "2026-09-09"
+pages_build_output_dir = "dist"
+
+# Holds Google's refresh token and a short-lived access token. Bind a namespace
+# called ALMANAKK_STATE and paste its id here (publiser.py --lag-kv gjør det).
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE-WITH-KV-ID"

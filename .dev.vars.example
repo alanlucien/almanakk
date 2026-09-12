@@ -1,0 +1,4 @@
+# Copy to .dev.vars (gitignored) for `python3 publiser.py --prov`.
+GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=...
+ALLOWED_EMAILS=alan@winterguests.com

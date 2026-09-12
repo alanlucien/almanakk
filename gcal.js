@@ -6,6 +6,10 @@
   const TARGET_KEY = 'almanakk-target-cal';
   let accessToken = null;
   let tokenClient = null;
+  // v2 on Cloudflare sets this before loading us: every call goes to /api/gcal
+  // on the same origin, where a Pages Function holds Google's key. No token in
+  // the browser, no GIS, no sign-in button. v1 never sets it — nothing changes there.
+  const PROXY = window.ALMANAKK_PROXY || null;
   let calendars = []; // {id, name, color, writable}
 
   // Google's per-event colour palette (event.colorId 1-11); an event's own
@@ -51,8 +55,14 @@
     return !!(cached && cached.length);
   }
 
+  if (PROXY) {
+    // signed in to Cloudflare already, or we would not have been served
+    document.querySelector('#signin').hidden = true;
+    bootGoogle();
+  }
+
   let gisWaited = 0;
-  const gisPoll = setInterval(() => {
+  const gisPoll = PROXY ? null : setInterval(() => {
     if (window.google && window.google.accounts) return window.gcalReady();
     if ((gisWaited += 400) < 8000) return;
     clearInterval(gisPoll);
@@ -63,6 +73,7 @@
   }, 400);
 
   window.gcalReady = function () {
+    if (PROXY) return;                     // the key lives on the server, GIS is never used
     if (!ALMANAKK_CONFIG.clientId) return; // demo mode
     if (tokenClient) return;               // the onload attribute and the poll below both call this
     clearInterval(gisPoll);
@@ -151,7 +162,7 @@
       await window.gcalEnsureYear(state.year);
     } catch (e) {
       // never end up with no data AND no way to sign in
-      document.querySelector('#signin').hidden = false;
+      if (!PROXY) document.querySelector('#signin').hidden = false;
       const cached = JSON.parse(localStorage.getItem('almanakk-events') || 'null');
       if (cached && cached.length && !state.events.length) { state.events = cached; render(); }
       toastErr(e.message);
@@ -159,6 +170,20 @@
   }
 
   async function api(path, params, opts = {}) {
+    if (PROXY) {
+      const url = new URL(PROXY + '/' + path, location.origin);
+      for (const [k, v] of Object.entries(params || {})) url.searchParams.set(k, v);
+      const r = await fetch(url, { ...opts, credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' } });
+      if (r.status === 401) throw new Error('Innloggingen til Cloudflare er utløpt — last siden på nytt.');
+      if (r.status === 403) throw new Error('Denne kalenderen er ikke din.');
+      if (!r.ok) {
+        let msg = 'Feil ' + r.status;
+        try { const b = await r.json(); if (b.error) msg = b.error.message || b.error; } catch (e) { /* keep */ }
+        throw new Error(msg);
+      }
+      return r.json();
+    }
     const url = new URL('https://www.googleapis.com/calendar/v3/' + path);
     for (const [k, v] of Object.entries(params || {})) url.searchParams.set(k, v);
     const r = await fetch(url, {

@@ -44,6 +44,9 @@
 <div id="banner" hidden></div>
 <main id="app"></main>
 <div id="toast" hidden></div>
+<!-- null here = Google sign-in in the browser (github.io). publiser.py flips it to
+     '/api/gcal' in the Cloudflare build, where the key lives on the server. -->
+<script>window.ALMANAKK_PROXY = null;</script>
 <script src="../config.js?v=20260912"></script>
 <script src="../demo-data.js?v=20260912"></script>
 <script src="../airports.js?v=20260912"></script>
