@@ -774,3 +774,15 @@ header #period-label { cursor: pointer; }
 .wday .wnum { font-weight: 600; font-size: 14px; }
 .wday .wname { font-size: 14px; font-weight: 400; letter-spacing: .08em; color: var(--ink); }
 .dayview > h2 .dname { font-size: 15px; font-weight: 400; letter-spacing: .08em; color: var(--ink); }
+
+/* THE PERIOD IS TWO THINGS (Alan, 13.09): what you are looking at, set large,
+   and the year it sits in, set small and quiet. In the year view the year IS
+   what you are looking at, so it takes the large size itself. */
+header #period-label b { font-size: 19px; font-weight: 700; letter-spacing: .16em; }
+header #period-label i { font-style: normal; font-size: 12px; font-weight: 400;
+  letter-spacing: .08em; color: var(--muted); margin-left: .35em; }
+header #period-label.isyear b { font-size: 26px; letter-spacing: .06em; }
+/* the app's own name never wraps to make room for the month: it is the one
+   thing in the header that is always the same, so it yields size instead */
+header h1 { white-space: nowrap; font-size: 12px; letter-spacing: .22em; }
+@media (max-width: 420px) { header h1 { font-size: 11px; letter-spacing: .14em; } }

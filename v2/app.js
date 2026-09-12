@@ -1659,8 +1659,9 @@ function render(group) {
   if (state.view === 'year' && !group && window.matchMedia('(max-width: 820px)').matches) {
     app.className = 'yearthumbs';
     app.innerHTML = renderYearThumbs(state.year);
-    $('#period-label').textContent = state.year;
+    $('#period-label').innerHTML = `<b>${state.year}</b>`;
   } else if (state.view === 'year') {
+    $('#period-label').innerHTML = `<b>${state.year}</b>`;
     const g = group || 3;
     let html = '';
     for (let start = 0; start < 12; start += g) {
@@ -1676,17 +1677,17 @@ function render(group) {
     app.className = 'dayviewwrap';
     app.innerHTML = renderDayEl(dsx);
     const dd = parseDate(dsx);
-    $('#period-label').textContent = dd.getDate() + '. ' + L().months[dd.getMonth()].toLowerCase();
+    $('#period-label').innerHTML = `<b>${dd.getDate()}. ${L().months[dd.getMonth()].toLowerCase()}</b>`;
   } else if (state.view === 'week') {
     const ws = state.weekOf || fmt(new Date());
     app.className = 'weekview';
     app.innerHTML = renderWeekEl(ws);
     const m = mondayOf(ws);
-    $('#period-label').textContent = L().week + ' ' + isoWeek(m) + ' · ' + m.getFullYear();
+    $('#period-label').innerHTML = `<b>${L().week} ${isoWeek(m)}</b> <i>${m.getFullYear()}</i>`;
   } else {
     app.className = 'strip';
     app.innerHTML = renderMonthEl(state.year, state.month);
-    $('#period-label').textContent = L().months[state.month].charAt(0) + L().months[state.month].slice(1).toLowerCase() + ' ' + state.year;
+    $('#period-label').innerHTML = `<b>${L().months[state.month]}</b> <i>${state.year}</i>`;
   }
   measureLane();
   fitJourneys();
@@ -2157,43 +2158,45 @@ $('#app').addEventListener('click', e => {
     if (dayEl) {
       const date = dayEl.dataset.date;
       const ev = hit && state.events.find(x => String(x.id) === String(hit.dataset.eid));
-      // TWO TAPS ALWAYS LAND ON THE DAY — on an event to edit it, on an empty
-      // day ready to write. One tap opens the week from the month, and closes
-      // the week back to the month. (Alan's final grammar, 12.09.)
+      // ONE TAP DOWN, TWO TAPS UP — except on an event in the month, where two
+      // taps go straight to editing it (Alan, 13.09). The month is the view he
+      // lives in, so reaching an event from there should not cost three moves.
       tapOrDouble(
+        () => {
+          if (state.view === 'week') { openDay(date, null); return; }
+          state.weekOf = state.weekDay = date; state.view = 'week'; render();
+        },
         () => {
           if (state.view === 'week') {
             const anchor = parseDate(state.weekDay || date);
             state.year = anchor.getFullYear(); state.month = anchor.getMonth();
             state.view = 'month'; render(); return;
           }
-          state.weekOf = state.weekDay = date; state.view = 'week'; render();
+          if (ev) { openDay(date, ev.id); return; }   // an event: open it to edit
+          state.view = 'year'; render();              // otherwise: up to the year
         },
-        () => openDay(date, ev ? ev.id : null),
       );
       return;
     }
   }
-  // IN THE DAY: one tap opens an event to edit, two taps anywhere go back to
-  // the month (Alan's final grammar, 12.09).
+  // ONE TAP OPENS, TWO TAPS CLOSE (Alan, 13.09). One gesture down the stack,
+  // one gesture back up it, the same in every view — simpler to hold in the
+  // head than the shortcuts it replaces.
+  //   year  tap a month  → that month
+  //   month tap a day    → its week      two taps → the year
+  //   week  tap a day    → that day      two taps → the month
+  //   day   tap an event → edit it       two taps → its week
   if (inDay && !e.target.closest('.dedit') && !e.target.closest('.wblank')) {
     const evHit = hit && state.events.find(x => String(x.id) === String(hit.dataset.eid));
-    const toMonth = () => {
-      const anchor = parseDate(state.dayOf || fmt(new Date()));
-      state.year = anchor.getFullYear(); state.month = anchor.getMonth();
-      state.view = 'month'; state.openEvent = null; render();
-    };
     tapOrDouble(
       () => { if (evHit) { state.openEvent = evHit.id; render(); } },
-      toMonth,
+      () => {
+        state.weekOf = state.weekDay = state.dayOf;
+        state.view = 'week'; state.openEvent = null; render();
+      },
     );
     return;
   }
-  // YOU WRITE ON THE NEXT FREE LINE (Alan, 12.09: "i think we do need a day
-  // panel? for when we enter events?"). No — the week already is the day
-  // panel, and its blank ruled lines are where a new event goes, the way you
-  // would write one on paper. One surface fewer, and the gesture is the
-  // metaphor rather than a button beside it.
   // ONLY IN THE DAY (Alan, 12.09). Writing on a blank line was swallowing the
   // single tap in the week, so the week would not close. Under his grammar a
   // new event is reached by double-tapping an empty day, which lands in the
