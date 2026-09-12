@@ -614,3 +614,10 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
   border-top: 1.5px solid var(--rule-strong); border-bottom: 1px solid var(--rule);
   background: var(--card);
 }
+/* the location line, with its way out to Google Maps */
+.dayview .wherebar { display: flex; align-items: baseline; gap: .6em; }
+.dayview .wherebar input { flex: 1; min-width: 0; }
+.dayview .maplink {
+  flex: 0 0 auto; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--rule);
+}

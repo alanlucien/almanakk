@@ -19,7 +19,7 @@ const LANGS = {
     wdLong: ['MANDAG','TIRSDAG','ONSDAG','TORSDAG','FREDAG','LØRDAG','SØNDAG'],
     week: 'uke',
     fTitle: 'Tittel', fTime: 'Klokkeslett', fFrom: 'Fra', fTo: 'Til',
-    fWhere: 'Sted', fNotes: 'Notat', save: 'Lagre', closeEdit: 'Lukk', atTime: 'Klokken',
+    fWhere: 'Sted', fNotes: 'Notat', save: 'Lagre', closeEdit: 'Lukk', atTime: 'Klokken', onMap: 'Kart',
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender', savedIn: 'Lagret i', goesTo: 'Ny hendelse →',
@@ -38,7 +38,7 @@ const LANGS = {
     wdLong: ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'],
     week: 'wk',
     fTitle: 'Title', fTime: 'Time', fFrom: 'From', fTo: 'To',
-    fWhere: 'Location', fNotes: 'Notes', save: 'Save', closeEdit: 'Close', atTime: 'By the clock',
+    fWhere: 'Location', fNotes: 'Notes', save: 'Save', closeEdit: 'Close', atTime: 'By the clock', onMap: 'Map',
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar', savedIn: 'Saved to', goesTo: 'New event →',
@@ -728,6 +728,13 @@ function wireDayView() {
     }
     if (e.target.dataset.close) { state.openEvent = null; render(); }
   });
+  sec.addEventListener('input', e => {
+    if (e.target.name !== 'location') return;
+    const a = e.target.closest('.wherebar').querySelector('.maplink');
+    const v = e.target.value.trim();
+    a.hidden = !v;
+    a.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(v);
+  });
   sec.addEventListener('submit', async e => {
     e.preventDefault();
     const form = e.target.closest('.dedit');
@@ -1381,7 +1388,17 @@ function renderDayEl(ds) {
       + `<label>${L().fFrom}<input name="start" type="date" value="${esc(e.start)}"></label>`
       + `<label>${L().fTo}<input name="end" type="date" value="${esc(e.end)}"></label>`
       + `</div>`
-      + `<label>${L().fWhere}<input name="location" type="text" value="${esc(e.location || '')}"></label>`
+      // GOOGLE MAPS, NEVER APPLE (Alan, 12.09). A plain https maps.google link
+      // opens the Google Maps app when it is installed and the website when it
+      // is not; a geo: or maps: link is what hands you to Apple.
+      // The suggestions are places HE has used before, taken from his own
+      // calendar. They cost nothing, need no key, and for a man who returns to
+      // the same theatres they are better than a general gazetteer.
+      + `<label>${L().fWhere}<span class="wherebar">`
+      + `<input name="location" type="text" list="knownplaces" value="${esc(e.location || '')}">`
+      + `<a class="maplink" target="_blank" rel="noopener"`
+      + ` href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location || '')}"`
+      + `${e.location ? '' : ' hidden'}>${L().onMap}</a></span></label>`
       + `<label>${L().fNotes}<textarea name="notes" rows="2">${esc(e.notes || '')}</textarea></label>`
       + `<p class="dmeta"><span class="dot" style="--c:${e.color}"></span>${esc(calName(e.calId))}</p>`
       + `<div class="dbtns"><button type="submit" class="add">${L().save}</button>`
@@ -1392,7 +1409,11 @@ function renderDayEl(ds) {
   const rows = allDay.map(row).join('')
     + (timed.length ? `<p class="dsplit">${L().atTime}</p>` : '')
     + timed.map(row).join('');
+  // every place he has already typed, once each
+  const places = [...new Set(state.events.map(x => (x.location || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'no'));
   return `<section class="dayview" data-date="${ds}">`
+    + `<datalist id="knownplaces">${places.map(x => `<option value="${esc(x)}"></option>`).join('')}</datalist>`
     + `<h2><span class="dnum ${wi === 6 || (h && h.red) ? 'red' : ''}">${d.getDate()}</span>`
     + `<span class="dname">${L().wdLong[wi]}</span>`
     + `<small>${L().months[d.getMonth()]} ${d.getFullYear()}</small>`
