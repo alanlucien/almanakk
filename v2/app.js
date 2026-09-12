@@ -209,7 +209,7 @@ function monthLayout(y, m, events, overlays) {
 let laneBox = { w: 0, font: '' };
 let measured = false;
 function measureLane() {
-  const el = document.querySelector('.day .lane');
+  const el = document.querySelector('.day .band');
   if (!el) return;
   const cs = getComputedStyle(el);
   const probe = el.querySelector('i');
@@ -221,11 +221,11 @@ function measureLane() {
   if (!measured && laneBox.w > 0) { measured = true; render(); }
 }
 let measureCtx = null;
-function fitsLane(text) {
+function fitsWidth(text, lanes) {
   if (!laneBox.w || !laneBox.font) return false; // before the first paint: keep the old behaviour
   measureCtx = measureCtx || document.createElement('canvas').getContext('2d');
   measureCtx.font = laneBox.font;
-  return measureCtx.measureText(text).width <= laneBox.w;
+  return measureCtx.measureText(text).width <= laneBox.w * (lanes || 1);
 }
 
 const NIGHT_UNTIL = 3 * 60 + 30;
@@ -590,24 +590,53 @@ function renderMonthEl(y, m) {
     const hasOwn = ownEvs.some(Boolean);
     const hasWgBand = wgEvs.some(Boolean);
 
-    // one lane cell; spillK = how many lane-widths the label may write across
-    const laneCell = (ev, spillK) => {
-      if (!ev) return '<span class="lane"></span>';
-      // label at span start, then every 14 days counted from it; the 1st of
-      // a month only gets a label when no 14-day beat lands in its first week
-      const offset = Math.round((parseDate(ds) - parseDate(ev.start)) / 864e5);
-      const untilNextBeat = (14 - (offset % 14)) % 14;
-      const showLabel = offset % 14 === 0 || (day === 1 && offset > 0 && untilNextBeat > 7);
-      const canSpill = spillK > 1.05;
+    // THE ROW IS ONE SPACE, NOT COLUMNS (Alan, 02.09.2026).
+    // Bands are backgrounds positioned by lane; the day line is drawn OVER
+    // them and begins at the first lane carrying no LABEL today — because a
+    // band away from its label is only a tint, and text may lie on a tint.
+    // Everything inside the canvas is absolutely positioned, so a crowded day
+    // can never grow taller than one line. That is the rhythm the almanakk
+    // cannot lose, and the old grid could not guarantee it.
+    const laneEvs = ownEvs.concat(wgEvs);
+    const labelledAt = ev => {
+      if (!ev) return false;
+      const off = Math.round((parseDate(ds) - parseDate(ev.start)) / 864e5);
+      const untilNextBeat = (14 - (off % 14)) % 14;
+      return off % 14 === 0 || (day === 1 && off > 0 && untilNextBeat > 7);
+    };
+    // A band draws text today if it is a label row OR a continuation row of a
+    // title being written one word per row. BOTH must push the line right, or
+    // the line lands on top of them — the collision the first build had.
+    const drawsText = ev => {
+      if (!ev) return false;
+      if (labelledAt(ev)) return true;
+      const plan = wrapPlan[ev.id];
+      if (!plan) return false;
+      const step = day - plan.from;
+      return step > 0 && step < plan.words.length;
+    };
+    let lineFrom = 0;
+    laneEvs.forEach((ev, i) => { if (drawsText(ev)) lineFrom = i + 1; });
+
+    // A label owns the lanes to its right up to the next band, or up to where
+    // the day line starts — whichever comes first. That replaces the old
+    // spill arithmetic: the free space IS the room, measured per row.
+    const roomAt = i => {
+      let j = i + 1;
+      while (j < laneEvs.length && !drawsText(laneEvs[j])) j++;
+      return Math.max(1, Math.min(j, Math.max(lineFrom, i + 1)) - i);
+    };
+
+    let bands = '';
+    laneEvs.forEach((ev, i) => {
+      if (!ev) return;
+      const showLabel = labelledAt(ev);
+      const room = roomAt(i);
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
-      // punctuation-only tokens would waste a whole row on "-" or "|"
       const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));
-      // Boxed in with a multi-word title: write it down the band, ONE WORD PER
-      // ROW. Each row then holds whole text of its own, so nothing hangs into
-      // the next day where it could be clipped or painted over — the bug Alan
-      // hit three times when this was one tall box instead.
+      // still one word per row when the title genuinely will not fit its room
       if (showLabel) {
-        if (!canSpill && words.length > 1 && endInMonth > day && !fitsLane(ev.title)) {
+        if (words.length > 1 && endInMonth > day && !fitsWidth(ev.title, room)) {
           wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
         } else {
           delete wrapPlan[ev.id];
@@ -615,45 +644,14 @@ function renderMonthEl(y, m) {
       }
       const plan = wrapPlan[ev.id];
       const step = plan ? day - plan.from : -1;
-      let txt;
-      const label = (t, cls) => `<i class="${cls || ''}"><span>${esc(t)}</span></i>`;
-      if (showLabel) txt = label(plan ? plan.words[0] : ev.title);
-      else if (plan && step > 0 && step < plan.words.length) txt = label(plan.words[step]);
-      // continuation rows carry an invisible copy of the title, so the band
-      // stays text-wide wherever the row is free and snaps back where it isn't
-      else txt = canSpill ? label(ev.title, 'ghost') : '';
-      return `<span class="lane on ${ev._wg ? 'wg' : ''} ${canSpill ? 'spill' : ''}`
-        + ` ${isShow(ev) ? 'showband' : ''} ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
-        + ` data-eid="${ev.id}" style="--c:${ev.color};--ci:${inkColor(ev.color)};--spillw:${Math.round(spillK * 100)}%">`
-        + txt + '</span>';
-    };
-    const freeAfter = (arr, i) => {
-      let f = 0;
-      for (let j = i + 1; j < arr.length; j++) { if (!arr[j]) f++; else break; }
-      return f;
-    };
-    // spill room: remaining own lanes, then free wg lanes (0.75 lane width
-    // each), then the day line itself when it is empty
-    let ownCells = '', wgCells = '';
-    if (hasOwn || hasWgBand) {
-      let wgFreeRun = 0;
-      for (const e of wgEvs) { if (!e) wgFreeRun++; else break; }
-      for (let l = 0; l < nOwn; l++) {
-        const free = freeAfter(ownEvs, l);
-        let k = 1 + free;
-        if (free === nOwn - 1 - l) {
-          k += wgFreeRun * 0.75;
-          if (wgFreeRun === nOvl && lineEmpty) k += 1.75;
-        }
-        ownCells += laneCell(ownEvs[l], k);
-      }
-      for (let g = 0; g < nOvl; g++) {
-        const free = freeAfter(wgEvs, g);
-        let k = 1 + free * 0.75;
-        if (free === nOvl - 1 - g && lineEmpty) k += 2.33; // the day line is ~2.33 wg-lane widths
-        wgCells += laneCell(wgEvs[g], k);
-      }
-    }
+      let txt = '';
+      if (showLabel) txt = plan ? plan.words[0] : ev.title;
+      else if (plan && step > 0 && step < plan.words.length) txt = plan.words[step];
+      bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''}`
+        + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
+        + ` data-eid="${ev.id}" style="--l:${i};--w:${txt ? room : 1};--c:${ev.color};--ci:${inkColor(ev.color)}">`
+        + (txt ? `<b>${esc(txt)}</b>` : '') + '</i>';
+    });
 
     // ONE wide shared day line: Alan's headline first, shows (any calendar)
     // pinned next, then Alan's items, then wg's dimmed items
@@ -679,8 +677,8 @@ function renderMonthEl(y, m) {
       return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" style="color:${evInk(e)}">`
         + esc(txt) + '</b>';
     };
-    // a day without any band absorbs all lane columns (keeps the grid aligned)
-    const detail = `<span class="detail"${(hasOwn || hasWgBand) ? '' : ` style="grid-column: span ${nOwn + nOvl + 1}"`}>`
+    // starts where the labels stop — far left on a day with no band label at all
+    const detail = `<span class="detail" style="--from:${lineFrom}">`
       + collapseJourneys(lineItems).map(evtHtml).join('')
       + '</span>';
     // One cell, one line, one thing in it: a holiday, else the week number on
@@ -695,9 +693,12 @@ function renderMonthEl(y, m) {
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
     rows += `<div class="day ${red ? 'red' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
-      + ownCells + wgCells + detail + info + `</div>`;
+      + `<span class="canvas">` + bands + detail + '</span>'
+      + info + `</div>`;
   }
-  return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}" style="--lanes:${nOwn};--wg:${nOvl}">`
+  // one lane as a share of the canvas, keeping the old 4fr lane : 7fr line feel
+  const laneW = 400 / ((nOwn + nOvl) * 4 + 7);
+  return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}" style="--lanes:${nOwn};--wg:${nOvl};--laneW:${laneW.toFixed(3)}%">`
     + `<h2>${L().months[m]} <small>${y}</small></h2>${rows}</section>`;
 }
 

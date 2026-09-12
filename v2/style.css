@@ -125,11 +125,11 @@ button.active { background: var(--ink); color: var(--card); }
 .day {
   display: grid;
   --pre: 1.8em 1.7em;
-  --own: repeat(var(--lanes, 1), minmax(0, 4fr));
-  --det: minmax(0, 7fr);
-  --wgt: ;
   --inf: 5.2em;
-  grid-template-columns: var(--pre) var(--own) var(--wgt) var(--det) var(--inf);
+  /* one space between the day number and the info column. Bands and the day
+     line are positioned INSIDE it, never placed in cells — that is what keeps
+     a crowded day exactly one line tall. */
+  grid-template-columns: var(--pre) minmax(0, 1fr) var(--inf);
   border-bottom: 1px solid var(--rule);
   min-height: 1.5em;
   font-size: 12px;
@@ -141,59 +141,68 @@ button.active { background: var(--ink); color: var(--card); }
 .day .num { text-align: right; font-weight: 600; padding-right: 2px; white-space: nowrap; }
 .day .wd { color: var(--muted); white-space: nowrap; }
 .day.red .num, .day.red .wd { color: var(--red); }
-/* project/tour lanes: tinted band, label at span start / month start / Mondays */
-.day .lane { padding: 0; position: relative; }
-/* a band label is always ONE line in its own row; a long title is written
-   down the band one word per row instead of overflowing into the next day */
-.day .lane.on { background: color-mix(in srgb, var(--c) 14%, var(--card)); border-left: 2px solid var(--ci, var(--c)); }
-/* line-height/padding kept tight: on a phone a row can be ~21px, and a taller
-   label box gets clipped by the row or covered by the next one — a band label
-   sliced through the middle of its letters */
-.day .lane i { font-style: normal; color: var(--ci, var(--c)); font-weight: 600; padding: 0 3px; line-height: 1.3; display: block; overflow: hidden; max-height: 100%; }
-.day .lane i span { display: block; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-/* a label writes sideways across the free cells to its right, like handwriting;
-   --spillw = how far it may reach, in multiples of its own lane width */
-.day .lane.spill { overflow: visible; }
-.day .lane.spill i {
-  position: absolute;
-  /* fills the row exactly: a box only as tall as its text leaves paper above
-     and below, which reads as stripes down a band. Text centred inside. */
-  left: 0; top: 0; bottom: 0;
-  display: flex; align-items: center;
-  z-index: 1;
-  width: max-content; /* grow past the anchor cell, exactly as far as the words */
-  max-width: var(--spillw, 100%);
-  overflow: hidden;
-  /* tint hugs the text; mixed with the paper so it never double-darkens the band */
-  background: color-mix(in srgb, var(--c) 14%, var(--card));
-  padding-right: 4px;
+/* THE CANVAS — bands behind, the day line over them (Alan's model, 02.09.2026) */
+.day .canvas {
+  position: relative; overflow: hidden; padding: 0;
+  /* .day centres its items, so a canvas holding only positioned children would
+     collapse to nothing — it must stretch to the row it sits in */
+  align-self: stretch;
 }
-.day .lane.wg.spill i { background: color-mix(in srgb, var(--c) 22%, var(--card)); }
 
-.day .lane i.ghost { color: transparent; user-select: none; }
-/* a thin paper seam marks where one band ends and the next begins — drawn as
-   an inset shadow, NOT a border, so it never pushes the label down out of the row */
-.day .lane.on.bstart { box-shadow: inset 0 3px 0 var(--card); }
-/* tbc in a title renders tentative: italic text, dashed lighter band */
-/* tbc anywhere means tentative — including a planned move, so a city set by a
-   trip that isn't booked yet reads italic */
-.evt.tbc, #popover p.tbc b, .lane.tbc i, .info .cty.tbc, #popover .city-tag.tbc { font-style: italic; }
-.day .lane.on.tbc { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
-/* shows ping red: band labels + a dot on the day number */
-.day .lane.showband i { color: var(--red); }
-.day.showday .num::after { content: '•'; color: var(--red); margin-left: 1px; }
-.month.haswg .day { --wgt: repeat(var(--wg, 1), minmax(0, 4.5fr)); --det: minmax(0, 5.5fr); }
-/* wg overlay lanes: clearly "context", not your own schedule */
-.day .lane.wg {
+/* a band is a tinted block at its lane; --l = lane, --w = lanes its label owns */
+.day .band {
+  position: absolute; top: 0; bottom: 0;
+  left: calc(var(--l) * var(--laneW, 26%));
+  width: var(--laneW, 26%);
+  background: color-mix(in srgb, var(--c) 14%, var(--card));
+  border-left: 2px solid var(--ci, var(--c));
+  font-style: normal;
+}
+/* the label carries its own tint across the room it owns, so a band with a
+   label still reads as ONE solid block rather than a bar with a gap after it */
+.day .band b {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  /* the band IS one lane, so its own 100% is one lane: --w lanes = --w * 100%.
+     (A percentage here resolves against the band, not the canvas.) */
+  width: calc(var(--w) * 100%);
+  display: flex; align-items: center;
+  padding: 0 3px; box-sizing: border-box;
+  background: color-mix(in srgb, var(--c) 14%, var(--card));
+  color: var(--ci, var(--c)); font-weight: 600; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* a thin paper seam where one band ends and the next begins */
+.day .band.bstart { box-shadow: inset 0 3px 0 var(--card); }
+.day .band.tbc { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
+.day .band.tbc b { font-style: italic; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
+.day .band.showband b { color: var(--red); }
+.day.showday .num::after { content: '\2022'; color: var(--red); margin-left: 1px; }
+
+/* wg overlay bands: clearly context, not your own schedule */
+.day .band.wg {
   border-left: 2px dashed var(--ci, var(--c));
-  border-right: 1px dashed color-mix(in srgb, var(--ci, var(--c)) 55%, var(--card));
   background: color-mix(in srgb, var(--c) 22%, var(--card));
 }
-.day .lane.wg i { font-weight: 400; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.day .band.wg b {
+  background: color-mix(in srgb, var(--c) 22%, var(--card));
+  font-weight: 400; font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+}
 #popover .wgrow { opacity: .8; }
 #popover .wg-mark { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--muted); color: var(--muted); border-radius: 2px; padding: 0 3px; vertical-align: middle; }
+
+/* tbc anywhere means tentative — a plan that is not booked reads italic */
+.evt.tbc, #popover p.tbc b, .info .cty.tbc, #popover .city-tag.tbc { font-style: italic; }
+
 /* single-day details: always ONE line — joined with · , clipped with … ; tap the day for the full list */
-.day .detail { border-left: 1px dotted var(--rule); align-self: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day .detail {
+  position: absolute; top: 0; bottom: 0;
+  left: calc(var(--from, 0) * var(--laneW, 26%)); right: 0;
+  display: flex; align-items: center;
+  padding: 0 4px; box-sizing: border-box;
+  z-index: 2;                     /* over the tints — the whole point */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.day .detail > b { overflow: hidden; text-overflow: ellipsis; }
 .day .detail .evt { font-weight: 400; display: inline; }
 .day .detail .evt + .evt::before { content: ' · '; color: var(--muted); }
 .day .detail .evt.wgd { opacity: .55; } /* wg items: visibly "theirs", clipped first */
@@ -257,7 +266,6 @@ main.strip { height: 100%; overflow-y: auto; }
    running through it — bleeds into the screen edge and reads as cut off */
 .strip .day:last-child { border-bottom: 1px solid var(--rule-strong); }
 .strip .day { flex: 1 0 auto; font-size: 13px; align-items: center; }
-.strip .day .lane { align-self: stretch; display: flex; align-items: center; }
 .strip .day .info { font-size: 11px; }
 
 @media (max-width: 720px) {
@@ -341,11 +349,11 @@ main.strip { height: 100%; overflow-y: auto; }
   body.print-6 .day .info { font-size: 4.2pt; }
   body.print-6 .month h2 { font-size: 6.5pt; letter-spacing: .2em; }
   /* the whole year on one classic sheet */
-  body.print-12 .day { font-size: 3.8pt; --pre: 2.2em 1.9em; --inf: 4em; --own: repeat(var(--lanes, 1), minmax(0, 3fr)); --det: minmax(0, 4fr); }
+  body.print-12 .day { font-size: 3.8pt; --pre: 2.2em 1.9em; --inf: 4em; }
   body.print-12 .month.cities .day { --inf: 4.6em; }
   body.print-12 .day .info { font-size: 3.2pt; }
   body.print-12 .month h2 { font-size: 5pt; letter-spacing: .1em; padding: 2px; }
-  body.print-12 .day .lane i { padding: 0 1px; }
+  body.print-12 .day .band b { padding: 0 1px; }
 }
 
 /* v2 marker in the header */
