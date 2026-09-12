@@ -663,25 +663,89 @@ const SLOT_GAP = 10;            // clear air between one slot and the next
 // row it is labelled on, so the tour's items make a column of their own down
 // the tour (Alan: "if that is the wg event it belongs in the wg row
 // alignment"). They never move left into Alan's own events.
+// WHOLE TITLES, THEN A COUNT (Alan, 12.09: "definitely fix cacophony"). The
+// day line is a flex row, so when it overflowed every item shrank a share and
+// every one of them ellipsed: "Mø… · Befaring DN… · Fanny og Alexande…". Three
+// stubs say less than one title and cost more, because each still takes a slot
+// and a colour. v1 read better for exactly this reason — it filled with whole
+// titles and cut once at the end. Items no longer shrink; what does not fit is
+// dropped, and the row says how many, so a missed thing is visible rather than
+// silently gone.
+function clipLine() {
+  document.querySelectorAll('.day .detail').forEach(det => {
+    det.querySelectorAll(':scope > .more').forEach(m => m.remove());
+    det.querySelectorAll(':scope > .evt').forEach(e => { e.hidden = false; });
+    if (state.detailed) return;
+    const evts = [...det.querySelectorAll(':scope > .evt')];
+    if (evts.length < 2) return;
+    const pad = parseFloat(getComputedStyle(det).paddingRight) || 0;
+    const edge = () => det.getBoundingClientRect().right - pad;
+    const overflows = () => {
+      const vis = evts.filter(e => !e.hidden);
+      return vis.length && vis[vis.length - 1].getBoundingClientRect().right > edge() + 0.5;
+    };
+    let dropped = 0;
+    for (let i = evts.length - 1; i > 0 && overflows(); i--) { evts[i].hidden = true; dropped++; }
+    if (!dropped) return;
+    const more = document.createElement('b');
+    more.className = 'more';
+    more.textContent = '+' + dropped;
+    det.appendChild(more);
+    // the count has to fit too, so give up one more item if it does not
+    while (dropped < evts.length - 1 && more.getBoundingClientRect().right > edge() + 0.5) {
+      const last = evts.filter(e => !e.hidden).pop();
+      if (!last) break;
+      last.hidden = true; dropped++;
+      more.textContent = '+' + dropped;
+    }
+  });
+}
+
 function alignTourItems() {
   document.querySelectorAll('.day .detail').forEach(det => {
     const items = [...det.querySelectorAll(':scope > .evt[data-wg="1"]')];
     if (!items.length) return;
-    const first = items[0];
-    if ([...det.children].indexOf(first) + items.length !== det.children.length) return;
     const cv = det.closest('.canvas');
     const band = cv && cv.querySelector('.band.wg');
     if (!band) return;
     const b = band.getBoundingClientRect(), c = cv.getBoundingClientRect();
     const half = b.left + b.width / 2;
-    const at = first.getBoundingClientRect().left;
+    const span = (from, to) => {
+      const r = document.createRange();
+      r.setStartBefore(from); r.setEndAfter(to);
+      return r.getBoundingClientRect();
+    };
+    if (half + span(items[0], items[items.length - 1]).width > c.right - 4) return;
+    // THE TOUR'S COLUMN COMES FIRST (Alan, 12.09: "the wg events should align
+    // so the 10 should push kino to the right"). A tour item used to be pinned
+    // to the end of the line whatever else was there, so on a day that also
+    // held one of Alan's evening events it landed past it and the tour's
+    // column broke. Now the column wins: anything of Alan's that would sit at
+    // or right of it steps aside, and picks up again after the tour's items.
+    const own = [...det.children].filter(e => e.classList && e.classList.contains('evt') && e.dataset.wg !== '1');
+    const after = own.filter(e => e.getBoundingClientRect().left >= half - 1);
+    const wasAt = after.length ? after[0].getBoundingClientRect().left : 0;
+    if (after.length) {
+      // a tour item must not tread on the banner's own label, so never left of it
+      if (half < b.left) return;
+      items.forEach(it => det.insertBefore(it, after[0]));
+      after.forEach(e => { e.style.marginLeft = ''; e.classList.remove('tcol'); });
+    }
+    const at = items[0].getBoundingClientRect().left;
     const shift = half - at;
-    if (shift < 1) return;                       // already at or past it
-    const r = document.createRange();            // how wide the tour's items are
-    r.setStartBefore(first); r.setEndAfter(items[items.length - 1]);
-    if (half + r.getBoundingClientRect().width > c.right - 4) return;
-    first.classList.add('tcol');
-    first.style.marginLeft = shift.toFixed(1) + 'px';
+    if (shift > 1) {
+      items[0].classList.add('tcol');
+      items[0].style.marginLeft = shift.toFixed(1) + 'px';
+    }
+    if (after.length) {
+      const end = span(items[0], items[items.length - 1]).right;
+      const want = Math.max(wasAt, end + SLOT_GAP);
+      const now = after[0].getBoundingClientRect().left;
+      if (want - now > 1) {
+        after[0].classList.add('tcol');
+        after[0].style.marginLeft = (want - now).toFixed(1) + 'px';
+      }
+    }
   });
 }
 
@@ -1172,6 +1236,7 @@ function render(group) {
   fitEvenings();
   alignByTime();
   alignTourItems();
+  clipLine();
   alignLinesToBands();
   updateChips();
 }

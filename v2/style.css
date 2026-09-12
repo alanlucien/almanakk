@@ -409,3 +409,11 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
    sits on top of a line that now has further to run (Alan, 12.09). */
 .day.airright .canvas { grid-column: 3 / 5; grid-row: 1; }
 .day.airright .info { grid-column: 4 / 5; grid-row: 1; position: relative; z-index: 3; }
+
+/* A crowded day line fills with WHOLE titles and then stops, rather than
+   shrinking every item until each one ellipses — three stubs say less than one
+   title and cost more (Alan, 12.09). What did not fit is counted, so a missed
+   thing is visible rather than silently gone. */
+.day .detail > .evt { flex: 0 0 auto; }
+.day .detail > .evt[hidden] { display: none !important; }
+.day .detail > .more { flex: 0 0 auto; margin-left: .45em; color: var(--muted); font-weight: 600; }

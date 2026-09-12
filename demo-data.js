@@ -15,7 +15,7 @@ window.DEMO_MONTH = 1;
 window.DEMO_EVENTS = [
   { c: 'arbeid', t: 'Fanny og Alexander', s: '2026-02-02', e: '2026-02-27' },
   { c: 'arbeid', t: 'Kongen av Bastøy', s: '2026-02-16', e: '2026-03-06' },
-  { c: 'turne', t: 'Turné', s: '2026-02-09', e: '2026-02-14' },
+  { c: 'turne', t: 'ANTIGONE Paris TDLV', s: '2026-02-09', e: '2026-02-14' },
   { c: 'arbeid', t: '14:00 Kostymeprøve', s: '2026-02-18' },
   { c: 'privat', t: '07:05 OSL–BGO', s: '2026-02-18' },
   { c: 'privat', t: 'Middag hos mor', s: '2026-02-20' },
