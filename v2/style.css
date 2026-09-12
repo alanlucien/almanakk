@@ -360,6 +360,11 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .info .cty.journey { font-weight: 700; letter-spacing: .02em; }
 .info .cty.journey .arw { font-weight: 400; }
 .info .cty.journey .arw.big { font-size: 1.25em; line-height: 1; vertical-align: -.04em; }
-/* alone on its day it may reach left across the empty line */
-.day .info:has(.journey.wide) { overflow: visible; }
-.info .cty.journey.wide { white-space: nowrap; }
+/* Alone on its day the journey may reach LEFT across the empty line, but its
+   right edge must stay flush with BERGEN and uke 37 above it. Anchoring it to
+   the cell's right edge makes that exact rather than a hope — Alan, 12.09. */
+.day .info:has(.journey.wide) { overflow: visible; position: relative; }
+.info .cty.journey.wide {
+  position: absolute; right: 4px; top: 0; bottom: 0;
+  display: flex; align-items: center; white-space: nowrap;
+}
