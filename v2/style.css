@@ -852,3 +852,8 @@ header #period-year {
    zoom gesture. It was disabled on the calendar only, so a double tap on the
    header or in the margins still zoomed. The whole page opts out. */
 html, body { touch-action: manipulation; }
+
+/* THE YEAR SITS BETWEEN THE TITLE AND THE DOTS (Alan, 13.09) rather than tucked
+   against the dots. The title keeps the page's dead centre; the year takes the
+   middle of what is left. */
+header #period-year { flex: 1; text-align: center; margin-right: 0; }
