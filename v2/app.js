@@ -418,15 +418,29 @@ function measureLane() {
   // something different on every Monday, which is exactly the rows that would
   // not line up. The stops are cut to the narrowest row, so every row can hold
   // all of them.
-  let cw = 0;
+  // THE NARROWEST ROW, BUT NOT A DEGENERATE ONE. A Monday is genuinely
+  // narrower than the rest of the week — 301 against 385 — and the stops must
+  // be cut to it. But the page can also hold a sheet that has not been laid out
+  // yet, or one squeezed to nothing, and taking THAT as the sheet's width made
+  // every stop 7.8px wide in the year view and every entry overlap its
+  // neighbour. Anything under two thirds of the widest is not a narrow row,
+  // it is a measurement to throw away.
+  const ws = [];
   document.querySelectorAll('.day .canvas').forEach(c => {
     const w = c.getBoundingClientRect().width;
-    if (w > 0 && (!cw || w < cw)) cw = w;
+    if (w > 0) ws.push(w);
   });
+  const widest = ws.length ? Math.max(...ws) : 0;
+  const keep = ws.filter(w => w >= widest * 0.66);
+  const cw = keep.length ? Math.min(...keep) : widest;
   laneBox = {
     font: probe ? getComputedStyle(probe).font : cs.font,
     px: parseFloat(cs.fontSize) || 12,
     cw,
+    // the WIDEST row as well as the narrowest. The stops are cut to the narrowest
+    // so every row can hold them; whether the bands fit the sheet at all is a
+    // question about the widest, since that is the paper they are drawn on.
+    cwMax: widest,
   };
   // the first paint has nothing to measure yet, so draw once more now that we do
   if (!measured && laneBox.px > 0) { measured = true; render(); }
@@ -997,7 +1011,7 @@ function clipLine() {
       return;
     }
     det.querySelectorAll(':scope > .more').forEach(m => m.remove());
-    det.querySelectorAll(':scope > .evt').forEach(e => { e.hidden = false; });
+    det.querySelectorAll(':scope > .evt').forEach(e => { e.hidden = false; e.style.minWidth = ''; });
     if (state.detailed) return;
     const evts = [...det.querySelectorAll(':scope > .evt')];
     if (evts.length < 2) return;
@@ -1030,6 +1044,17 @@ function clipLine() {
       if (!last) break;
       last.hidden = true; dropped++;
       more.textContent = '+' + dropped;
+    }
+    // THE LAST ONE STANDING MAY GIVE UP ITS FLOOR (17.09). An entry's 4.5em
+    // floor is there to stop it being squeezed to a letter BY ITS NEIGHBOURS —
+    // Alan's "W" and "O:" in February. With the neighbours dropped there is
+    // nobody left to be squeezed by, and holding the floor only pushed the
+    // count clean off the paper, so a year row with 50px to write in said
+    // nothing about the two events it was not showing. The title clips, which
+    // is what clipping is for, and the count stays on the sheet.
+    if (more.getBoundingClientRect().right > edge() + 0.5) {
+      const last = evts.filter(e => !e.hidden).pop();
+      if (last) last.style.minWidth = '0';
     }
   });
 }
@@ -1883,6 +1908,10 @@ function renderMonthEl(y, m) {
   // every band has its own column and nothing is painted over, which reads
   // better and costs width. Labels reach left and right in both.
   const laneEm = [], laneW = [];
+  // what the lanes were scaled by when they would not fit the sheet — the stair's
+  // minimum stripe has to shrink with them or it becomes wider than the gap it is
+  // supposed to fit inside, and the bands overlap
+  let laneScale = 1;
   let reach = 0;
   for (let i = 0; i < nOwn + nOvl; i++) {
     const gap = (nOvl && nOwn && i === nOwn - 1 ? WG_GAP : 0);
@@ -1928,6 +1957,34 @@ function renderMonthEl(y, m) {
   let bandAreaEm = 0;
   for (let i = 0; i < nOwn + nOvl; i++) {
     bandAreaEm = Math.max(bandAreaEm, laneLeft(i) + (laneW[i] || laneEm[i]));
+  }
+  // THE BANDS MAY NOT TAKE THE WHOLE SHEET (17.09). A lane is sized to the name
+  // it has to carry, and nothing was asking how wide the paper is — so on a year
+  // sheet 88px across, three runs laid out lanes reaching 168px and his own
+  // writing began 54px off the right-hand edge, where it could not be read
+  // because it was not on the page. The bands keep at most five eighths of the
+  // sheet and are scaled down together when they want more, so the columns stay
+  // in the same proportion to each other and there is always paper to write on.
+  // A name that no longer fits its narrowed lane writes itself down the band one
+  // word per row, which is the rule that was already there for exactly this.
+  // ONLY WHEN THEY RUN OFF THE PAPER. A first cut of this held the bands to five
+  // eighths of the sheet, which also fired on a busy February in the MONTH view,
+  // where nothing was wrong — nineteen bands then overlapped, because the stair's
+  // minimum stripe is a constant and did not scale with them. The rule now fires
+  // only where the geometry is impossible: the bands reach past the sheet's own
+  // edge. A month never trips it; the year always did.
+  const sheetEm = laneBox.cwMax && laneBox.px ? laneBox.cwMax / laneBox.px : roomEm;
+  if (sheetEm && bandAreaEm > sheetEm) {
+    const k = (sheetEm * 0.9) / bandAreaEm;
+    laneScale = k;
+    for (let i = 0; i < laneEm.length; i++) {
+      laneEm[i] *= k;
+      if (laneW[i]) laneW[i] *= k;
+    }
+    bandAreaEm = 0;
+    for (let i = 0; i < nOwn + nOvl; i++) {
+      bandAreaEm = Math.max(bandAreaEm, laneLeft(i) + (laneW[i] || laneEm[i]));
+    }
   }
   // clearing the bands wins over keeping the right column wide: a banner on the
   // timed side is the one thing this reading exists to prevent. On a narrow
@@ -2188,10 +2245,51 @@ function renderMonthEl(y, m) {
     // to the tour's, the first lane free of HIS work is the tour's own — so his
     // line began exactly where the banner begins and was drawn over its name.
     // There is nowhere to the left to go on a row that full, so it goes past.
+    // PAST A BANNER THAT IS SAYING SOMETHING — NOT PAST A SILENT TINT (Alan,
+    // 17.09, on his September 14-20: "all the all-day events could have been
+    // aligned further left, even if slightly under the grey TdO Ingrid banner —
+    // then they wouldn't have been clipped on their right"). A run writes its
+    // name on a handful of days and is a plain tint on all the rest, and this
+    // loop was pushing his line past the tint too. So a row whose banner was
+    // silent gave up the same paper as the row where the name stands, and what
+    // he lost was the END of his own titles. A tint has nothing to protect: the
+    // line may lie on it. A name has, and the line still goes past that.
+    // Answered ONCE, here, and read twice. wgBandShows is spliced as the bands
+    // are drawn, so asking it again after the loop would give a different answer
+    // to the same question — and the line start and the stop edge would disagree
+    // about where the paper ends.
+    const showCals = V3 ? wgBandShows.map(x => x.calId) : [];
+    const saysHere = laneEvs.map(ev => {
+      if (!ev) return false;
+      if (drawsText(ev)) return true;
+      // a wg lane that is about to be handed one of today's performances
+      return !!(ev._wg && showCals.includes(ev.calId));
+    });
+    const bandSays = i2 => !!saysHere[i2];
     for (let i2 = 0; i2 < laneEvs.length; i2++) {
-      if (!laneEvs[i2]) continue;
+      if (!bandSays(i2)) continue;
       const l2 = laneLeft(i2), r2 = l2 + (laneW[i2] || laneEm[i2]);
       if (lineStartEm >= l2 - 0.01 && lineStartEm < r2) lineStartEm = r2;
+    }
+    // AND IT MOVES BACK LEFT WHEN THERE IS NOT ENOUGH LEFT TO WRITE IN (Alan,
+    // 17.09, the second half of the September 14-20 note: "then they wouldn't
+    // have been clipped on their right side and could have pushed further right
+    // with more words"). The line starts after his own lanes, which is right
+    // while there is room; on a crowded row it left him 24px and his titles were
+    // cut in the middle. A band SAYING something is still a wall — the line
+    // never crosses one of those. A silent lane is only a tint, and he would
+    // rather read the whole title over a tint than half of it beside one.
+    const MIN_LINE_EM = 8;
+    const cwEm = laneBox.cw && laneBox.px ? laneBox.cw / laneBox.px : 0;
+    if (cwEm && cwEm - lineStartEm < MIN_LINE_EM) {
+      let floorEm = 0;
+      for (let i2 = 0; i2 < laneEvs.length; i2++) {
+        if (!bandSays(i2)) continue;
+        const l2 = laneLeft(i2);
+        if (l2 >= lineStartEm - 0.01) continue;   // that one is ahead, not behind
+        floorEm = Math.max(floorEm, Math.min(lineStartEm, l2 + (laneW[i2] || laneEm[i2])));
+      }
+      lineStartEm = Math.max(floorEm, Math.min(lineStartEm, cwEm - MIN_LINE_EM));
     }
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
@@ -2209,8 +2307,14 @@ function renderMonthEl(y, m) {
         // it outside the banner. Which is what he asked for hours ago.
         const fits = (laneW[ev._lane] || LABEL_MAX) - 0.4;
         // a tour banner has its own column now and says its name in one line
+        // ...unless the sheet has taken that column away again. A tour banner is
+        // exempt from writing itself down the band because it HAS a column wide
+        // enough to say its name in one line — and on a year sheet the lanes are
+        // scaled to fit the paper, so it no longer does. Holding the exemption
+        // there cut "ANTIGONE Hong Kong" to "ANTIGONE Hon" on every label row.
+        const ownColumn = V3 && nOvl && ev._wg && laneScale >= 0.999;
         if (words.length > 1 && endInMonth > day && emWidth(ev.title) > fits
-            && !(V3 && nOvl && ev._wg)) {
+            && !ownColumn) {
           wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
         } else {
           delete wrapPlan[ev.id];
@@ -2248,7 +2352,7 @@ function renderMonthEl(y, m) {
       // without a word in it to make it obvious.
       for (let j = i + 1; j < laneEvs.length; j++) {
         if (!laneEvs[j]) continue;
-        w = Math.min(w, Math.max(LANE_STRIPE, laneLeft(j) - laneX));
+        w = Math.min(w, Math.max(LANE_STRIPE * laneScale, laneLeft(j) - laneX));
         break;
       }
       const onRight = false;
@@ -2436,7 +2540,9 @@ function renderMonthEl(y, m) {
       const px = laneBox.px || 12;
       let edgePx = Infinity, edgeRightPx = 0;
       for (let i2 = 0; i2 < laneEvs.length; i2++) {
-        if (!laneEvs[i2]) continue;
+        // the same question as the line start asks: only a band SAYING
+        // something is an edge, a silent tint is paper he may write on
+        if (!bandSays(i2)) continue;
         const x = laneLeft(i2) * px;
         if (x >= lineStartEm * px - 0.5) {
           edgePx = x;
@@ -2486,7 +2592,9 @@ function renderMonthEl(y, m) {
       // must not be. The entry gives up the last 2.4em of its own width
       // instead: a title one word shorter is a small price, a count written
       // over a production's name is not.
-      const needPx = 2.4 * (laneBox.px || 12);
+      // two characters and the air before them, measured rather than guessed —
+      // "+2" came out 2.7em wide at year sizes and leaned on the banner anyway
+      const needPx = Math.max(2.4 * (laneBox.px || 12), emWidth('+99') * (laneBox.px || 12));
       // "no free paper" means the band reaches the RIGHT EDGE of the sheet, not
       // that it begins near it — on 1 March the banner starts at 152 of a
       // 246-wide row and runs past 246, so the right edge is inside it.
@@ -2532,7 +2640,7 @@ function renderMonthEl(y, m) {
         // has, however little room is left for it.
         const startPx = laneBox.px ? lineStartEm * laneBox.px : 0;
         const pos = startPx ? `left:${startPx.toFixed(2)}px` : `left:${lineStartEm}em`;
-        detail = `<span class="detail${tabbed}" style="${pos}">`
+        detail = `<span class="detail flow${tabbed}" style="${pos}">`
           + shown.map(it => evtHtml(it)).join('') + '</span>';
       } else
       detail = `<span class="detail grid${tabbed}">`

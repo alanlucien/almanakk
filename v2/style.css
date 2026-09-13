@@ -324,11 +324,34 @@ button.active { background: var(--ink); color: var(--card); }
      left edge"). It lives on the entries now: every stop is inset by the same
      amount, so they still line up with each other. */
   padding: 0 .9em 0 7px; box-sizing: border-box;
+  /* A RULED ENTRY'S WIDTH IS ITS STOP, FULL STOP (17.09). .evt carries
+     min-width:4.5em for the FLOWING line, where it stops a title being squeezed
+     to nothing between its neighbours. On the ruled sheet the width is measured
+     and written in pixels, so a minimum can only ever overrule it — in the year
+     view, where a stop is 33px and 4.5em is 36px, EVERY entry overflowed its
+     stop and collided with the next. */
+  min-width: 0;
 }
+/* THE FLOWING LINE STILL ENDS ON THE SHEET (17.09). A row whose bands have
+   eaten every stop gives up the grid and flows after them — and on a year sheet
+   what was left to flow into was 20px, so the entry's 4.5em floor pushed the
+   count clean off the paper and he was never told there was more. On this line
+   the count is pinned to the right edge of the paper instead of trailing the
+   entries off it. The 4.5em floor STAYS — lifting it let three titles share
+   20px and print a letter each, which is the "W" and "O:" he reported in
+   February; the clipper drops what cannot be written and says how many. */
+/* and it gives up the air at the sheet's edge. A flowing line is the squeezed
+   case by definition — 11px of paper on 27 September — and 4px of margin is
+   worth more spent on the count than on air. */
+.v3 .day .detail.flow { right: 0; padding-right: 0; }
+.v3 .day .detail.flow > .more { margin-left: auto; }
 /* the count is two characters and takes the room they need. A fixed stop's
    width could only ever cut it, which is what turned "+1" into "+". */
 .v3 .day .detail.grid > .more {
-  width: auto; padding-right: 0; text-align: left; color: var(--muted);
+  /* no indent of its own either: the room reserved for the count is measured as
+     two characters, and a left padding it was never told about is what put "+2"
+     on the banner on 1 March. The entry before it already carries the gap. */
+  width: auto; padding: 0; text-align: left; color: var(--muted);
 }
 /* THE STEP IS GONE (Alan, on his 20 September: "why is Prøve Vildanden not
    aligning with the event on the 15th and the 16th?"). Because it was an
@@ -1541,32 +1564,61 @@ header nav > #print svg, header nav > #lang-chip svg { display: block; }
 }
 
 /* ---------- the year, rudimentary: twelve months on one page ---------- */
-/* Real month sheets, not thumbnails, so what it shows and what a click does are
-   the same as everywhere else — which is the point of the proof (Alan, 14.09).
-   It will be rebuilt on the revised month design; this is here to check that
-   year → month → week → day steps one level at a time. */
+/* THE YEAR IS TWELVE MONTH SHEETS IN A ROW (Alan's mock, 14.09). Not
+   thumbnails and not a 4x3 grid of them: the same sheet the month view draws,
+   twelve of them side by side, so a season reads across the page the way it
+   does on his cardboard calendar. What it shows and what a click does are the
+   same as everywhere else.
+   Each month keeps a floor of 132px — below that a day row cannot hold a word
+   and the sheet stops being readable — so on a narrow desk the row scrolls
+   sideways rather than squeezing twelve months into nothing. */
 #app.year12 {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px; padding: 8px 12px 18px; align-items: start;
-  width: 100%; max-width: 1160px; margin-inline: auto;
+  display: grid; grid-template-columns: repeat(12, minmax(132px, 1fr));
+  gap: 6px; padding: 8px 12px 18px; align-items: start;
+  width: 100%; overflow-x: auto; overscroll-behavior-x: contain;
 }
-#app.year12 .month { margin: 0; font-size: 7px; line-height: 1.05; }
-/* THE WHOLE YEAR HAS TO FIT ON THE PAGE or it is not a year view — at the
-   day view's own row height twelve months came to 1892px on a 900px screen.
-   A row here is one line of 7px type and nothing else. */
-#app.year12 .day { min-height: 0; padding: 0; align-items: center; }
+#app.year12 .month { margin: 0; font-size: 9px; line-height: 1.15; }
+#app.year12 .month h2 { font-size: 9px; letter-spacing: .14em; padding: 3px 4px; }
+/* a row is one line of type and the rule under it — twelve of these have to
+   stand beside each other without the page becoming a scroll of its own */
+#app.year12 .day { min-height: 0; padding: 0; align-items: center; cursor: pointer; }
 #app.year12 .day > * { padding-top: 0; padding-bottom: 0; }
-#app.year12 .day .num, #app.year12 .day .wd { font-size: 7px; }
-#app.year12 .month h2 { font-size: 9px; letter-spacing: .2em; padding: 3px 2px; }
-#app.year12 .day { min-height: 0; cursor: pointer; }
-#app.year12 .day .info { font-size: 6px; }
+#app.year12 .day .num, #app.year12 .day .wd { font-size: 9px; }
+#app.year12 .day .info { font-size: 7px; }
 #app.year12 .day .detail, #app.year12 .day .canvas { overflow: hidden; }
-/* the whole year is a map: nothing in it is meant to be read word by word, so
-   the entries hold their colour and give up their detail */
-#app.year12 .day .evt { font-size: 6px; }
-@media (max-width: 1199px) {
-  #app.year12 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
+/* the COUNT belongs to this list too. Left out, it was set at 11px with 8.5px
+   of padding on a sheet written at 8px — wider than the room the layout had
+   reserved for it, so "+2" leaned on the banner on 1 March (17.09). */
+#app.year12 .day .evt, #app.year12 .day .band b, #app.year12 .day .more { font-size: 8px; }
+/* the air before a word is measured for a month sheet 385px wide. A year stop
+   is 33px, and 7px + .9em of it would be padding — nearly half the column
+   spent on air. The year keeps the same indent in proportion, not in pixels.
+   The count keeps none: its width is what the layout reserved for it. */
+#app.year12 .day .detail.grid > .evt { padding: 0 .5em 0 3px; }
+#app.year12 .day .detail.grid > .more { padding: 0; }
+#app.year12 .day .band b.bshow { padding-left: 5px; }
+/* THE BAND BOX CARRIES THE SAME TYPE AS THE WRITING (17.09). A band's lane and
+   position are computed in em and measured off .band, so if .band is set at 12px
+   while the year writes at 8, every band is drawn half again too wide — bands
+   running to 250px inside a 114px sheet. One size for the whole writing area,
+   and the em the file computes is the em the browser draws. */
+#app.year12 .day .band { font-size: 8px; }
+/* THE YEAR'S COLUMNS ARE WRITTEN IN PIXELS, ON THE DAY (17.09). Twice now this
+   has been got wrong in the same two ways. --inf was declared on #app.year12,
+   but .day declares --inf itself, so the day's own value won and a year row
+   carried the MONTH's info column: 77px of "uke 9" in a 129px row, leaving 23px
+   to write in — which is why every Monday's entries overflowed their stops.
+   And 3.6em on #app resolves against #app's 14px, not the sheet's. Both faults
+   are the same fault: a length written in em belongs to the box it is written
+   on. Pixels, on .day, and neither can happen again. */
+#app.year12 .day, #app.year12 .month.cities .day { --inf: 26px; }
+/* the date column is narrower here: a year has no room for a weekday letter
+   beside every number, and the number alone still finds the day */
+#app.year12 .day { --pre: 15px 0px; }
+/* hidden, NOT display:none — a day row is a grid and display:none takes the
+   letter out of the grid altogether, so every column after it shifted one to
+   the left and the week number landed in the writing area (17.09). */
+#app.year12 .day .wd { visibility: hidden; overflow: hidden; }
 
 /* a blank ruled day, so a short month is printed to the same depth as a long
    one and the three sheets end level (Alan, 14.09) */
