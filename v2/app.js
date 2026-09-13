@@ -367,23 +367,64 @@ const ORDINALS = {
   first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10,
   første: 1, andre: 2, tredje: 3, fjerde: 4, femte: 5, sjette: 6, sjuende: 7, syvende: 7, åttende: 8, niende: 9, tiende: 10,
 };
-function showLabel(title) {
+// THE RUN A SHOW BELONGS TO (Alan, 14.09). His touring calendar writes a
+// performance as "Performance 1 (6)": which one it is on this tour, and in
+// brackets which one it is in the piece's whole life. The name of the piece is
+// not in that title at all — it is in the multi-day run the day sits inside,
+// "ANTIGONE Roma". So the run lends its name, the brackets lend the number, and
+// the day reads "ANTIGONE 6". A run in the same calendar is preferred, and any
+// place on the end of its title is dropped: Roma is where, not what.
+function runName(ev) {
+  // ONLY ITS OWN CALENDAR LENDS A NAME. Any covering run would do it otherwise,
+  // and a performance would take the name of whatever unrelated project happened
+  // to span that week — "Performance 1 (4)" came out as "Kongen av Bastøy 4"
+  // the first time this ran. Innermost wins, so a run inside a season is the one
+  // that speaks.
+  const covers = state.events.filter(x => x.end > x.start && x.calId === ev.calId
+    && x.start <= ev.start && x.end >= ev.start && x.id !== ev.id);
+  const run = covers.sort((a, b) => (a.start < b.start ? 1 : -1))[0];
+  if (!run) return null;
+  const words = deco(run.title).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+  // a place can be two or three words — "ANTIGONE Hong Kong" kept the city
+  // because only the last word was ever tested (found while building, 14.09)
+  let cut = true;
+  while (cut && words.length > 1) {
+    cut = false;
+    for (let k = Math.min(3, words.length - 1); k >= 1; k--) {
+      if (placeOf(words.slice(-k).join(' '))) { words.splice(-k, k); cut = true; break; }
+    }
+  }
+  return words.join(' ') || null;
+}
+function showLabel(title, lend) {
   if (!isShow({ title })) return null;
   // a clock in the title is never the performance number: "19:00 Forestilling"
   // was reading 19 as the count and rendering "00 19" (found 12.09)
   let t = title.replace(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/g, ' '), num = null;
+  // THE BRACKETED NUMBER WINS. It is the count in the piece's whole history,
+  // which is the one he wants read out; the bare number is only this tour's.
+  // Taken out first, or the plain-digit search below would find it and the name
+  // would keep the brackets — which is why "Performance 1 (4)" has been reading
+  // as "(4) 1" (found while building this, 14.09).
+  const paren = t.match(/\((\d{1,3})\)/);
+  if (paren) { num = paren[1]; t = t.replace(paren[0], ' '); }
   const digit = t.match(/(?:^|[^\d])(\d{1,2})(?!\d)/); // 1–2 digits: a count, not a year
-  if (digit) { num = digit[1]; t = t.replace(digit[0], digit[0].replace(digit[1], ' ')); }
-  else {
+  if (digit) { if (num === null) num = digit[1]; t = t.replace(digit[0], digit[0].replace(digit[1], ' ')); }
+  else if (num === null) {
     t = t.replace(/\b([a-zæøåA-ZÆØÅ]+)\b/g, w => {
       const n = ORDINALS[w.toLowerCase()];
       if (n && num === null) { num = String(n); return ' '; }
       return w;
     });
   }
-  const name = t.replace(SHOW_WORDS, ' ').replace(/[-–—:·,]+/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!name) return null; // nothing but the word "Performance" — keep the original
+  let name = t.replace(SHOW_WORDS, ' ').replace(/[-–—:·,()]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!name) name = lend || '';                  // the run lends its name
+  if (!name) return null; // nothing but the word "Performance" and no run to ask
   return num ? name + ' ' + num : name;
+}
+// what a show is called on a line: its own words if it has any, the run's if not
+function showOnLine(ev) {
+  return (ev.end === ev.start && isShow(ev) && showLabel(ev.title, runName(ev))) || null;
 }
 // Year and month views show the GIST; Detaljer and the day panel keep the full title.
 function compactTitle(e) {
@@ -396,7 +437,7 @@ function compactTitle(e) {
     const named = placesIn(e.title);
     if (named.length === 1) return '→ ' + cityLabel(named[0]);
   }
-  return showLabel(e.title) || e.title;
+  return showLabel(e.title, runName(e)) || e.title;
 }
 function evInk(e) { return isShow(e) ? 'var(--red)' : inkColor(e.color); }
 const isTbc = ev => /\btbc\b/i.test(ev.title);
@@ -1932,7 +1973,7 @@ function renderDayEl(ds) {
       return `<p class="dev ${allday ? 'ad' : ''} ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}`
         + `${isPencil(e) ? ' pencil' : ''}" data-eid="${e.id}">`
         + `<span class="wt">${esc(e.time || '')}</span>`
-        + `<span class="wn" style="color:${evInk(e)}">${esc(deco(e.title))}`
+        + `<span class="wn" style="color:${evInk(e)}">${esc(showOnLine(e) || deco(e.title))}`
         + (hasNote(e) ? '<i class="notemark" title="Notat">∗</i>' : '') + '</span>'
         + (span ? `<span class="wr">${esc(shortRange(e.start, e.end))}</span>` : '')
         + (mark || '') + '</p>';
@@ -2170,7 +2211,7 @@ function renderWeekEl(ds) {
       return `<p class="wev ${tour.has(e.calId) ? 'wg' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'show' : ''} ${isPencil(e) ? 'pencil' : ''}"`
         + ` data-eid="${e.id}" data-date="${key}">`
         + `<span class="wt">${esc(when)}</span>`
-        + `<span class="wn" style="color:${evInk(e)}">${esc(deco(e.title))}</span>`
+        + `<span class="wn" style="color:${evInk(e)}">${esc(showOnLine(e) || deco(e.title))}</span>`
         + (span ? `<span class="wr">${esc(shortRange(e.start, e.end))}</span>` : '')
         + '</p>';
     }).join('');
