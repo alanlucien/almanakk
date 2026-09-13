@@ -1179,15 +1179,39 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 /* Nothing here is a new view. It is the three we already have, side by side, so
    every rule about reading and writing them still holds (Alan, 14.09). */
 #app.spread {
-  display: grid; grid-template-columns: 0.8fr 1.25fr 1fr;
-  gap: 14px; align-items: start; padding: 10px 14px 24px;
+  display: grid; grid-template-columns: 2fr 1fr;
+  gap: 16px; align-items: start; padding: 10px 14px 24px;
 }
 #app.spread .col { min-width: 0; }
 #app.spread .month, #app.spread .week, #app.spread .dayview { margin: 0; }
-/* the month beside a week is a reference, not the thing you are reading: it
-   sets smaller so a whole month stands next to seven days without shouting */
-#app.spread .colmonth { font-size: 11px; }
-#app.spread .colmonth .day { min-height: 0; }
+#app.spread .colweek { position: relative; }
+
+/* THE DAY IS A PANEL OVER THE WEEK (Alan, 14.09), never over the month: the
+   thing he navigates by should not be the thing that disappears while he reads
+   a day. Off it puts it away. */
+#app.spread .dayover {
+  position: absolute; left: -10px; right: -10px; top: -8px; z-index: 9;
+  background: var(--card); border: 1.5px solid var(--rule-strong);
+  box-shadow: -8px 10px 30px rgba(0, 0, 0, .17);
+  max-height: calc(100vh - 90px); overflow-y: auto;
+}
+#app.spread .dayover .dayview { border: 0; }
+
+/* SEVEN THINGS, NOT THIRTY LINES (Alan, 14.09: "week view must truly look like
+   almanac so all the lines don't make us mistake it for month view"). The two
+   columns were both stacks of thin rules at much the same pitch. The week's
+   days become blocks with air between them — you count seven — and the month
+   stays the tight continuous list a month should be, its rules lightened so the
+   week's writing lines are the only ruling that reads as ruling. */
+#app.spread .colweek .week { border: 0; background: none; }
+#app.spread .colweek .wday {
+  border: 1px solid var(--rule); border-left-width: 2px;
+  margin-bottom: 7px; background: var(--card);
+}
+#app.spread .colweek .wday:last-child { margin-bottom: 0; }
+#app.spread .colweek .week > h2 { border: 1px solid var(--rule-strong); margin-bottom: 9px; }
+#app.spread .colmonth .day { border-bottom-color: var(--rule-soft); }
+#app.spread .colmonth .day.free::after { opacity: .75; }
 
 /* the arrows live on a desk, where there is no edge to tap and no thumb to
    swipe with — a phone never sees them */

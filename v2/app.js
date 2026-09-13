@@ -1084,6 +1084,7 @@ function openDay(date, eventId, write) {
   // IN THE SPREAD THE DAY IS A COLUMN, not a place you go: opening one fills
   // the right-hand column and leaves the month and the week where they are.
   const inSpread = SPREAD.matches && state.view === 'week';
+  if (inSpread) state.dayPanel = true;
   state.dayOf = date;
   // an id of 0 is an id: `|| null` threw the first event of a set away
   state.openEvent = eventId === undefined || eventId === '' ? null : eventId;
@@ -2215,6 +2216,9 @@ SPREAD.addEventListener('change', () => render());
 
 function render(group) {
   cancelTap();
+  // the panel belongs to the spread: a window dragged narrow, or a step out of
+  // the week, must not leave the flag standing where it will swallow a tap
+  if (!(SPREAD.matches && state.view === 'week')) state.dayPanel = false;
   closePanel(true);
   const app = $('#app');
   if (state.view === 'year' && !group && window.matchMedia('(max-width: 820px)').matches) {
@@ -2251,9 +2255,17 @@ function render(group) {
     if (SPREAD.matches) {
       const anchor = parseDate(state.weekDay || ws);
       app.className = 'spread';
+      // TWO COLUMNS, NOT THREE (Alan, 14.09, with his own grid over a
+      // screenshot): the month is where he orients, so it takes two thirds and
+      // nothing in it clips; the week is "info when you need it" beside it. The
+      // day was a third of the screen showing three band headings and one
+      // flight. It is a panel now, and it covers the WEEK — never the month,
+      // because the thing you navigate by should not be the thing that
+      // disappears while you read a day.
       app.innerHTML = `<div class="col colmonth">${renderMonthEl(anchor.getFullYear(), anchor.getMonth())}</div>`
-        + `<div class="col colweek">${renderWeekEl(ws)}</div>`
-        + `<div class="col colday">${renderDayEl(state.dayOf || state.weekDay || ws)}</div>`;
+        + `<div class="col colweek">${renderWeekEl(ws)}`
+        + (state.dayPanel ? `<div class="dayover">${renderDayEl(state.dayOf || state.weekDay || ws)}</div>` : '')
+        + `</div>`;
     } else {
       app.className = 'weekview';
       app.innerHTML = renderWeekEl(ws);
@@ -2604,6 +2616,7 @@ function stepYear(dir) {
 // Thursday, which is the comparison he is actually making. The only rule is
 // that the day on the right is always inside the week in the middle.
 function stepPanel(which, dir) {
+  if (which !== 'day') state.dayPanel = false;
   const day = parseDate(state.dayOf || state.weekOf || fmt(new Date()));
   if (which === 'month') {
     const m = new Date(day.getFullYear(), day.getMonth() + dir, 1);
@@ -2830,7 +2843,7 @@ $('#app').addEventListener('click', e => {
   // instead of closing. An open form outranks both.
   // The writing line is not "outside": tapping it is what OPENS the form, and
   // this rule ran on the same click afterwards and threw the draft away again.
-  if ((state.openEvent !== null || state.draft) && state.view === 'day'
+  if ((state.openEvent !== null || state.draft) && (state.view === 'day' || state.dayPanel)
       && !e.target.closest('.dedit, .wqa')) {
     state.openEvent = null; state.draft = null; render(); return;
   }
@@ -2839,8 +2852,13 @@ $('#app').addEventListener('click', e => {
   // he escaped the writing and landed in the week. Tapping off it now shuts the
   // line and stops there. Like Escape, it lets the half-written line go: enter
   // is what keeps it.
-  const typing = state.view === 'day' && document.querySelector('.dayview .wqa');
+  const typing = (state.view === 'day' || state.dayPanel) && document.querySelector('.dayview .wqa');
   if (typing && !e.target.closest('.wqa')) { render(); return; }
+  // OFF THE PANEL PUTS IT AWAY (Alan, 14.09), the same gesture that shuts the
+  // form inside it — so a day closes in two taps: the form, then the day.
+  if (state.dayPanel && SPREAD.matches && state.view === 'week' && !e.target.closest('.dayover')) {
+    state.dayPanel = false; state.openEvent = null; state.draft = null; render(); return;
+  }
   // THE EDGES ARE NAVIGATION, WHATEVER IS UNDER THEM (Alan, 14.09: "the brain
   // just thinks back, it doesn't realize it's tapped on the number 15"). A
   // thumb going to the side of the screen means back or forward, and what
@@ -2909,7 +2927,10 @@ $('#app').addEventListener('click', e => {
       // as the day beside it — the three columns always describe one place.
       const inMonthCol = !!e.target.closest('.colmonth');
       const once = () => {
-        if (SPREAD.matches && state.view === 'week' && inMonthCol) state.weekOf = state.weekDay = date;
+        if (SPREAD.matches && state.view === 'week' && inMonthCol) {
+          // the month moves the week under it and stays where it is
+          state.weekOf = state.weekDay = state.dayOf = date; state.openEvent = null; render(); return;
+        }
         if (state.view === 'week') { openDay(date, ev ? ev.id : null); return; }
         state.weekOf = state.weekDay = date; state.view = 'week'; render();
       };
