@@ -1314,11 +1314,6 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 
 }
 
-/* THE HEADER GETS OUT OF THE WAY on the way down the page, and comes back the
-   moment he moves up (Alan, 14.09). */
-header { transition: transform .18s ease; will-change: transform; }
-header.hid { transform: translateY(-100%); }
-
 /* ---------- the header sits on the same measure as the page ---------- */
 /* THE HEADER WAS WIDER THAN THE CALENDAR (Alan, 14.09, from his iPad in
    landscape): the page is a centred measure and the header ran edge to edge, so
@@ -1347,25 +1342,14 @@ header.hid { transform: translateY(-100%); }
   header #period-year { font-size: 15px; }
 }
 
-/* ---------- the header trades itself for blank paper ---------- */
-/* EMPTY SPACE ONLY, SO HE STILL SEES THE MONTH AT A GLANCE (Alan, 14.09). The
-   sheet was sized to the screen exactly, so there was nothing to scroll and the
-   header could never get out of the way. Now the header is out of the flow, the
-   page is padded by its height, and there is a tail of blank paper below the
-   sheet exactly as tall as the header. Scrolling that tail into view slides the
-   sheet up by the same amount the header takes: the month is whole at the top
-   of the scroll AND at the bottom of it — only the header is traded away. No
-   calendar is ever pushed off the screen to make the room. */
-@media (min-width: 600px) {
-  body { padding-top: var(--hdr, 56px); }
-  header { position: fixed; top: 0; left: 0; right: 0; }
-  /* THE TAIL COMES AFTER THE SHEET, not inside it. Making the sheet itself
-     taller pushed its last day 20px off the screen until he scrolled, which is
-     the opposite of "all at a glance". The sheet fills the space it is given;
-     the blank paper is one header's worth of padding below it, so the scroll
-     runs exactly as far as the header is tall — whole month at the top of the
-     scroll, whole month at the bottom of it, and only the header traded. */
-  .strip .month { margin-bottom: calc(var(--hdr, 56px) + 28px); }
+/* THE HIDING HEADER IS GONE (Alan, 14.09, with two screenshots). I had ours
+   disappearing — the title, the year and the buttons — and what he wanted gone
+   was Safari's own chrome: the tab bar and the address bar at the top of the
+   iPad. A web page cannot touch those. What does remove them entirely is adding
+   Almanakk to the Home Screen, which the manifest has been set up for since
+   August: display "standalone", so it opens with no browser furniture at all.
+   So the header stays put, and the blank tail that only existed to make room
+   for it to hide goes with it. */
 }
 
 

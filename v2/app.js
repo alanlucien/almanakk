@@ -2373,32 +2373,7 @@ function render(group) {
   updateChips();
 }
 
-// THE HEADER GETS OUT OF THE WAY (Alan, 14.09, from his iPad). Reading down a
-// month it is 50px of chrome over the thing he came to read; on the way back up
-// it is what he wants. So: gone when he moves down the page, back the moment he
-// moves up, and always there at the top. Only where the page actually scrolls —
-// with nothing to scroll there is no gesture to answer, and a header that hid
-// itself with no way back would be a trap.
-function wireHeaderHide() {
-  const hdr = document.querySelector('header');
-  let last = 0;
-  // the page is padded by the header's own height and the blank tail matches
-  // it, so the two cancel: what the scroll takes off the top, the header gives
-  // back. Measured rather than assumed — it differs by width and by language.
-  const measure = () => document.documentElement.style.setProperty('--hdr', Math.round(hdr.getBoundingClientRect().height) + 'px');
-  measure();
-  window.addEventListener('resize', measure);
-  const onScroll = el => {
-    const y = el.scrollTop !== undefined ? el.scrollTop : window.scrollY;
-    if (y <= 8) hdr.classList.remove('hid');
-    else if (y > last + 6) hdr.classList.add('hid');
-    else if (y < last - 6) hdr.classList.remove('hid');
-    last = y;
-  };
-  $('#app').addEventListener('scroll', e => onScroll(e.target), { passive: true });
-  window.addEventListener('scroll', () => onScroll(document.documentElement), { passive: true });
-}
-wireHeaderHide();
+
 
 function applyLang() {
   $('#print').querySelector('.btxt').textContent = L().print;
