@@ -93,22 +93,16 @@ if (V3) document.documentElement.classList.add('v3');
 //     trick run backwards: there a show borrows its run's name, here an entry
 //     gives its run's name back.
 //  2. A YEAR is the calendar's job, not the title's.
-//  3. "møte" and "meeting" as WHOLE WORDS are scaffolding. As a suffix they are
-//     not: a Modellmøte is a particular thing in his week, and stripping it
-//     leaves "Modell", which is worse than what we started with.
+// DROPPING "møte" WAS TRIED AND TAKEN OUT (Alan, 14.09: "taking away møte
+// makes for a lot of weird instances, let's not do that blindly"). It read
+// well in the dozen cases I chose and badly in his own.
 //
 // It never returns nothing: if the rules would empty a title, the title stands.
-const MEET_WORDS = /\b(m\u00f8ter?|meetings?|meet)\b/gi;
 function wallTitle(title, covers) {
   const original = String(title).replace(/\s+/g, ' ').trim();
   let t = ' ' + original + ' ';
-  // the scaffolding goes FIRST. Stripping the production first could leave
-  // "møte ANTIGONE" as the word "møte" alone — the scaffolding surviving the
-  // thing it was holding up, which is exactly backwards.
   const noYear = t.replace(/\b(19|20)\d\d\b/g, ' ');
   if (noYear.trim()) t = noYear;
-  const noMeet = t.replace(MEET_WORDS, ' ');
-  if (noMeet.trim()) t = noMeet;
   for (const c of covers) {
     // A BAND IS OFTEN NAMED LONGER THAN THE MEETING NAMES IT: the run is
     // "Vildanden OSLO" or "ANTIGONE Paris" and the entry says only "Vildanden".
@@ -2156,7 +2150,11 @@ function renderMonthEl(y, m) {
     // Only on a day with ONE thing on the line, so the rhythm is untouched.
     const shown = lineFinal.filter(it => it !== movedToInfo);
     const only = shown.length === 1 ? effTime(shown[0].e) : null;
-    const kveld = KVELD && only && Number(only.slice(0, 2)) >= EVENING_FROM;
+    // A LONE EVENT IS WRITTEN WHERE EVERY OTHER EVENT IS (Alan, 14.09: "on a
+    // date with only one event let's just align it to the left"). Flushing a
+    // single evening thing to the right edge was meant to say "late in the
+    // day"; what it actually says is that the page has two left margins.
+    const kveld = !V3 && KVELD && only && Number(only.slice(0, 2)) >= EVENING_FROM;
     const detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em`
       + (wgEm ? `;right:${wgEm.toFixed(2)}em` : '') + `">`
       + shown.map(evtHtml).join('')

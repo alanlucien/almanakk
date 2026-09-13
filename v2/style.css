@@ -310,8 +310,18 @@ button.active { background: var(--ink); color: var(--card); }
 .v3 .day .band b, .v3 .day .band b.bshow, .v3 .day .detail .evt, .v3 .day .detail .more {
   font-size: 11px; letter-spacing: normal; text-transform: none; font-weight: 400;
 }
-/* written where every other label is written, not flush to the far side */
-.v3 .day .band b.bshow { justify-content: flex-start; font-weight: 400; }
+/* A RUN'S NAME IS AN ALL-DAY THING AND IS SET LIKE ONE (Alan, 14.09: "you have
+   stopped putting fat words for banners, but only for all-day events that are
+   not multi-day, that seems inconsistent — and I don't read what the band is
+   belonging to when there are many things written inside the banner"). Both
+   corrected by the same rule: the name of a run carries the weight every other
+   all-day thing carries, so it anchors whatever is written under it. */
+.v3 .day .band b:not(.bshow) { font-weight: 700; }
+/* and what sits INSIDE the banner steps in from its name, so it reads as
+   belonging to it rather than as another entry that happens to start there */
+.v3 .day .band b.bshow {
+  justify-content: flex-start; font-weight: 400; padding-left: 12px;
+}
 /* the one thing that may be heavier is the day's own headline */
 .v3 .day .detail .evt.allday { font-weight: 700; }
 .v3 .day .detail .evt.showevt { font-weight: 400; }
