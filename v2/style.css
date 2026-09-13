@@ -304,7 +304,12 @@ button.active { background: var(--ink); color: var(--card); }
   position: absolute; top: 50%; transform: translateY(-50%);
   display: block; line-height: 1.25;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  padding-right: .9em; box-sizing: border-box;
+  /* the air a day line has always had before its first word. It went when the
+     line gave up its own padding so the last stop would not be clipped, and
+     the first entry ended up against the rule (Alan: "you're touching the far
+     left edge"). It lives on the entries now: every stop is inset by the same
+     amount, so they still line up with each other. */
+  padding: 0 .9em 0 7px; box-sizing: border-box;
 }
 .v3 .day .detail.grid > .more { padding-right: 0; text-align: right; color: var(--muted); }
 /* the step for a timed thing lives INSIDE its stop, so the column is untouched */
