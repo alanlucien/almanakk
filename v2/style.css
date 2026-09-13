@@ -1298,6 +1298,17 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
   letter-spacing: .12em; color: var(--muted); font-weight: 400;
   text-transform: uppercase; margin-right: -.3em;
 }
+/* THE TWO SHEETS NAME THEMSELVES THE SAME WAY (Alan, 14.09: "February is bold
+   on the left but not on the right, why?"). No reason — the month was the
+   week sheet's title before the week number arrived and took that job, and it
+   kept the weight. Now both read the same: the figure large, the word beside
+   it, and the month it falls in following quietly. UKE 7 FEBRUAR 2026 against
+   13 FREDAG FEBRUAR 2026. */
+.pair .pw .week > h2 .wspanlabel {
+  /* the same size as the day's own <small>, so "FEBRUAR 2026" reads as one
+     quiet note on both sheets rather than two sizes on one and one on the other */
+  font-weight: 400; letter-spacing: .1em; color: var(--muted); font-size: .8333em;
+}
 .pair .pw .wday, .pair .pw .wev, .pair .pd .dev { cursor: pointer; }
 
 /* ---------- the desk's own controls ---------- */
