@@ -24,6 +24,7 @@ const LANGS = {
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     needTitle: 'Skriv en tittel først.', movedTo: 'Flyttet til',
+    saving: 'Lagrer…', deleting: 'Sletter…',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender', savedIn: 'Lagret i', goesTo: 'Ny hendelse →',
     cityHint: 'Trykk for å planlegge en reise', cityAsk: 'Skriv bynavnet — lagres som «→ By»',
     cityPlanAsk: 'Planlagt reise — lagres som «→ By tbc» til en flybillett dukker opp', cityPh: 'By',
@@ -45,6 +46,7 @@ const LANGS = {
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     needTitle: 'Give it a title first.', movedTo: 'Moved to',
+    saving: 'Saving…', deleting: 'Deleting…',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar', savedIn: 'Saved to', goesTo: 'New event →',
     cityHint: 'Tap to plan a move', cityAsk: 'Type the city — saved as "→ City"',
     cityPlanAsk: 'Planned move — saved as "→ City tbc" until a booking turns up', cityPh: 'City',
@@ -736,8 +738,13 @@ function wireDayView() {
     if (del) {
       const ev = state.events.find(x => String(x.id) === String(del));
       if (!ev) return;
-      try { await deleteEvent(ev); state.openEvent = null; toast(L().deleted); }
-      catch (err) { toast(err.message); }
+      // SAY SOMETHING THE MOMENT HE PRESSES (Alan, 14.09: "it just freezes then
+      // suddenly it's gone"). Deleting is a round trip to Google and then a
+      // reload of the year; for a second or two nothing moved and the only
+      // honest reading was that the tap had missed.
+      const undo = working(e.target, L().deleting);
+      try { await deleteEvent(ev); state.openEvent = null; state.draft = null; toast(L().deleted); }
+      catch (err) { undo(); toast(err.message); }
       return;
     }
     if (e.target.dataset.close) { state.openEvent = null; state.draft = null; render(); return; }
@@ -779,6 +786,7 @@ function wireDayView() {
     if (form.dataset.eid === 'new') {          // a draft: create it
       const box = form.querySelector('.swatches');
       form.dataset.busy = '1';
+      const undo = working(form.querySelector('button[type="submit"]'), L().saving);
       try {
         await createEvent({
           title: v('title').trim(), time: v('time').trim(), endTime: v('endtime').trim(),
@@ -787,12 +795,13 @@ function wireDayView() {
           calId: form.querySelector('.dcal')?.dataset.calid || '',
         });
         state.draft = null;
-      } catch (err) { toast(err.message); delete form.dataset.busy; }
+      } catch (err) { undo(); toast(err.message); delete form.dataset.busy; }
       return;
     }
     const ev = state.events.find(x => String(x.id) === String(form.dataset.eid));
     if (!ev) return;
     form.dataset.busy = '1';
+    const undo = working(form.querySelector('button[type="submit"]'), L().saving);
     try {
       const box = form.querySelector('.swatches');
       // NEVER WRITE A DATE HE DID NOT TOUCH. The read path shifts a small-hours
@@ -817,10 +826,28 @@ function wireDayView() {
       state.openEvent = null;
       toast(moving ? `${L().movedTo} ${calName(into)}` : L().updated);
     } catch (err) {
+      undo();
       toast(err.message);
       delete form.dataset.busy;
     }
   });
+}
+
+// A pressed button says so until the answer comes back, and every other button
+// beside it stops taking presses. Returns the way back, for when it fails.
+function working(btn, label) {
+  if (!btn) return () => {};
+  const row = btn.closest('.dbtns') || btn.parentElement;
+  const was = btn.textContent;
+  btn.textContent = label;
+  btn.classList.add('busy');
+  const buttons = [...row.querySelectorAll('button')];
+  buttons.forEach(b => { b.disabled = true; });
+  return () => {
+    btn.textContent = was;
+    btn.classList.remove('busy');
+    buttons.forEach(b => { b.disabled = false; });
+  };
 }
 
 // Everything the day view can change, in one patch. A time is written into the
@@ -1891,7 +1918,7 @@ function renderWeekEl(ds) {
   // UKE 42 in the largest type on the screen, so the sheet said it again three
   // centimetres below. The DAY view keeps its number — there the header names a
   // date, and the week it falls in is not written anywhere else.
-  return `<section class="week"><h2>${span} <small>${end.getFullYear()}</small>`
+  return `<section class="week"><h2><span class="wspanlabel">${span}</span> <small>${end.getFullYear()}</small>`
     + (wcity ? `<span class="wcity ${wcity.length <= 7 ? 'short' : ''}">${esc(wcity)}</span>` : '')
     + '</h2>'
     + `<div class="wdays" style="--wlanes:${nLanes}">${days}`

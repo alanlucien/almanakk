@@ -1006,10 +1006,32 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
    wrapped — which dragged the year across the page to sit against the city
    (Alan, 14.09). The span gives way instead: it shrinks, and the city stays
    hard right where it has always been. */
-.week > h2 { flex-wrap: nowrap; }
-.week > h2 small { flex: 0 0 auto; }
-.week > h2 .wcity { flex: 0 1 auto; text-align: right; }
+/* CORRECTED 14.09: `flex-wrap: nowrap` was the wrong tool and I checked it
+   badly. It stops flex ITEMS wrapping onto new lines; it says nothing about the
+   text inside an item, and that is what was wrapping. The month span was a bare
+   text node, which cannot be told to clip — so it is an element now, and it is
+   the one thing allowed to give way. Measured across four spans and four city
+   labels up to "LILLEHAMMER / FRANKFURT AM MAIN". */
+.week > h2, .dayview > h2 { flex-wrap: nowrap; }
+.week > h2 .wspanlabel {
+  flex: 0 1 auto; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.week > h2 small, .dayview > h2 small { flex: 0 0 auto; white-space: nowrap; }
+.week > h2 .wcity, .dayview > h2 .wcity { flex: 0 0 auto; text-align: right; }
+.dayview > h2 .dnum, .dayview > h2 .dname, .dayview > h2 .wkno { flex: 0 0 auto; white-space: nowrap; }
+.dayview > h2 .dname { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 430px) {
   .week > h2 { font-size: 12px; letter-spacing: .2em; gap: .45em; }
-  .week > h2 .wcity { font-size: 9px; letter-spacing: .05em; }
+  .week > h2 .wcity, .dayview > h2 .wcity { font-size: 9px; letter-spacing: .05em; }
+  .dayview > h2 { gap: .4em; font-size: 12px; }
+  .dayview > h2 small { font-size: 11px; letter-spacing: .06em; }
 }
+
+/* A BUTTON THAT HAS BEEN PRESSED LOOKS PRESSED, and says what it is doing while
+   the round trip to Google runs (Alan, 14.09: "it just freezes then suddenly
+   it's gone"). */
+.dayview .dbtns button:active, #popover button:active { transform: translateY(1px); }
+.dayview .dbtns button.busy { background: var(--ink); color: var(--card); border-color: var(--ink); }
+.dayview .dbtns button:disabled { opacity: .45; }
+.dayview .dbtns button.busy:disabled { opacity: 1; }
