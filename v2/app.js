@@ -2438,32 +2438,22 @@ $('#app').addEventListener('click', e => {
     if (dayEl) {
       const date = dayEl.dataset.date;
       const ev = hit && state.events.find(x => String(x.id) === String(hit.dataset.eid));
-      // ONE TAP DOWN, TWO TAPS UP — except on an event in the month, where two
-      // taps go straight to editing it (Alan, 13.09). The month is the view he
-      // lives in, so reaching an event from there should not cost three moves.
+      // TWO TAPS ALWAYS OPEN THE DAY, ONE TAP ALWAYS CLOSES (Alan, 14.09; his
+      // grammar from 13.09, finally the same in both views). Wherever you are
+      // and whatever you hit — an event or empty paper — two taps land in the
+      // day view with that event open for editing, or with the cursor on the
+      // line if the day is empty. One tap steps back out: the month opens the
+      // week you tapped, the week closes to its month.
       tapOrDouble(
         () => {
-          if (state.view === 'week') { openDay(date, null); return; }
-          state.weekOf = state.weekDay = date; state.view = 'week'; render();
-        },
-        () => {
           if (state.view === 'week') {
-            // TWO TAPS ON AN EVENT EDIT IT, WHEREVER YOU ARE (Alan, 14.09).
-            // In the month they already opened the event in its day; in the
-            // week the same gesture climbed to the month instead, so an event
-            // you were looking at took three moves to reach. Empty paper still
-            // climbs — that is how you leave the week.
-            if (ev) { openDay(date, ev.id); return; }
             const anchor = parseDate(state.weekDay || date);
             state.year = anchor.getFullYear(); state.month = anchor.getMonth();
-            state.view = 'month'; render(); return;
+            state.view = 'month'; state.openEvent = null; render(); return;
           }
-          // TWO TAPS IN THE MONTH GO STRAIGHT TO THAT DAY (Alan, 13.09),
-          // whether you hit an event or empty paper. The year is reached from
-          // the month's own name or from the year in the header, so the double
-          // tap does not need to carry that too.
-          openDay(date, ev ? ev.id : null);
+          state.weekOf = state.weekDay = date; state.view = 'week'; render();
         },
+        () => openDay(date, ev ? ev.id : null),
         ev ? 'e' + ev.id : date,
       );
       return;
