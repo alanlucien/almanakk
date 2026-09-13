@@ -2365,10 +2365,19 @@ function renderMonthEl(y, m) {
         // first character of a title and calling it information. Under four
         // ems it says how many things are there instead, which is true and
         // which he can tap.
+        // IN PIXELS HERE TOO. lineStartEm is measured against the BAND's font;
+        // written as an em on the day line it is read against the DAY's font,
+        // and in a quarter column those are not the same size — so the row that
+        // gave up the grid to avoid the banner was placed inside it anyway
+        // (Alan's 6 February: "«NINA» Nanterre" and "Wuppertal" on top of each
+        // other). Same fault as the stops had, in the one place I had not
+        // converted.
+        const startPx = laneBox.px ? lineStartEm * laneBox.px : 0;
         const left = (roomEm || 30) - lineStartEm;
+        const pos = startPx ? `left:${startPx.toFixed(2)}px` : `left:${lineStartEm}em`;
         detail = left < 4
-          ? `<span class="detail" style="left:${lineStartEm}em"><b class="more">+${shown.length}</b></span>`
-          : `<span class="detail${tabbed}" style="left:${lineStartEm}em">`
+          ? `<span class="detail" style="${pos}"><b class="more">+${shown.length}</b></span>`
+          : `<span class="detail${tabbed}" style="${pos}">`
             + shown.map(it => evtHtml(it)).join('') + '</span>';
       } else
       detail = `<span class="detail grid${tabbed}">`
@@ -2380,7 +2389,10 @@ function renderMonthEl(y, m) {
         // the count is two characters and takes the room they need — a fixed
         // stop's width could only ever cut it, which is what turned "+1" into
         // "+" on a narrow row
-        + (counted ? `<b class="more" style="left:${(moreAt * stopPx).toFixed(2)}px">+${over}</b>` : '')
+        // the last stop can end at the very edge of a narrow sheet, and a count
+        // placed there is clipped to "+". At the last stop it hangs off the
+        // right edge instead, where there is always room for two characters.
+        + (counted ? `<b class="more" style="${moreAt >= STOPS - 1 ? 'right:0' : `left:${(moreAt * stopPx).toFixed(2)}px`}">+${over}</b>` : '')
         + '</span>';
     }
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
