@@ -2129,8 +2129,25 @@ function renderMonthEl(y, m) {
     // lanes are columns, is one of only two or three places on the whole sheet,
     // not the arbitrary jumping the stair produces.
     let lastCovered = -1;
-    if (model === 'column') laneEvs.forEach((ev, i) => { if (ev) lastCovered = i; });
-    let lineStartEm = model === 'column' ? laneLeft(lastCovered + 1) : 0;
+    laneEvs.forEach((ev, i) => { if (ev) lastCovered = i; });
+    // I TRIED CLEARING EVERY COVERED LANE and took it back out (Alan: "Underdog
+    // Mainz could have been left, that is MY event and it is an all-day
+    // event"). Pushing the line past every band it crosses sounds tidy and
+    // costs him the margin: a run in the fifth lane pushed his own headline
+    // past four EMPTY lanes to get clear of it. His writing keeps the left;
+    // a band that says nothing on a row is paper he can write on, which is the
+    // rule this page has had from the start.
+    // THE FIRST EMPTY LANE FROM THE LEFT (Alan: "Underdog Mainz could have been
+    // left, that is my event and it is an all-day event" — and "HKG-BKK should
+    // also be left-aligned, left of the ANTIGONE banner"). The line was
+    // starting after the FURTHEST band on the row, so a run sitting alone in
+    // the fifth lane pushed his own writing past four empty ones to get clear
+    // of it. It starts after the bands that are actually in front of it and no
+    // further; a banner further right is something his line runs past, which is
+    // what he is describing both times.
+    let firstFree = 0;
+    while (firstFree < laneEvs.length && laneEvs[firstFree]) firstFree++;
+    let lineStartEm = laneLeft(firstFree);
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       const showLabel = labelledAt(ev);
@@ -2138,9 +2155,15 @@ function renderMonthEl(y, m) {
       const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));
       // still one word per row when the title genuinely will not fit its band
       if (showLabel) {
-        // a banner in the margin has its own column and says its name whole
-        if (words.length > 1 && endInMonth > day && emWidth(ev.title) > LABEL_MAX - 0.4
-            ) {
+        // AGAINST THE WIDTH IT ACTUALLY HAS (Alan: "Antigone Hong Kong — I
+        // should be able to read Hong Kong"). The test asked whether the title
+        // fitted LABEL_MAX, the widest a lane is ever allowed to be — so a name
+        // in a NARROW lane passed the test and was then cut to "ANTIGONE Ho".
+        // Asked against its own lane, it writes itself down the band instead,
+        // one word per row: ANTIGONE / Hong / Kong, all of it readable, none of
+        // it outside the banner. Which is what he asked for hours ago.
+        const fits = (laneW[ev._lane] || LABEL_MAX) - 0.4;
+        if (words.length > 1 && endInMonth > day && emWidth(ev.title) > fits) {
           wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
         } else {
           delete wrapPlan[ev.id];
@@ -2371,8 +2394,10 @@ function renderMonthEl(y, m) {
       // the page, so it stays on its stop; the width runs to wherever the next
       // entry begins. One event gets the whole row; a crowded day keeps its
       // columns and clips, which is the trade he chose.
-      const at = (k, span) => `left:${(k * stopPx).toFixed(2)}px;`
-        + `width:${(Math.max(1, span) * stopPx).toFixed(2)}px`;
+      const at = (k, span, trimEm) => {
+        const w = Math.max(1, span) * stopPx - (trimEm || 0) * (laneBox.px || 12);
+        return `left:${(k * stopPx).toFixed(2)}px;width:${Math.max(stopPx * 0.6, w).toFixed(2)}px`;
+      };
       if (!onGrid) {
         // A LETTER IS NOT AN ENTRY (Alan's February: "W" on the 6th, "O:" on
         // the 20th). On a row whose bands run the width of the sheet there is
@@ -2387,19 +2412,32 @@ function renderMonthEl(y, m) {
         // (Alan's 6 February: "«NINA» Nanterre" and "Wuppertal" on top of each
         // other). Same fault as the stops had, in the one place I had not
         // converted.
+        // NOTHING OF HIS EVER DISAPPEARS. The "under four ems, say how many
+        // instead" rule was meant to stop the page printing a single letter,
+        // and on a day whose lanes are all taken by a tour band it was dropping
+        // the entry and printing nothing at all — "Underdog Mainz" on his
+        // 1 March, gone from the page while it sat in the calendar. A fragment
+        // is a poor reading; a missing event is a wrong one. It writes what he
+        // has, however little room is left for it.
         const startPx = laneBox.px ? lineStartEm * laneBox.px : 0;
-        const left = (roomEm || 30) - lineStartEm;
         const pos = startPx ? `left:${startPx.toFixed(2)}px` : `left:${lineStartEm}em`;
-        detail = left < 4
-          ? `<span class="detail" style="${pos}"><b class="more">+${shown.length}</b></span>`
-          : `<span class="detail${tabbed}" style="${pos}">`
-            + shown.map(it => evtHtml(it)).join('') + '</span>';
+        detail = `<span class="detail${tabbed}" style="${pos}">`
+          + shown.map(it => evtHtml(it)).join('') + '</span>';
       } else
       detail = `<span class="detail grid${tabbed}">`
         + fits.map((it, k) => {
             const mine = from + k;
-            const next = k + 1 < fits.length ? mine + 1 : (counted ? moreAt : STOPS);
-            return evtHtml(it, at(mine, next - mine));
+            const last = k + 1 >= fits.length;
+            // THE LAST ENTRY TAKES THE WHITE PAPER AFTER IT (Alan, on his
+            // 10 February: "why is SweMa Dress clipped when there is white
+            // real estate after it?"). The count hangs at the right edge of the
+            // row, not on a stop, so everything up to it is free — and the
+            // entry was keeping to one stop's width anyway and clipping inside
+            // it. It runs to the count now, less the room the count needs.
+            const atEdge = counted && moreAt >= STOPS - 1;
+            const next = last ? (counted && !atEdge ? moreAt : STOPS) : mine + 1;
+            const trim = last && atEdge ? 2.6 : 0;
+            return evtHtml(it, at(mine, next - mine, trim));
           }).join('')
         // the count is two characters and takes the room they need — a fixed
         // stop's width could only ever cut it, which is what turned "+1" into
