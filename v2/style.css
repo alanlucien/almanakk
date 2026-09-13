@@ -1075,15 +1075,28 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
    right, under the week number — red like a Sunday. */
 .dayview .dsplit {
   display: flex; align-items: baseline; gap: .6em;
-  font-size: 9px; font-style: italic; letter-spacing: .2em;
+  font-size: 9px; letter-spacing: .2em;
   border-top: 1px solid var(--rule); border-bottom: 0;
   padding: 5px 10px 3px; background: none;
 }
 .dayview .dsplit.first { border-top: 1.5px solid var(--rule-strong); }
-.dayview .dsplit .whol {
-  margin-left: auto; font-size: 11px; font-style: italic; font-weight: 400;
-  letter-spacing: .02em; color: var(--red); text-transform: none; white-space: nowrap;
+
+/* WHAT THE DAY IS, at the right of the first all-day line — immediately under
+   the week number, and in the same place whether or not the day holds an
+   all-day entry (Alan, 14.09). */
+.dayview .dmark { margin-left: auto; display: inline-flex; align-items: baseline; gap: .5em; white-space: nowrap; }
+.dayview .dmarkline { margin: 0; padding: 4px 10px; display: flex; border-bottom: 1px solid var(--rule); }
+.dayview .dmark .whol {
+  font-size: 11px; font-style: italic; font-weight: 400;
+  letter-spacing: .02em; color: var(--red); white-space: nowrap;
 }
+/* the moon: the black is the dark part of the disc, the old almanac drawing */
+.dmoon, .wmoon { font-style: normal; font-size: 11px; color: var(--ink-soft); letter-spacing: 0; }
+
+/* the week's holiday, down to the size of the year beside the month */
+.wday h3 .whol { font-size: 10px; letter-spacing: .02em; }
+.wday h3 .wmoon { margin-left: auto; }
+.wday h3 .wmoon + .whol { margin-left: .4em; }
 
 /* a note worth opening says so — the almanac's own footnote mark, and nothing
    more than that */

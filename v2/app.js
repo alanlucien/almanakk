@@ -120,6 +120,81 @@ function wgDetailEvents() {
     .sort(detOrder);
 }
 
+// THE MOON, the way a paper almanac has always carried it (Alan, 14.09). Only
+// the four turns are marked — a glyph on every one of 365 days is decoration,
+// not information. The black is the DARK part of the disc, which is the old
+// drawing: a new moon is filled, a full moon is open, and a quarter is halved
+// on the side the light is not.
+//
+// A mean synodic month was the obvious way and it was not good enough: it put
+// February 2026's full moon on the 2nd (it is the 1st, 22:09) and March's new
+// moon on the 18th (it is the 19th). Half a day of error is a wrong DATE about
+// a third of the time, which in a calendar is simply wrong. This is Meeus
+// chapter 49 with its principal periodic terms — minutes of error, so the date
+// is right. Phases are computed once per year and looked up by date.
+const MOON = [
+  { g: '\u25cf', no: 'Nymåne', en: 'New moon' },
+  { g: '\u25d0', no: 'Første kvarter', en: 'First quarter' },
+  { g: '\u25cb', no: 'Fullmåne', en: 'Full moon' },
+  { g: '\u25d1', no: 'Siste kvarter', en: 'Last quarter' },
+];
+const RAD = Math.PI / 180;
+const sin = a => Math.sin(a * RAD), cos = a => Math.cos(a * RAD);
+
+// Julian Ephemeris Day of the phase `q` (0 new, 1 first, 2 full, 3 last) for
+// lunation k, counted from the new moon of 6 January 2000.
+function phaseJDE(k, q) {
+  k += q / 4;
+  const T = k / 1236.85, T2 = T * T, T3 = T2 * T, T4 = T3 * T;
+  let jde = 2451550.09766 + 29.530588861 * k + 0.00015437 * T2 - 0.00000015 * T3 + 0.00000000073 * T4;
+  const E = 1 - 0.002516 * T - 0.0000074 * T2;
+  const M = 2.5534 + 29.1053567 * k - 0.0000014 * T2 - 0.00000011 * T3;          // sun
+  const M1 = 201.5643 + 385.81693528 * k + 0.0107582 * T2 + 0.00001238 * T3 - 0.000000058 * T4;  // moon
+  const F = 160.7108 + 390.67050284 * k - 0.0016118 * T2 - 0.00000227 * T3 + 0.000000011 * T4;
+  const O = 124.7746 - 1.56375588 * k + 0.0020672 * T2 + 0.00000215 * T3;
+  if (q === 0 || q === 2) {
+    const a = q === 0 ? -0.4072 : -0.40614, b = q === 0 ? 0.17241 : 0.17302,
+          c = q === 0 ? 0.01608 : 0.01614, d = q === 0 ? 0.01039 : 0.01043,
+          e = q === 0 ? 0.00739 : 0.00734;
+    jde += a * sin(M1) + b * E * sin(M) + c * sin(2 * M1) + d * sin(2 * F)
+      + e * E * sin(M1 - M) - 0.00514 * E * sin(M1 + M) + 0.00208 * E * E * sin(2 * M)
+      - 0.00111 * sin(M1 - 2 * F) - 0.00057 * sin(M1 + 2 * F) + 0.00056 * E * sin(2 * M1 + M)
+      - 0.00042 * sin(3 * M1) + 0.00042 * E * sin(M + 2 * F) + 0.00038 * E * sin(M - 2 * F)
+      - 0.00024 * E * sin(2 * M1 - M) - 0.00017 * sin(O) - 0.00007 * sin(M1 + 2 * M);
+  } else {
+    jde += -0.62801 * sin(M1) + 0.17172 * E * sin(M) - 0.01183 * E * sin(M1 + M)
+      + 0.00862 * sin(2 * M1) + 0.00804 * sin(2 * F) + 0.00454 * E * sin(M1 - M)
+      + 0.00204 * E * E * sin(2 * M) - 0.0018 * sin(M1 - 2 * F) - 0.0007 * sin(M1 + 2 * F)
+      - 0.0004 * sin(3 * M1) - 0.00034 * E * sin(2 * M1 - M) + 0.00032 * E * sin(M + 2 * F)
+      + 0.00032 * E * sin(M - 2 * F) - 0.00028 * E * E * sin(M1 + 2 * M) + 0.00027 * E * sin(2 * M1 + M)
+      - 0.00017 * sin(O);
+    const W = 0.00306 - 0.00038 * E * cos(M) + 0.00026 * cos(M1)
+      - 0.00002 * cos(M1 - M) + 0.00002 * cos(M1 + M) + 0.00002 * cos(2 * F);
+    jde += q === 1 ? W : -W;
+  }
+  return jde;
+}
+
+// every turn in a year, as { 'YYYY-MM-DD': MOON[q] }, worked out once
+const moonCache = {};
+function moonYear(y) {
+  if (moonCache[y]) return moonCache[y];
+  const map = {};
+  const k0 = Math.floor((y - 2000) * 12.3685) - 1;
+  for (let k = k0; k < k0 + 15; k++) {
+    for (let q = 0; q < 4; q++) {
+      // JDE is dynamical time; ΔT is about a minute this century, far inside a
+      // date. JD 2440587.5 is the Unix epoch.
+      const ms = (phaseJDE(k, q) - 2440587.5) * 86400000;
+      const key = fmt(new Date(ms));            // his own local date, as everywhere else
+      if (key.slice(0, 4) === String(y)) map[key] = MOON[q];
+    }
+  }
+  moonCache[y] = map;
+  return map;
+}
+function moonTurn(ds) { return moonYear(Number(ds.slice(0, 4)))[ds] || null; }
+
 /* ---------- date helpers (string keys, no timezone traps) ---------- */
 
 function fmt(d) {
@@ -1760,7 +1835,7 @@ function renderDayEl(ds) {
       || (a.end > a.start ? -1 : 1) - (b.end > b.start ? -1 : 1));
   const timed = here.filter(e => e.end === e.start && effTime(e))
     .sort((a, b) => (effTime(a) < effTime(b) ? -1 : effTime(a) > effTime(b) ? 1 : 0));
-  const row = (e, allday) => {
+  const row = (e, allday, mark) => {
     const open = e.id === 'new' || String(e.id) === String(state.openEvent);
     const span = e.end > e.start;
     if (!open) {
@@ -1770,7 +1845,7 @@ function renderDayEl(ds) {
         + `<span class="wn" style="color:${evInk(e)}">${esc(deco(e.title))}`
         + (hasNote(e) ? '<i class="notemark" title="Notat">∗</i>' : '') + '</span>'
         + (span ? `<span class="wr">${esc(shortRange(e.start, e.end))}</span>` : '')
-        + '</p>';
+        + (mark || '') + '</p>';
     }
     return `<form class="dedit" data-eid="${e.id}">`
       + `<label>${L().fTitle}<input name="title" type="text" value="${esc(e.title)}"></label>`
@@ -1851,14 +1926,24 @@ function renderDayEl(ds) {
     // THE HOLIDAY SITS UNDER THE WEEK NUMBER (Alan, 14.09), on the first band's
     // own line rather than crowding the heading — where it also has the room to
     // be read in full.
-    return `<p class="dsplit ${i ? '' : 'first'}">${L()[b.key]}`
-      + (i === 0 && h ? `<span class="whol">${esc(h.name)}</span>` : '') + '</p>'
+    return `<p class="dsplit ${i ? '' : 'first'}">${L()[b.key]}</p>`
       + lines
       // an empty band keeps three lines, a used one keeps one after the last
       // entry — so the page is always a page, and the evening is always down it
       + '<p class="wblank"></p>'.repeat(mine.length ? 1 : 3);
   }).join('');
-  const rows = allDay.map(e => row(e, true)).join('')
+  // WHAT THE DAY IS, not what is in it: the holiday and the moon's turn sit
+  // immediately under the week number, at the right of the first all-day line
+  // (Alan, 14.09). With nothing all-day that day they keep a thin line of their
+  // own in the same place, so they never move.
+  const moon = moonTurn(ds);
+  const mark = (h || moon)
+    ? '<span class="dmark">'
+      + (h ? `<span class="whol">${esc(h.name)}</span>` : '')
+      + (moon ? `<span class="dmoon" title="${esc(moon[state.lang === 'en' ? 'en' : 'no'])}">${moon.g}</span>` : '')
+      + '</span>' : '';
+  const allDayRows = allDay.map((e, i) => row(e, true, i === 0 ? mark : ''));
+  const rows = (allDayRows.length ? allDayRows.join('') : (mark ? `<p class="dmarkline">${mark}</p>` : ''))
     + timedRows
     + (draft ? row({
         id: 'new', title: draft.title, start: draft.start, end: draft.end,
@@ -2003,6 +2088,9 @@ function renderWeekEl(ds) {
     days += `<section class="wday ${free ? 'free' : ''} ${red ? 'red' : ''} ${key === todayStr ? 'today' : ''}`
       + `${key === state.weekDay ? ' picked' : ''}" data-idx="${i}" data-date="${key}">`
       + `<h3><span class="wnum">${d.getDate()}</span> <span class="wname">${L().wdLong[i]}</span>`
+      // the moon's turn and the day's name for it, together at the right
+      + (() => { const mo = moonTurn(key); return mo
+          ? `<span class="wmoon" title="${esc(mo[state.lang === 'en' ? 'en' : 'no'])}">${mo.g}</span>` : ''; })()
       + (h ? `<span class="whol">${esc(h.name)}</span>` : '') + headNames + '</h3>'
       + heads + lines + '<p class="wblank"></p>'.repeat(blanks)
       + '</section>';
