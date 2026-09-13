@@ -2166,6 +2166,16 @@ function renderMonthEl(y, m) {
     let firstFree = 0;
     while (firstFree < nOwn && ownEvs[firstFree]) firstFree++;
     let lineStartEm = laneLeft(firstFree);
+    // AND IF THAT LANDS ON A BANNER, PAST IT (Alan's 27 September: "Modellmøte"
+    // written across "ANTIGONE Paris"). When his own bands fill every lane up
+    // to the tour's, the first lane free of HIS work is the tour's own — so his
+    // line began exactly where the banner begins and was drawn over its name.
+    // There is nowhere to the left to go on a row that full, so it goes past.
+    for (let i2 = 0; i2 < laneEvs.length; i2++) {
+      if (!laneEvs[i2]) continue;
+      const l2 = laneLeft(i2), r2 = l2 + (laneW[i2] || laneEm[i2]);
+      if (lineStartEm >= l2 - 0.01 && lineStartEm < r2) lineStartEm = r2;
+    }
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       const showLabel = labelledAt(ev);
