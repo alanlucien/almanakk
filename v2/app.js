@@ -542,7 +542,10 @@ function buildFlightIndex() {
     const marker = cityMarker(ev.title);
     const dest = marker || flightDest(ev.title);
     // evId/marker let a tap on the city find the event that put it there
-    if (dest) flights.push({ date: ev.start, time: ev.time || '99', dest, tbc: isTbc(ev), marker: !!marker, evId: ev.id });
+    // PENCILLED IS TENTATIVE, and a flight is where that matters most (Alan,
+    // 14.09). "tbc" in the title has said this since August; a P in the notes
+    // says the same thing about any event, so it counts the same here.
+    if (dest) flights.push({ date: ev.start, time: ev.time || '99', dest, tbc: isTbc(ev) || isPencil(ev), marker: !!marker, evId: ev.id });
   }
   // Date first. Within a day a BOOKING outranks a PLAN — "-Roma tbc" is a guess
   // and a real flight that day replaces it — then by time, so the last leg of a
@@ -1704,7 +1707,7 @@ function renderMonthEl(y, m) {
     // "where am I"; on the day you move it should answer "where am I going".
     // Codes only — the column is narrow — and the journey then leaves the day
     // line, which is where the crowding was. A holiday still wins the cell.
-    let journeyTxt = '', journeyAlone = false, journeyShort = '', journeyTiny = '';
+    let journeyTxt = '', journeyAlone = false, journeyShort = '', journeyTiny = '', jTbc = false;
     // A MONDAY FLIGHT SHARES THE CELL (Alan, 12.09): the journey goes where
     // every other journey goes, and the week keeps its NUMBER, losing only the
     // word "uke" — "Oslo → Bangkok 9". Monday still never gives its week away;
@@ -1718,14 +1721,15 @@ function renderMonthEl(y, m) {
         // the empty line; sharing the day, just the arrow and where you land —
         // and the arrow grows, so it still reads as a move (Alan, 12.09).
         const wk = wi === 0 ? ' <span class="wknum">' + isoWeek(d) + '</span>' : '';
+        jTbc = isTbc(own[0].e) || isPencil(own[0].e);
         // narrowest reading of all, for a phone: the code, never the week
-        journeyTiny = '<span class="arw big">\u2192</span> ' + esc(cityCode(legs[legs.length - 1])) + wk;
-        journeyShort = '<span class="arw big">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1])) + wk;
+        journeyTiny = '<span class="arw big">\u2192</span> ' + esc(cityCode(legs[legs.length - 1])) + (jTbc ? '?' : '') + wk;
+        journeyShort = '<span class="arw big">\u2192</span> ' + esc(cityLabel(legs[legs.length - 1])) + (jTbc ? '?' : '') + wk;
         // ONE RULE FOR THE TWO READINGS (Alan lost track of it, 12.09, fairly):
         // it says the whole trip whenever the whole trip fits, and drops to the
         // arrow and where you land when it does not. Nothing else decides it.
         journeyTxt = esc(cityLabel(legs[0])) + ' <span class="arw">\u2192</span> '
-          + esc(cityLabel(legs[legs.length - 1])) + wk;
+          + esc(cityLabel(legs[legs.length - 1])) + (jTbc ? '?' : '') + wk;
         journeyAlone = true;
       }
     }
@@ -1741,9 +1745,9 @@ function renderMonthEl(y, m) {
     const info = h
       ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="${h.red ? 'red' : ''} ${hlen > 11 ? 'long' : ''} ${hlen > 15 ? 'xlong' : ''}">${esc(h.name)}${shareWk}</span></span>`
       : journeyTxt
-        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey ${journeyAlone ? 'wide' : ''}" data-short="${esc(journeyShort)}" data-tiny="${esc(journeyTiny)}">${journeyTxt}</span></span>`
+        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey ${journeyAlone ? 'wide' : ''} ${jTbc ? 'tbc' : ''}" data-short="${esc(journeyShort)}" data-tiny="${esc(journeyTiny)}">${journeyTxt}</span></span>`
       : cityTxt
-        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}">${esc(cityTxt)}</span></span>`
+        ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty ${cityTxt.length > 8 ? 'long' : ''} ${cityTbc ? 'tbc' : ''}">${esc(cityTxt)}${cityTbc ? '?' : ''}</span></span>`
         : (wi === 0 ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}">${L().week} ${isoWeek(d)}</span>`
                     : `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"></span>`);
     // EVENING VARIANT (preview, ?kveld=1 — Alan, 12.09). His idea was a time
