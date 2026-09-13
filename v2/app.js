@@ -24,7 +24,8 @@ const LANGS = {
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     needTitle: 'Skriv en tittel først.', movedTo: 'Flyttet til',
-    saving: 'Lagrer…', deleting: 'Sletter…',
+    saving: 'Lagrer…', deleting: 'Sletter…', pencil: 'Blyant',
+    morning: 'Morgen', afternoon: 'Ettermiddag', evening: 'Kveld',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender', savedIn: 'Lagret i', goesTo: 'Ny hendelse →',
     cityHint: 'Trykk for å planlegge en reise', cityAsk: 'Skriv bynavnet — lagres som «→ By»',
     cityPlanAsk: 'Planlagt reise — lagres som «→ By tbc» til en flybillett dukker opp', cityPh: 'By',
@@ -46,7 +47,8 @@ const LANGS = {
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     needTitle: 'Give it a title first.', movedTo: 'Moved to',
-    saving: 'Saving…', deleting: 'Deleting…',
+    saving: 'Saving…', deleting: 'Deleting…', pencil: 'Pencilled',
+    morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar', savedIn: 'Saved to', goesTo: 'New event →',
     cityHint: 'Tap to plan a move', cityAsk: 'Type the city — saved as "→ City"',
     cityPlanAsk: 'Planned move — saved as "→ City tbc" until a booking turns up', cityPh: 'City',
@@ -319,6 +321,15 @@ function compactTitle(e) {
 }
 function evInk(e) { return isShow(e) ? 'var(--red)' : inkColor(e.color); }
 const isTbc = ev => /\btbc\b/i.test(ev.title);
+// PENCILLED (decided 03.09): a line holding nothing but P, first in the notes.
+// Not a colour — that was tried and rejected, because his other clients throw
+// event colours away and show the calendar's instead. Not a local flag either:
+// the mark has to travel to his phone and his laptop, so it lives in the event.
+const isPencil = ev => /^P[ \t]*(\n|$)/.test(ev.notes || '');
+const withoutPencil = n => (n || '').replace(/^P[ \t]*\r?\n?/, '').replace(/^\r?\n/, '');
+const withPencil = n => 'P' + (String(n || '').trim() ? '\n\n' + String(n).trim() : '');
+// a note worth opening says so, quietly — the almanac's own footnote mark
+const hasNote = ev => !!withoutPencil(ev.notes).trim();
 
 /* ---------- cities (derived from flight-looking events) ---------- */
 
@@ -801,7 +812,7 @@ function wireDayView() {
         await createEvent({
           title: v('title').trim(), time: v('time').trim(), endTime: v('endtime').trim(),
           start: v('start'), end: v('end'), location: v('location').trim(),
-          notes: v('notes').trim(), colorId: box ? (box.dataset.cid || '') : '',
+          notes: pencilled(form, v('notes')), colorId: box ? (box.dataset.cid || '') : '',
           calId: form.querySelector('.dcal')?.dataset.calid || '',
         });
         state.draft = null;
@@ -826,7 +837,8 @@ function wireDayView() {
         colorId: box ? (box.dataset.cid !== undefined ? box.dataset.cid : (ev.colorId || '')) : '',
         title: v('title').trim(), time: v('time').trim(), endTime: v('endtime').trim(),
         start: v('start'), end: v('end'), moved,
-        location: v('location').trim(), notes: v('notes').trim(),
+        location: v('location').trim(),
+        notes: pencilled(form, v('notes')),
       });
       // the move comes after the patch, so the fields are written to the event
       // where it still is; Google keeps its id, so the move finds it either way
@@ -841,6 +853,14 @@ function wireDayView() {
       delete form.dataset.busy;
     }
   });
+}
+
+// what goes in the notes field: what he wrote, with the pencil mark put back on
+// top of it when the box is ticked
+function pencilled(form, notes) {
+  const on = form.querySelector('[name="pencil"]')?.checked;
+  const body = withoutPencil(notes).trim();
+  return on ? withPencil(body) : body;
 }
 
 // A pressed button says so until the answer comes back, and every other button
@@ -1744,9 +1764,11 @@ function renderDayEl(ds) {
     const open = e.id === 'new' || String(e.id) === String(state.openEvent);
     const span = e.end > e.start;
     if (!open) {
-      return `<p class="dev ${allday ? 'ad' : ''} ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}" data-eid="${e.id}">`
+      return `<p class="dev ${allday ? 'ad' : ''} ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}`
+        + `${isPencil(e) ? ' pencil' : ''}" data-eid="${e.id}">`
         + `<span class="wt">${esc(e.time || '')}</span>`
-        + `<span class="wn" style="color:${evInk(e)}">${esc(deco(e.title))}</span>`
+        + `<span class="wn" style="color:${evInk(e)}">${esc(deco(e.title))}`
+        + (hasNote(e) ? '<i class="notemark" title="Notat">∗</i>' : '') + '</span>'
         + (span ? `<span class="wr">${esc(shortRange(e.start, e.end))}</span>` : '')
         + '</p>';
     }
@@ -1769,7 +1791,13 @@ function renderDayEl(ds) {
       + `<a class="maplink" target="_blank" rel="noopener"`
       + ` href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location || '')}"`
       + `${e.location ? '' : ' hidden'}>${L().onMap}</a></span></label>`
-      + `<label>${L().fNotes}<textarea name="notes" rows="2">${esc(e.notes || '')}</textarea></label>`
+      + `<label>${L().fNotes}<textarea name="notes" rows="2">${esc(withoutPencil(e.notes))}</textarea></label>`
+      // BLYANT (decided 03.09, built 14.09). A tick, not a colour: it writes a
+      // lone P as the first line of the event's notes, which is the one place
+      // that survives every client he opens. The notes box above never shows
+      // it — he ticks the box, the marker is the app's business.
+      + `<label class="dpencil"><input type="checkbox" name="pencil"${isPencil(e) ? ' checked' : ''}>`
+      + `<span>${L().pencil}</span></label>`
       // A COLOUR OF ITS OWN (Alan, 13.09). It is stored on the event in Google,
       // so it follows him to his other devices. Worth knowing, and he already
       // found this out in September: his other calendar clients throw event
@@ -1802,9 +1830,32 @@ function renderDayEl(ds) {
   // event that does not exist yet, rendered by exactly the same builder.
   if (state.draft && state.draft.date !== ds) state.draft = null;
   const draft = state.draft;
+  // THE DAY HAS A SHAPE, NOT JUST A LIST (Alan, 14.09: "so that a lone event on
+  // that day, say a 19:00 show, happens further down the day"). Not an hour
+  // grid — his days come in bursts, so a proportional page would crush the
+  // morning and give the evening half a screen of nothing, and overlapping
+  // events would want the side-by-side columns he has already refused. Three
+  // bands instead: one row per entry as before, but morning, afternoon and
+  // evening each keep their ruled lines whether or not anything is in them. A
+  // show at seven then sits under two quiet bands, which is what a diary page
+  // does, and an empty day is a page you could fill rather than a stub.
+  const BANDS = [
+    { key: 'morning', to: '12:00' },
+    { key: 'afternoon', to: '17:00' },
+    { key: 'evening', to: '99:99' },
+  ];
+  const bandOf = e => BANDS.find(b => (effTime(e) || '00:00') < b.to) || BANDS[2];
+  const timedRows = BANDS.map(b => {
+    const mine = timed.filter(e => bandOf(e) === b);
+    const lines = mine.map(e => row(e, false)).join('');
+    return `<p class="dsplit">${L()[b.key]}</p>`
+      + lines
+      // an empty band keeps three lines, a used one keeps one after the last
+      // entry — so the page is always a page, and the evening is always down it
+      + '<p class="wblank"></p>'.repeat(mine.length ? 1 : 3);
+  }).join('');
   const rows = allDay.map(e => row(e, true)).join('')
-    + (timed.length ? `<p class="dsplit">${L().atTime}</p>` : '')
-    + timed.map(e => row(e, false)).join('')
+    + timedRows
     + (draft ? row({
         id: 'new', title: draft.title, start: draft.start, end: draft.end,
         time: draft.time, endTime: draft.endTime, location: '', notes: '',
@@ -1821,15 +1872,14 @@ function renderDayEl(ds) {
     + `<h2><span class="dnum ${wi === 6 || (h && h.red) ? 'red' : ''}">${d.getDate()}</span>`
     + `<span class="dname">${L().wdLong[wi]}</span>`
     + `<small>${L().months[d.getMonth()]} ${d.getFullYear()}</small>`
-    + (h ? `<span class="whol">${esc(h.name)}</span>` : '')
     + (dcity ? `<span class="wcity ${dcity.length <= 7 ? 'short' : ''}">${esc(dcity)}</span>` : '')
+    + (h ? `<span class="whol">${esc(h.name)}</span>` : '')
     + `<span class="wkno">${L().week} ${isoWeek(d)}</span></h2>`
     // A PAGE YOU CAN WRITE ON (Alan, 14.09: "when a day has no event there
     // should at least be one box to click in"). An unused day had a single
     // hairline and read as broken paper; it now keeps the diary's ruling, and
     // any line of it opens the entry.
     + rows
-    + '<p class="wblank"></p>'.repeat(rows ? 1 : 4)
     + '</section>';
 }
 

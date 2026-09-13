@@ -1061,3 +1061,47 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 /* the tour's entries in the week, told apart the way they are in the day */
 .week .wev.wg .wn, .week .wev.wg .wr,
 .wday > h3 .wspanname.wg, .week .wspan.wg .wn { font-style: italic; }
+
+/* THE DAY HAS A SHAPE. Three bands — morning, afternoon, evening — each keeping
+   its ruled lines whether or not anything is in them, so a show at seven sits
+   down the page under two quiet ones (Alan, 14.09). */
+.dayview .dsplit + .wblank { border-top: 0; }
+.dayview .dband-empty { opacity: .85; }
+
+/* the holiday: red like a Sunday, and small as a date range */
+.dayview > h2 .whol {
+  margin-left: .9em; font-size: 11px; font-style: italic; font-weight: 400;
+  color: var(--red); letter-spacing: .02em; white-space: nowrap;
+}
+
+/* a note worth opening says so — the almanac's own footnote mark, and nothing
+   more than that */
+.dayview .notemark {
+  font-style: normal; color: var(--muted); font-size: 12px;
+  margin-left: .45em; vertical-align: .15em; opacity: .8;
+}
+
+/* PENCILLED: what you would have written in pencil, and can rub out */
+.dayview .dev.pencil .wn, .dayview .dev.pencil .wt, .dayview .dev.pencil .wr { color: var(--muted) !important; }
+.dayview .dev.pencil .wn { font-weight: 400; }
+.dayview .dedit .dpencil {
+  display: flex; align-items: center; gap: .5em; margin: 2px 0 10px;
+  font-size: 11px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase;
+}
+.dayview .dedit .dpencil input { width: auto; display: inline-block; margin: 0; }
+
+/* THE DAY'S HEADING HAS SIX THINGS IN IT and a holiday makes seven, so on a
+   phone "uke 13" was being pushed off the paper. The month and the holiday give
+   way first — the header above the sheet already says the month, and a clipped
+   holiday still reads — while the date, the weekday and the week number keep
+   their full width. */
+.dayview > h2 small, .dayview > h2 .whol { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.dayview > h2 .wcity { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 430px) {
+  /* on a phone the month is said twice: the sticky header above the sheet
+     already reads "29. MARS 2026". Dropping it here is worth about 75px, and
+     with a holiday AND a city on the line that is the difference between three
+     things clipping and none. */
+  .dayview > h2 small { display: none; }
+  .dayview > h2 .whol { margin-left: .5em; }
+}
