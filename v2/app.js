@@ -148,8 +148,14 @@ function stripClock(t) {
   return out || t;
 }
 
+// ?view=month|quarter|year|week|day — which sheet to open on. The verification
+// loop for this app runs in the iOS simulators, where there is no console to set
+// state from and no way to reach a button except by tapping a rotated screenshot;
+// a view in the URL is how a build gets checked on both devices without Alan.
+// Same family as ?v3=0, ?split, ?demo and ?band=column.
+const VIEW_ARG = (location.search.match(/[?&]view=(month|quarter|year|week|day)\b/) || [])[1];
 const state = {
-  view: window.innerWidth < 700 ? 'month' : 'year',
+  view: VIEW_ARG || (window.innerWidth < 700 ? 'month' : 'year'),
   year: new Date().getFullYear(),
   month: new Date().getMonth(), // 0-based, for month view
   events: [],      // {id, title, start, end (inclusive 'YYYY-MM-DD'), color, time?, gid?, calId?, src?}
