@@ -2296,8 +2296,11 @@ $('#app').addEventListener('click', e => {
             state.year = anchor.getFullYear(); state.month = anchor.getMonth();
             state.view = 'month'; render(); return;
           }
-          if (ev) { openDay(date, ev.id); return; }   // an event: open it to edit
-          state.view = 'year'; render();              // otherwise: up to the year
+          // TWO TAPS IN THE MONTH GO STRAIGHT TO THAT DAY (Alan, 13.09),
+          // whether you hit an event or empty paper. The year is reached from
+          // the month's own name or from the year in the header, so the double
+          // tap does not need to carry that too.
+          openDay(date, ev ? ev.id : null);
         },
       );
       return;
