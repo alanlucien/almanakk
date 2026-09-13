@@ -2401,16 +2401,30 @@ function renderMonthEl(y, m) {
       // the bands reach past the stops there is no stop left to use, so that
       // ONE row gives up the grid and flows after them, which is what every row
       // did before. A row off the grid is better than a row over a banner.
+      // THE STOPS STOP AT THE BANNER (Alan's 1 March on 16z: three of his
+      // entries and "ANTIGONE Hong Kong" all written over each other). Capping
+      // each entry's WIDTH only helped the ones that begin before the banner —
+      // an entry whose stop is already inside it was never asked. The row uses
+      // the stops in front of the banner and counts the rest.
+      const px = laneBox.px || 12;
+      let edgePx = Infinity;
+      for (let i2 = 0; i2 < laneEvs.length; i2++) {
+        if (!laneEvs[i2]) continue;
+        const x = laneLeft(i2) * px;
+        if (x >= lineStartEm * px - 0.5) { edgePx = x; break; }
+      }
+      const lastStop = edgePx === Infinity ? STOPS
+        : Math.max(1, Math.min(STOPS, Math.round(edgePx / stopPx)));
       const from = Math.max(0, Math.ceil((lineStartEm - 0.01) / stopEm));
-      const onGrid = from <= STOPS - 1;
+      const onGrid = from <= lastStop - 1;
       // THE COUNT NEEDS A STOP OF ITS OWN, or it is placed on the same stop as
       // the entry it is counting and the two are written over each other.
-      const room = Math.max(1, STOPS - from);
+      const room = Math.max(1, lastStop - from);
       let fits = shown.slice(0, room);
       let over = shown.length - fits.length;
       if (over > 0 && fits.length > 1) { fits = shown.slice(0, room - 1); over = shown.length - fits.length; }
       const moreAt = from + fits.length;
-      const counted = over > 0 && moreAt <= STOPS - 1;
+      const counted = over > 0 && moreAt <= lastStop - 1;
       // EACH STOP IS PLACED, NOT ASKED FOR. A grid column is a request the
       // browser answers with its own auto-placement, and one row in six was
       // coming back in a different place than the column it had been given. A
@@ -2425,12 +2439,7 @@ function renderMonthEl(y, m) {
       // WHERE A BANNER STANDS, HIS WRITING STOPS. His line keeps the left even
       // when a tour banner is on the row — but an entry long enough to reach
       // the banner must end before it, not be written across its name.
-      let bandEdgePx = Infinity;
-      for (let i2 = 0; i2 < laneEvs.length; i2++) {
-        if (!laneEvs[i2]) continue;
-        const x = laneLeft(i2) * (laneBox.px || 12);
-        if (x >= lineStartEm * (laneBox.px || 12) - 0.5) { bandEdgePx = x; break; }
-      }
+      const bandEdgePx = edgePx;
       const at = (k, span, trimEm) => {
         const l = k * stopPx;
         let w = Math.max(1, span) * stopPx - (trimEm || 0) * (laneBox.px || 12);
@@ -2473,8 +2482,8 @@ function renderMonthEl(y, m) {
             // row, not on a stop, so everything up to it is free — and the
             // entry was keeping to one stop's width anyway and clipping inside
             // it. It runs to the count now, less the room the count needs.
-            const atEdge = counted && moreAt >= STOPS - 1;
-            const next = last ? (counted && !atEdge ? moreAt : STOPS) : mine + 1;
+            const atEdge = counted && moreAt >= lastStop - 1;
+            const next = last ? (counted && !atEdge ? moreAt : lastStop) : mine + 1;
             const trim = last && atEdge ? 2.6 : 0;
             return evtHtml(it, at(mine, next - mine, trim));
           }).join('')
@@ -2484,7 +2493,7 @@ function renderMonthEl(y, m) {
         // the last stop can end at the very edge of a narrow sheet, and a count
         // placed there is clipped to "+". At the last stop it hangs off the
         // right edge instead, where there is always room for two characters.
-        + (counted ? `<b class="more" style="${moreAt >= STOPS - 1 ? 'right:0' : `left:${(moreAt * stopPx).toFixed(2)}px`}">+${over}</b>` : '')
+        + (counted ? `<b class="more" style="${(moreAt >= lastStop - 1 && lastStop >= STOPS) ? 'right:0' : `left:${(moreAt * stopPx).toFixed(2)}px`}">+${over}</b>` : '')
         + '</span>';
     }
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
