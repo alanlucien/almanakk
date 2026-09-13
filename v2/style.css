@@ -1241,15 +1241,22 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
   /* THE THREE VIEWS, BACK AS BUTTONS (Alan, 14.09). Quiet — the titles still
      climb and the year still opens the year; these are a shortcut, not a
      replacement, so they sit as a set of small tabs rather than as chrome. */
-  #views { display: inline-flex; margin-left: 14px; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+  /* ONE BUTTON, NOT THREE (Alan, 14.09): it says the view you are in and takes
+     you to the next one. A set of three was a row of chrome for a thing the
+     titles already do. */
+  #views { display: inline-flex; margin-left: 16px; }
   #views button {
-    border: 0; border-right: 1px solid var(--rule); background: none;
-    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
-    color: var(--muted); padding: 4px 9px; cursor: pointer;
+    border: 1px solid var(--rule); border-radius: 3px; background: none;
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); padding: 4px 12px; cursor: pointer; min-width: 6.2em;
   }
-  #views button:last-child { border-right: 0; }
-  #views button:hover { color: var(--ink); }
-  #views button.on { background: var(--ink); color: var(--card); }
+  #views button:hover { border-color: var(--rule-strong); color: var(--ink); }
+
+  /* THE YEAR IS BIGGER ON A DESK (Alan, 14.09). It carries the colour that says
+     which year he is in, and at 12px it was a footnote on a screen with room. */
+  /* (header #period-year, not #period-year: an earlier rule carries the element
+     as well as the id, and would otherwise win) */
+  header #period-year { font-size: 17px; letter-spacing: .1em; }
 
   /* PRINT AND LANGUAGE ARE SYMBOLS (Alan, 14.09) — the row is for setting
      things once, and two words of it were saying what a glyph says. */
@@ -1268,14 +1275,15 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 @media (min-width: 600px) and (max-width: 999px) {
   main.strip { padding: 12px 0 18px; }
   .strip .month {
-    max-width: min(780px, calc(100% - 36px));
+    /* a little narrower again (Alan, 14.09) — a page, not a poster */
+    max-width: min(700px, calc(100% - 56px));
     border-left: 1.5px solid var(--rule-strong);
     border-right: 1.5px solid var(--rule-strong);
     min-height: calc(100% - 30px);
   }
   /* the week and the day sit on the same page as the month does */
   #app.weekview, #app.dayviewwrap { padding-left: 18px; padding-right: 18px; }
-  #app.weekview .week, #app.dayviewwrap .dayview { max-width: 780px; margin: 0 auto; }
+  #app.weekview .week, #app.dayviewwrap .dayview { max-width: 700px; margin: 0 auto; }
 }
 
 /* THE RED RULE (Alan's own Almanakkforlaget sheet, 14.09). It runs down the
@@ -1287,3 +1295,50 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 .day .canvas { box-shadow: inset 1.5px 0 0 var(--red); }
 /* (a day whose line runs full width moves its canvas to another grid column but
    starts at the same x, so it needs no exception — measured before assuming) */
+
+
+/* ---------- a tablet's header ---------- */
+@media (min-width: 600px) and (max-width: 999px) {
+  /* the week and the year carry the page; at a phone's size they were a
+     caption on a screen with room (Alan, 14.09) */
+  header #period-label { font-size: 23px; }
+  header #period-year { font-size: 15px; }
+  /* and the app's own name comes in off the edge, the way the sheet does */
+  header { padding-left: 28px; padding-right: 22px; }
+  /* print and language are glyphs beside the dots, not words in the menu */
+  header nav > #print, header nav > #lang-chip { padding: 4px 8px; }
+  header nav > #print .btxt, header nav > #lang-chip .btxt { display: none; }
+}
+
+/* THE HEADER GETS OUT OF THE WAY on the way down the page, and comes back the
+   moment he moves up (Alan, 14.09). */
+header { transition: transform .18s ease; will-change: transform; }
+header.hid { transform: translateY(-100%); }
+
+/* ---------- the header sits on the same measure as the page ---------- */
+/* THE HEADER WAS WIDER THAN THE CALENDAR (Alan, 14.09, from his iPad in
+   landscape): the page is a centred measure and the header ran edge to edge, so
+   ALMANAKK sat far left of the sheet and 2026 was pushed off the right of the
+   screen entirely. One measure now decides both, and the right-hand group can
+   shrink — without min-width:0 a grid column will not go below its contents,
+   which is what was pushing the year off the edge rather than tightening. */
+@media (min-width: 1000px) {
+  /* width:100% as well as max-width — body is a column flex container, and
+     `margin: 0 auto` on a flex item centres it at its CONTENT width instead of
+     stretching it, which collapsed the whole quarter to 488px */
+  #app.quarter-wrap, #app.pairview { width: 100%; max-width: 1160px; margin-inline: auto; }
+  .pair { width: 100%; }
+  header { padding-inline: max(16px, calc((100vw - 1160px) / 2 + 14px)); }
+  header nav:last-of-type { min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
+  header nav:last-of-type > * { flex: 0 0 auto; }
+}
+/* an iPad in landscape has a desk's layout on a tablet's width, so the row of
+   controls tightens rather than overflowing */
+@media (min-width: 1000px) and (max-width: 1250px) {
+  header { gap: 8px; }
+  header nav { gap: 5px; }
+  #views { margin-left: 8px; }
+  #views button { min-width: 5.4em; padding: 4px 8px; }
+  #tour-chip { font-size: 11px; padding: 3px 7px; }
+  header #period-year { font-size: 15px; }
+}

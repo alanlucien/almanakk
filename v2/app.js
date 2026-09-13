@@ -1084,6 +1084,15 @@ function openDay(date, eventId, write) {
   // IN THE SPREAD THE DAY IS A COLUMN, not a place you go: opening one fills
   // the right-hand column and leaves the month and the week where they are.
   const inSpread = SPREAD.matches && state.view === 'week';
+  // THE WEEK GOES WHERE THE DAY GOES (found from his screenshot, 14.09: a
+  // flight opened from a city in the quarter showed 30 January beside the week
+  // of 16 March). Every caller that jumps to a date — the city that opens the
+  // flight behind it, most of all — used to move the day and leave the week
+  // wherever it had been. It is fixed here rather than at each call, because
+  // the rule is simply that the two must agree.
+  const wk = fmt(mondayOf(date));
+  if (fmt(mondayOf(state.weekOf || date)) !== wk) state.weekOf = wk;
+  state.weekDay = date;
   state.dayOf = date;
   // an id of 0 is an id: `|| null` threw the first event of a set away
   state.openEvent = eventId === undefined || eventId === '' ? null : eventId;
@@ -2327,8 +2336,7 @@ function render(group) {
   wireDayView();
   $('#period-label').classList.toggle('isyear', state.view === 'year');
   // the set says which of the three you are in; a day counts as its week
-  $('#views').querySelectorAll('button').forEach(b => b.classList.toggle('on',
-    b.dataset.view === (state.view === 'day' ? 'week' : state.view)));
+  $('#views').querySelector('button').textContent = L()[state.view === 'day' ? 'week' : state.view];
   // A YEAR HAS A COLOUR, so he never has to read it to know it (Alan, 14.09:
   // green, yellow, red, "you suggest onwards"). Five, then it repeats — long
   // enough that two years on the screen are never the same colour, short enough
@@ -2357,9 +2365,30 @@ function render(group) {
   updateChips();
 }
 
+// THE HEADER GETS OUT OF THE WAY (Alan, 14.09, from his iPad). Reading down a
+// month it is 50px of chrome over the thing he came to read; on the way back up
+// it is what he wants. So: gone when he moves down the page, back the moment he
+// moves up, and always there at the top. Only where the page actually scrolls —
+// with nothing to scroll there is no gesture to answer, and a header that hid
+// itself with no way back would be a trap.
+function wireHeaderHide() {
+  const hdr = document.querySelector('header');
+  let last = 0;
+  const onScroll = el => {
+    const y = el.scrollTop !== undefined ? el.scrollTop : window.scrollY;
+    if (y <= 8) hdr.classList.remove('hid');
+    else if (y > last + 6) hdr.classList.add('hid');
+    else if (y < last - 6) hdr.classList.remove('hid');
+    last = y;
+  };
+  $('#app').addEventListener('scroll', e => onScroll(e.target), { passive: true });
+  window.addEventListener('scroll', () => onScroll(document.documentElement), { passive: true });
+}
+wireHeaderHide();
+
 function applyLang() {
   $('#print').querySelector('.btxt').textContent = L().print;
-  $('#views').querySelectorAll('button').forEach(b => { b.textContent = L()[b.dataset.view]; });
+  $('#views').querySelector('button').textContent = L()[state.view === 'day' ? 'week' : state.view];
   $('#signin').textContent = L().signin;
   $('#cal-picker summary').textContent = L().cals;
 }
@@ -2728,7 +2757,7 @@ function step(dir) {
     return;
   }
   if (state.view === 'year') {
-    state.year += dir;
+    state.year += dir * 2;          // two at a time (Alan, 14.09)
   } else {
     state.month += dir;
     if (state.month < 0) { state.month = 11; state.year--; }
@@ -2770,12 +2799,28 @@ const moreMenu = $('#more');
 // (SPREAD is the same query the layout uses, declared with render() above —
 // one width decides both, and a const used before its declaration is the
 // mistake that has cost this file three evenings.)
+// WHERE PRINT AND SPRÅK LIVE (Alan, 14.09, from his iPad: "give me the buttons
+// for print and language top right next to ellipsis"). They are the same two
+// elements wherever they are — moved, never duplicated, because two copies of a
+// control is two things to keep in step. A narrow phone keeps them in the menu,
+// where a name is worth more than a glyph.
+const ROOMY = window.matchMedia('(min-width: 600px)');
+function placeChips() {
+  const nav = moreMenu.parentElement, list = $('#more-list');
+  [$('#print'), $('#lang-chip')].forEach(el => {
+    if (ROOMY.matches) nav.insertBefore(el, moreMenu);
+    else list.insertBefore(el, $('#cal-picker'));
+  });
+}
+ROOMY.addEventListener('change', placeChips);
+
 const shutMore = () => { if (!SPREAD.matches) moreMenu.open = false; };
 // open as a row of controls on a desk, shut as a menu everywhere else — a
 // window dragged narrow must not leave the toolbar hanging over the calendar
 const syncMore = () => { moreMenu.open = SPREAD.matches; };
 SPREAD.addEventListener('change', syncMore);
 syncMore();
+placeChips();
 moreMenu.addEventListener('click', e => { if (e.target.closest('button')) shutMore(); });
 document.addEventListener('click', e => { if (!e.target.closest('#more')) shutMore(); });
 
@@ -2803,11 +2848,14 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'ArrowDown' && state.view !== 'year') { stepYear(-1); e.preventDefault(); }
 });
 
+// ONE BUTTON, NOT THREE (Alan, 14.09). It says the view you are in and takes
+// you to the next one: måned → uke → år → måned.
+const VIEW_CYCLE = { month: 'week', week: 'year', day: 'year', year: 'month' };
 $('#views').addEventListener('click', e => {
-  const b = e.target.closest('button[data-view]');
+  const b = e.target.closest('button');
   if (!b) return;
   e.stopPropagation();
-  const v = b.dataset.view;
+  const v = VIEW_CYCLE[state.view] || 'month';
   const a = parseDate(state.dayOf || state.weekOf || fmt(new Date()));
   if (v === 'month') { state.year = a.getFullYear(); state.month = a.getMonth(); }
   if (v === 'week') { state.weekOf = state.weekDay = state.dayOf = fmt(a); }
