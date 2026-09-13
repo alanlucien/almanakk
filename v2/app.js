@@ -19,6 +19,7 @@ const LANGS = {
     wdLong: ['MANDAG','TIRSDAG','ONSDAG','TORSDAG','FREDAG','LØRDAG','SØNDAG'],
     week: 'uke',
     fTitle: 'Tittel', fTime: 'Klokkeslett', fFrom: 'Fra', fTo: 'Til',
+    fFromClock: 'Fra kl.', fToClock: 'Til kl.',
     fWhere: 'Sted', fNotes: 'Notat', save: 'Lagre', closeEdit: 'Lukk', atTime: 'Klokken', onMap: 'Kart',
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
@@ -38,6 +39,7 @@ const LANGS = {
     wdLong: ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'],
     week: 'wk',
     fTitle: 'Title', fTime: 'Time', fFrom: 'From', fTo: 'To',
+    fFromClock: 'From', fToClock: 'To',
     fWhere: 'Location', fNotes: 'Notes', save: 'Save', closeEdit: 'Close', atTime: 'By the clock', onMap: 'Map',
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
@@ -753,7 +755,7 @@ function wireDayView() {
       const box = form.querySelector('.swatches');
       await saveEvent(ev, {
         colorId: box ? (box.dataset.cid !== undefined ? box.dataset.cid : (ev.colorId || '')) : '',
-        title: v('title').trim(), time: v('time').trim(),
+        title: v('title').trim(), time: v('time').trim(), endTime: v('endtime').trim(),
         start: v('start'), end: v('end'),
         location: v('location').trim(), notes: v('notes').trim(),
       });
@@ -782,11 +784,23 @@ async function saveEvent(ev, f) {
     location: f.location, description: f.notes,
     colorId: f.colorId || null,          // null = back to the calendar's own colour
   };
-  if (f.start && f.end) {
+  // A CLOCK MAKES IT A TIMED EVENT, no clock makes it an all-day one. Google
+  // needs one shape or the other, never both, so the fields are cleared as
+  // well as set — otherwise a timed event keeps a stale date and refuses.
+  const tz = ev.tz || 'Europe/Oslo';
+  if (f.start && f.time) {
+    const endDay = f.end && f.end >= f.start ? f.end : f.start;
+    const endClock = f.endTime || f.time;
+    patch.start = { dateTime: `${f.start}T${f.time}:00`, timeZone: tz, date: null };
+    patch.end = { dateTime: `${endDay}T${endClock}:00`, timeZone: tz, date: null };
+  } else if (f.start && f.end) {
     const next = parseDate(f.end); next.setDate(next.getDate() + 1);
-    patch.start = { date: f.start };
-    patch.end = { date: fmt(next) };
+    patch.start = { date: f.start, dateTime: null, timeZone: null };
+    patch.end = { date: fmt(next), dateTime: null, timeZone: null };
   }
+  // the clock lives in the event's own fields now, so stop repeating it in the
+  // title as the quick-add grammar does
+  patch.summary = f.title;
   await window.gcalUpdateEvent(ev, patch);
 }
 
@@ -1503,7 +1517,8 @@ function renderDayEl(ds) {
     return `<form class="dedit" data-eid="${e.id}">`
       + `<label>${L().fTitle}<input name="title" type="text" value="${esc(e.title)}"></label>`
       + `<div class="drow">`
-      + `<label>${L().fTime}<input name="time" type="text" inputmode="numeric" placeholder="--:--" value="${esc(e.time || '')}"></label>`
+      + `<label>${L().fFromClock}<input name="time" type="time" value="${esc(e.time || '')}"></label>`
+      + `<label>${L().fToClock}<input name="endtime" type="time" value="${esc(e.endTime || '')}"></label>`
       + `<label>${L().fFrom}<input name="start" type="date" value="${esc(e.start)}"></label>`
       + `<label>${L().fTo}<input name="end" type="date" value="${esc(e.end)}"></label>`
       + `</div>`

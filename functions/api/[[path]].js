@@ -84,23 +84,29 @@ async function authCallback(request, env) {
   return Response.redirect(url.origin + '/v2/', 302);
 }
 
-async function proxy(request, env, rest, retried = false) {
+async function proxy(request, env, rest) {
   const url = new URL(request.url);
   const target = new URL(GCAL + rest);
   target.search = url.search;
-  const token = await accessToken(env);
-  const init = { method: request.method, headers: { Authorization: 'Bearer ' + token } };
-  if (!['GET', 'HEAD'].includes(request.method)) {
-    init.headers['content-type'] = request.headers.get('content-type') || 'application/json';
-    init.body = await request.text();
-  }
-  const r = await fetch(target, init);
-  if (r.status === 401 && !retried) {         // token died early: drop it, mint once, retry once
+  // READ THE BODY ONCE. A Request body can only be consumed once, and the 401
+  // retry below used to re-read it — so every write that hit an expired token
+  // was retried with nothing in it, or threw. Deletes and saves after the
+  // token aged out failed for this reason (13.09).
+  const hasBody = !['GET', 'HEAD'].includes(request.method);
+  const body = hasBody ? await request.text() : undefined;
+  const ctype = request.headers.get('content-type') || 'application/json';
+  const send = async token => {
+    const init = { method: request.method, headers: { Authorization: 'Bearer ' + token } };
+    if (hasBody) { init.headers['content-type'] = ctype; init.body = body; }
+    return fetch(target, init);
+  };
+  let r = await send(await accessToken(env));
+  if (r.status === 401) {                      // token died early: drop it, mint once, retry once
     await env.KV.delete(K_ACCESS);
-    return proxy(request, env, rest, true);
+    r = await send(await accessToken(env));
   }
-  const body = await r.text();
-  return new Response(body, { status: r.status, headers: {
+  const out = await r.text();
+  return new Response(out, { status: r.status, headers: {
     'content-type': r.headers.get('content-type') || 'application/json', 'cache-control': 'no-store' } });
 }
 

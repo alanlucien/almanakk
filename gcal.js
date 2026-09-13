@@ -183,7 +183,11 @@
         try { const b = await r.json(); if (b.error) msg = b.error.message || b.error; } catch (e) { /* keep */ }
         throw new Error(msg);
       }
-      return r.json();
+      // a delete answers 204 with no body at all; parsing that as JSON threw
+      // and made a successful delete look like a failure (13.09)
+      if (r.status === 204) return {};
+      const txt = await r.text();
+      return txt ? JSON.parse(txt) : {};
     }
     const url = new URL('https://www.googleapis.com/calendar/v3/' + path);
     for (const [k, v] of Object.entries(params || {})) url.searchParams.set(k, v);
@@ -333,7 +337,11 @@
           // someone else's flight (cc'd itinerary), so it never moves the city pin
           mine.push({ id: id + '/' + ev.id, gid: ev.id, calId: id, title: ev.summary || '(uten tittel)', start, end, time, color: EVENT_COLORS[ev.colorId] || byId[id].color, colorId: ev.colorId || '', fromGmail: ev.eventType === 'fromGmail', home: !!byId[id].primary,
             // the day view edits these, so they have to travel with the event
-            location: ev.location || '', notes: ev.description || '' });
+            location: ev.location || '', notes: ev.description || '',
+            // the day view edits the clock, so the END time and the event's own
+            // zone have to travel with it too (13.09)
+            endTime: (ev.end && ev.end.dateTime || '').slice(11, 16),
+            tz: (ev.start && ev.start.timeZone) || '' });
         }
         pageToken = data.nextPageToken || '';
         if (stale()) return; // a newer tick superseded us mid-fetch: drop everything
