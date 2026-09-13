@@ -541,6 +541,16 @@ function cityLabel(place) {
 
 /* ---------- rendering ---------- */
 
+// SOME TITLES ARRIVE WITH ENTITIES ALREADY IN THEM — "León &amp;amp; Lightfoot"
+// came from Google that way, written by whatever created the event. We escape
+// correctly, so the reader sees the entity. Decoded for DISPLAY only: the edit
+// field still shows what is really stored, because that is what gets saved.
+function deco(s) {
+  return String(s).replace(/&(amp|lt|gt|quot|#0?39|apos|nbsp);/g, (m, e) => ({
+    amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", '#039': "'", apos: "'", nbsp: ' ',
+  })[e] || m);
+}
+
 function esc(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -1351,7 +1361,7 @@ function renderMonthEl(y, m) {
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="left:${laneX}em;width:${w.toFixed(2)}em;`
         + `--w:${w.toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
-        + (txt ? `<b>${esc(txt)}</b>` : '') + '</i>';
+        + (txt ? `<b>${esc(deco(txt))}</b>` : '') + '</i>';
     });
     // ONE wide shared day line: Alan's headline first, shows (any calendar)
     // pinned next, then Alan's items, then wg's dimmed items
@@ -1375,7 +1385,7 @@ function renderMonthEl(y, m) {
       const txt = state.detailed ? (e.time ? e.time + ' ' : '') + e.title
         : (it._legs && it._legs.length > 2 ? journeyLabel(it._legs) : compactTitle(e));
       return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
-        + esc(txt) + '</b>';
+        + esc(deco(txt)) + '</b>';
     };
     // starts where the labels stop — far left on a day with no band label at all
     let movedToInfo = null;
@@ -1514,7 +1524,7 @@ function renderDayEl(ds) {
     if (!open) {
       return `<p class="dev ${allday ? 'ad' : ''} ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}" data-eid="${e.id}">`
         + `<span class="wt">${esc(e.time || '')}</span>`
-        + `<span class="wn" style="color:${evInk(e)}">${esc(e.title)}</span>`
+        + `<span class="wn" style="color:${evInk(e)}">${esc(deco(e.title))}</span>`
         + (span ? `<span class="wr">${esc(e.start)} – ${esc(e.end)}</span>` : '')
         + '</p>';
     }
@@ -1643,7 +1653,7 @@ function renderWeekEl(ds) {
     const starts = startsOn(i);
     const nameSpan = r => `<span class="wspanname ${tour.has(r.e.calId) ? 'wg' : ''} ${isTbc(r.e) ? 'tbc' : ''}"`
       + ` data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane};color:${evInk(r.e)}">`
-      + `${esc(r.e.title)}</span>`;
+      + `${esc(deco(r.e.title))}</span>`;
     // AN ALL-DAY ENTRY BELONGS TO THE DAY (Alan: "is Prøve Vildanden an all-day
     // event? then it should be on the same line as Sunday 20"). It rides the
     // day's own line when no run is starting there to claim it — a run's name
@@ -1652,14 +1662,14 @@ function renderWeekEl(ds) {
     const rider = !starts.length && allDay.length ? allDay[0] : null;
     const headNames = starts.length ? nameSpan(starts[0])
       : rider ? `<span class="wspanname dayrider" data-eid="${rider.id}" data-date="${key}"`
-        + ` style="--lane:0;color:${evInk(rider)}">${esc(rider.title)}</span>` : '';
+        + ` style="--lane:0;color:${evInk(rider)}">${esc(deco(rider.title))}</span>` : '';
     const lines = evs.filter(e => e !== rider).map(e => {
       const span = e.end > e.start;
       const when = e.time ? e.time : (span ? '' : '');
       return `<p class="wev ${tour.has(e.calId) ? 'wg' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'show' : ''}"`
         + ` data-eid="${e.id}" data-date="${key}">`
         + `<span class="wt">${esc(when)}</span>`
-        + `<span class="wn" style="color:${evInk(e)}">${esc(e.title)}</span>`
+        + `<span class="wn" style="color:${evInk(e)}">${esc(deco(e.title))}</span>`
         + (span ? `<span class="wr">${esc(e.start)} – ${esc(e.end)}</span>` : '')
         + '</p>';
     }).join('');
