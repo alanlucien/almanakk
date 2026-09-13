@@ -1278,10 +1278,17 @@ function alignAllDay() {
   const sec = document.querySelector('.dayview');
   if (!sec) return;
   const name = sec.querySelector(':scope > h2 .dname');
+  const month = sec.querySelector(':scope > h2 small');
   const row = sec.querySelector('.dev.ad');
   if (!name || !row) return;
-  const off = Math.round(name.getBoundingClientRect().left - row.getBoundingClientRect().left);
+  const x0 = row.getBoundingClientRect().left;
+  const off = Math.round(name.getBoundingClientRect().left - x0);
   if (off > 0) sec.style.setProperty('--adx', off + 'px');
+  // a step further in again, against the month's own name
+  if (month) {
+    const off2 = Math.round(month.getBoundingClientRect().left - x0);
+    if (off2 > off) sec.style.setProperty('--adx2', off2 + 'px');
+  }
 }
 
 function alignLinesToBands() {
@@ -1712,8 +1719,15 @@ function renderDayEl(ds) {
   // order it happens. A run and an all-day entry belong to the first; anything
   // with a time belongs to the second.
   const here = state.events.filter(e => e.start <= ds && e.end >= ds);
+  // HIS FIRST, THE TOUR'S UNDERNEATH (Alan, 14.09). A tour calendar's all-day
+  // entries are context rather than his own diary, so they always fall to the
+  // bottom of the block — and they are set a step further in, against the
+  // month's name, and in italic, so the two kinds never have to be told apart
+  // by reading them.
+  const wgFirst = e => (tour.has(e.calId) ? 1 : 0);
   const allDay = here.filter(e => e.end > e.start || !effTime(e))
-    .sort((a, b) => (a.end > a.start ? -1 : 1) - (b.end > b.start ? -1 : 1));
+    .sort((a, b) => wgFirst(a) - wgFirst(b)
+      || (a.end > a.start ? -1 : 1) - (b.end > b.start ? -1 : 1));
   const timed = here.filter(e => e.end === e.start && effTime(e))
     .sort((a, b) => (effTime(a) < effTime(b) ? -1 : effTime(a) > effTime(b) ? 1 : 0));
   const row = (e, allday) => {
@@ -2566,10 +2580,12 @@ $('#app').addEventListener('click', e => {
   // opposite of every other rule in the app and is the point. The middle 70%
   // is the calendar. Not while he is writing or editing: a field at the edge
   // of the form is a field.
-  // The month wants a wider one (Alan, 14.09: "15% in month view is too slim,
-  // 20% at least"): its rows are short, so the thumb lands with less room for
-  // error than in a week where each day is a block.
-  const EDGE = { month: 0.20, week: 0.15, day: 0.15 }[state.view];
+  // The month's is even on both sides at 14% (Alan, 14.09), which is a little
+  // wider than the day-number-and-letter column it covers on the left and sits
+  // well inside the uke/city column on the right. 20% reached too far into the
+  // calendar; the columns themselves would have made the two sides different
+  // widths, which is harder to hold in the head than one number.
+  const EDGE = { month: 0.14, week: 0.15, day: 0.15 }[state.view];
   if (EDGE && !e.target.closest('.dedit, .wqa, .callist')) {
     const w = window.innerWidth;
     if (e.clientX < w * EDGE) { step(-1); return; }

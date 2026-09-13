@@ -1036,3 +1036,9 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 .dayview .dbtns button.busy { background: var(--ink); color: var(--card); border-color: var(--ink); }
 .dayview .dbtns button:disabled { opacity: .45; }
 .dayview .dbtns button.busy:disabled { opacity: 1; }
+
+/* the tour's all-day entries: a step further in, against the month's name, and
+   in italic — context rather than his own diary (Alan, 14.09) */
+.dayview .dev.ad.wg { padding-left: var(--adx2, var(--adx, 10px)); }
+.dayview .dev.ad.wg .wn { font-style: italic; }
+.dayview .dev.ad.wg .wr { font-style: italic; }
