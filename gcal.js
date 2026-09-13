@@ -392,7 +392,8 @@
         body.start = { date: startDate };
         body.end = { date: fmt(next) };          // end exclusive
       }
-      await api('calendars/' + encodeURIComponent(target) + '/events', {}, {
+      const into = f.calId && calendars.some(c => c.id === f.calId && c.writable) ? f.calId : target;
+      await api('calendars/' + encodeURIComponent(into) + '/events', {}, {
         method: 'POST', body: JSON.stringify(body),
       });
       resetCache();
@@ -479,6 +480,17 @@
       // a string is still accepted, because v1 calls it that way
       method: 'PATCH', body: JSON.stringify(typeof title === 'string' ? { summary: title } : title),
     });
+    resetCache();
+    await window.gcalEnsureYear(state.year);
+  };
+
+  // ONE EVENT INTO ANOTHER CALENDAR (Alan, 14.09). Google's own move: the event
+  // keeps its id and everything on it, and simply belongs somewhere else. Not a
+  // delete-and-recreate, which would lose its history and any invitations.
+  window.gcalMoveEvent = async function (ev, destId) {
+    if (!destId || destId === ev.calId) return;
+    await api('calendars/' + encodeURIComponent(ev.calId) + '/events/' + encodeURIComponent(ev.gid) + '/move',
+      { destination: destId }, { method: 'POST' });
     resetCache();
     await window.gcalEnsureYear(state.year);
   };

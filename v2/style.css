@@ -958,3 +958,31 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 @media (max-width: 430px) {
   .dayview .dedit .drow { gap: 4px 10px; }
 }
+
+/* THE CALENDAR IS A CHOICE (Alan, 14.09). It read as a caption under the form;
+   it is a button now, and touching it drops the calendars he can write to. */
+.dayview .dmeta { position: relative; }
+.dayview .dcal {
+  display: inline-flex; align-items: center; gap: .4em;
+  padding: 3px 8px; font-size: 11px; color: var(--muted);
+  background: none; border: 1px solid var(--rule); border-radius: 3px;
+  letter-spacing: inherit; cursor: pointer;
+}
+.dayview .dcal:hover { border-color: var(--rule-strong); color: var(--ink); }
+.dayview .callist {
+  position: absolute; z-index: 6; left: 0; top: calc(100% + 4px);
+  display: flex; flex-direction: column; align-items: stretch;
+  min-width: 12em; max-width: min(20em, 92vw); max-height: 46vh; overflow-y: auto;
+  background: var(--card); border: 1px solid var(--rule-strong);
+  box-shadow: 0 6px 20px rgba(0,0,0,.13);
+}
+.dayview .calopt {
+  display: flex; align-items: center; gap: .5em; width: 100%;
+  padding: 7px 10px; font-size: 13px; text-align: left;
+  background: none; border: 0; border-bottom: 1px solid var(--rule);
+  color: var(--ink); cursor: pointer;
+}
+.dayview .calopt:last-child { border-bottom: 0; }
+.dayview .calopt.on { font-weight: 700; }
+.dayview .calopt:hover { background: var(--wash, #f2f2f2); }
+.dayview .dmeta .dot { flex: 0 0 auto; }

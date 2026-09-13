@@ -23,7 +23,7 @@ const LANGS = {
     fWhere: 'Sted', fNotes: 'Notat', save: 'Lagre', closeEdit: 'Lukk', atTime: 'Klokken', onMap: 'Kart',
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
-    needTitle: 'Skriv en tittel først.',
+    needTitle: 'Skriv en tittel først.', movedTo: 'Flyttet til',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender', savedIn: 'Lagret i', goesTo: 'Ny hendelse →',
     cityHint: 'Trykk for å planlegge en reise', cityAsk: 'Skriv bynavnet — lagres som «→ By»',
     cityPlanAsk: 'Planlagt reise — lagres som «→ By tbc» til en flybillett dukker opp', cityPh: 'By',
@@ -44,7 +44,7 @@ const LANGS = {
     fWhere: 'Location', fNotes: 'Notes', save: 'Save', closeEdit: 'Close', atTime: 'By the clock', onMap: 'Map',
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
-    needTitle: 'Give it a title first.',
+    needTitle: 'Give it a title first.', movedTo: 'Moved to',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar', savedIn: 'Saved to', goesTo: 'New event →',
     cityHint: 'Tap to plan a move', cityAsk: 'Type the city — saved as "→ City"',
     cityPlanAsk: 'Planned move — saved as "→ City tbc" until a booking turns up', cityPh: 'City',
@@ -741,6 +741,22 @@ function wireDayView() {
       return;
     }
     if (e.target.dataset.close) { state.openEvent = null; state.draft = null; render(); return; }
+    const cal = e.target.closest('.dcal');
+    if (cal) {
+      const list = cal.parentElement.querySelector('.callist');
+      list.hidden = !list.hidden;
+      return;
+    }
+    const pick = e.target.closest('.calopt');
+    if (pick) {
+      const meta = pick.closest('.dmeta');
+      const btn = meta.querySelector('.dcal');
+      btn.dataset.calid = pick.dataset.pick;
+      btn.innerHTML = `<span class="dot" style="--c:${pick.dataset.color}"></span>` + pick.textContent;
+      meta.querySelectorAll('.calopt').forEach(x => x.classList.toggle('on', x === pick));
+      meta.querySelector('.callist').hidden = true;
+      return;
+    }
     const sw = e.target.closest('.sw');
     if (sw) {
       const box = sw.closest('.swatches');
@@ -768,6 +784,7 @@ function wireDayView() {
           title: v('title').trim(), time: v('time').trim(), endTime: v('endtime').trim(),
           start: v('start'), end: v('end'), location: v('location').trim(),
           notes: v('notes').trim(), colorId: box ? (box.dataset.cid || '') : '',
+          calId: form.querySelector('.dcal')?.dataset.calid || '',
         });
         state.draft = null;
       } catch (err) { toast(err.message); delete form.dataset.busy; }
@@ -792,8 +809,13 @@ function wireDayView() {
         start: v('start'), end: v('end'), moved,
         location: v('location').trim(), notes: v('notes').trim(),
       });
+      // the move comes after the patch, so the fields are written to the event
+      // where it still is; Google keeps its id, so the move finds it either way
+      const into = form.querySelector('.dcal')?.dataset.calid;
+      const moving = into && into !== ev.calId;
+      if (moving && state.mode === 'google') await window.gcalMoveEvent(ev, into);
       state.openEvent = null;
-      toast(L().updated);
+      toast(moving ? `${L().movedTo} ${calName(into)}` : L().updated);
     } catch (err) {
       toast(err.message);
       delete form.dataset.busy;
@@ -875,6 +897,29 @@ function tapOrDouble(single, double, key) {
 // to open the line by itself whenever the day looked empty; now two taps on
 // empty paper mean "write here" and one tap means "show me this day", so the
 // two gestures stay apart whether or not the day already holds something.
+// AN ENTRY IS AS WIDE AS ITS WORDS (Alan, 14.09: "tapping an empty part of a
+// day row almost never brings me to create a new one, it opens the event
+// nearest my fingers"). In the week and the day an entry is a full-width row,
+// so the blank paper beside a four-letter title belonged to that title. The
+// glyphs are measured, not the box — a Range over the contents, the same way
+// the day line is measured against the bands — with a few millimetres of grace
+// so he does not have to hit the letters exactly. The month is untouched: there
+// the entries sit tight on one line and the box IS the words.
+const TAP_GRACE = 12;
+function onWords(row, e) {
+  if (!row) return false;
+  const parts = row.querySelectorAll('.wt, .wn, .wr, .wspanname');
+  const boxes = (parts.length ? [...parts] : [row]).map(el => {
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    const b = r.getBoundingClientRect();
+    return b.width ? b : el.getBoundingClientRect();
+  });
+  return boxes.some(b => b.width
+    && e.clientX >= b.left - TAP_GRACE && e.clientX <= b.right + TAP_GRACE
+    && e.clientY >= b.top - 2 && e.clientY <= b.bottom + 2);
+}
+
 function openDay(date, eventId, write) {
   state.dayOf = date;
   // an id of 0 is an id: `|| null` threw the first event of a set away
@@ -1649,7 +1694,17 @@ function renderDayEl(ds) {
       // so it follows him to his other devices. Worth knowing, and he already
       // found this out in September: his other calendar clients throw event
       // colours away and show the calendar's colour instead. Here it shows.
-      + `<p class="dmeta"><span class="dot" style="--c:${e.color}"></span>${esc(calName(e.calId))}`
+      // THE CALENDAR IS A CHOICE, NOT A CAPTION (Alan, 14.09: "touching it
+      // should option you to select a different calendar for this one event").
+      // It named where the event lives and did nothing; now it opens the list
+      // of calendars he can write to, and the event moves there when he saves.
+      + `<p class="dmeta"><button type="button" class="dcal" data-calid="${esc(e.calId || '')}">`
+      + `<span class="dot" style="--c:${e.color}"></span>${esc(calName(e.calId))}</button>`
+      + `<span class="callist" hidden>`
+      + writableCals().map(c =>
+          `<button type="button" class="calopt ${c.id === e.calId ? 'on' : ''}" data-pick="${esc(c.id)}"`
+          + ` data-color="${esc(c.color || '')}"><span class="dot" style="--c:${c.color}"></span>${esc(c.name || c.id)}</button>`).join('')
+      + `</span>`
       + `<span class="swatches">`
       + `<i class="sw ${e.colorId ? '' : 'on'}" data-cid="" title="${esc(calName(e.calId))}"`
       + ` style="--c:${e.color}"></i>`
@@ -1696,6 +1751,15 @@ function renderDayEl(ds) {
     + rows
     + '<p class="wblank"></p>'.repeat(rows ? 1 : 4)
     + '</section>';
+}
+
+// the calendars he can actually write to, in the order the picker shows them
+function writableCals() {
+  // an empty list is no list: signed out, gcalCalendars() answers [], and `[]`
+  // is truthy, so a plain || fell through to nothing rather than to the demo set
+  const live = (window.gcalCalendars && window.gcalCalendars()) || [];
+  const all = live.length ? live : (window.DEMO_CALENDARS || []);
+  return all.filter(c => c.writable !== false);
 }
 
 function calName(id) {
@@ -2447,7 +2511,9 @@ $('#app').addEventListener('click', e => {
     const dayEl = e.target.closest('.day, .wday');
     if (dayEl) {
       const date = dayEl.dataset.date;
-      const ev = hit && state.events.find(x => String(x.id) === String(hit.dataset.eid));
+      // in the week the blank stretch beside an entry is paper, not the entry
+      const onIt = state.view !== 'week' || onWords(hit, e);
+      const ev = hit && onIt && state.events.find(x => String(x.id) === String(hit.dataset.eid));
       // IN THE WEEK, TAPPING A DAY OPENS THAT DAY (Alan, 14.09). Nothing inside
       // the sheet closes it any more — you leave a week by tapping off the
       // paper, which is the rule for every view now. An event opens with it, so
@@ -2478,7 +2544,13 @@ $('#app').addEventListener('click', e => {
   //   week  tap a day    → that day      two taps → the month
   //   day   tap an event → edit it       two taps → its week
   if (inDay && !e.target.closest('.dedit') && !e.target.closest('.wblank')) {
-    const evHit = hit && state.events.find(x => String(x.id) === String(hit.dataset.eid));
+    // beside the words of an entry is blank paper, and blank paper is a line to
+    // write on — the free line below, never this entry's own
+    if (hit && !onWords(hit, e)) {
+      const free = [...document.querySelectorAll('.dayview .wblank')].find(b => !b.querySelector('input'));
+      if (free) { openWeekEntry(free, state.dayOf); return; }
+    }
+    const evHit = hit && onWords(hit, e) && state.events.find(x => String(x.id) === String(hit.dataset.eid));
     tapOrDouble(
       () => { if (evHit) { state.openEvent = evHit.id; render(); } },
       () => {
