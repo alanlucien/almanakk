@@ -1887,6 +1887,17 @@ function renderMonthEl(y, m) {
     // from whatever is to its right — in the right margin there is nothing to
     // borrow from and "ANTIGONE Paris" was cut to "ANTIGONE F". On the right it
     // takes a column of its own, which is v1's model and what he remembers.
+    // THE TOUR'S BANNER TAKES THE WIDTH ITS NAME NEEDS (Alan: "the wg banner
+    // should move right and widen so it could have fit Hong Kong on one line").
+    // It could not before, because a wider banner pushed his own writing to the
+    // right of it. It does not push any more — so there is nothing left to pay
+    // for the room, and a run can say its name in one go.
+    if (V3 && nOvl && i >= nOwn) {
+      const w2 = Math.min(fullW[i], 16);
+      laneEm[i] = w2 + LANE_GAP;
+      laneW[i] = w2;
+      continue;
+    }
     if (model === 'column') {
       // a column says the title whole, so it is sized to the title
       const w = (model === BANDS) ? natW[i] : fullW[i];
@@ -2170,7 +2181,9 @@ function renderMonthEl(y, m) {
         // one word per row: ANTIGONE / Hong / Kong, all of it readable, none of
         // it outside the banner. Which is what he asked for hours ago.
         const fits = (laneW[ev._lane] || LABEL_MAX) - 0.4;
-        if (words.length > 1 && endInMonth > day && emWidth(ev.title) > fits) {
+        // a tour banner has its own column now and says its name in one line
+        if (words.length > 1 && endInMonth > day && emWidth(ev.title) > fits
+            && !(V3 && nOvl && ev._wg)) {
           wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
         } else {
           delete wrapPlan[ev.id];
