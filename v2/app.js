@@ -2356,7 +2356,12 @@ async function deleteEvent(ev) {
 function loadDemo() {
   const colors = Object.fromEntries(DEMO_CALENDARS.map(c => [c.id, c.color]));
   state.events = DEMO_EVENTS.map((ev, i) => ({
-    id: i, title: ev.t, start: ev.s, end: ev.e || ev.s, color: colors[ev.c] || '#26241f', calId: ev.c, src: ev,
+    id: i, title: ev.t, start: ev.s, end: ev.e || ev.s, calId: ev.c, src: ev,
+    // an event's own colour wins over its calendar's, the same rule the Google
+    // path uses — demo mode wrote `cid` on save and then never read it back,
+    // so nothing he did to a colour showed there (14.09)
+    color: (window.gcalColors || {})[ev.cid] || colors[ev.c] || '#26241f',
+    colorId: ev.cid || '',
   }));
   render();
 }
@@ -2561,11 +2566,14 @@ $('#app').addEventListener('click', e => {
   // opposite of every other rule in the app and is the point. The middle 70%
   // is the calendar. Not while he is writing or editing: a field at the edge
   // of the form is a field.
-  if ((state.view === 'week' || state.view === 'day')
-      && !e.target.closest('.dedit, .wqa, .callist')) {
+  // The month wants a wider one (Alan, 14.09: "15% in month view is too slim,
+  // 20% at least"): its rows are short, so the thumb lands with less room for
+  // error than in a week where each day is a block.
+  const EDGE = { month: 0.20, week: 0.15, day: 0.15 }[state.view];
+  if (EDGE && !e.target.closest('.dedit, .wqa, .callist')) {
     const w = window.innerWidth;
-    if (e.clientX < w * 0.15) { step(-1); return; }
-    if (e.clientX > w * 0.85) { step(1); return; }
+    if (e.clientX < w * EDGE) { step(-1); return; }
+    if (e.clientX > w * (1 - EDGE)) { step(1); return; }
   }
   const row = e.target.closest('.day');
   // A TITLE CLIMBS, AND IT IS ASKED FIRST (Alan, 13.09). These sat below the
