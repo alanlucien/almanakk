@@ -865,3 +865,4 @@ header #period-year { flex: 1; text-align: center; margin-right: 0; }
    make a rehearsal call hard to read on a bright screen. */
 .week .wday .wev { font-size: 13px; }
 .week .wday .wev.wg, .dayview .dev.wg, .week .wspan.wg, .wday > h3 .wspanname.wg { opacity: .82; }
+header h1 { cursor: pointer; }

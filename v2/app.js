@@ -2163,6 +2163,19 @@ document.addEventListener('click', e => { if (!e.target.closest('#more')) moreMe
 // THE MONTH IS NAMED ONCE (Alan, 13.09). With the header carrying the period,
 // the block's own title said September a second time and cost a day's worth of
 // height. The header's name takes over the job of opening the year.
+// ALMANAKK IS THE WAY HOME (Alan, 13.09). However deep you are — a week in
+// 2028, a day in April — its own name puts you back on this month, with today
+// marked. One fixed point in an app you now move around in freely.
+$('h1').addEventListener('click', () => {
+  const now = new Date();
+  state.year = now.getFullYear(); state.month = now.getMonth();
+  state.weekOf = state.weekDay = state.dayOf = fmt(now);
+  state.openEvent = null;
+  state.view = 'month';
+  if (state.mode === 'google') window.gcalEnsureYear(state.year);
+  render();
+});
+
 // THE HEADER'S OWN TITLE CLIMBS TOO (Alan, 13.09). It names the level you are
 // on, so tapping it should leave that level — the same as the sheet's title,
 // which is easy to miss on a phone.
