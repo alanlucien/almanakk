@@ -882,3 +882,11 @@ header h1 { cursor: pointer; }
 .wqa { width: 100%; }
 .wqa input::placeholder { color: var(--muted); opacity: .7; }
 header #period-year { cursor: pointer; }
+
+/* ALL DAY AND BY THE CLOCK SHOULD NOT LOOK ALIKE (Alan, 13.09). The divider
+   said which was which; the entries themselves did not. What is true of the
+   whole day is set in the day's own weight, like a heading; what happens at an
+   hour is set as an entry under it, with the clock quiet beside it. */
+.dayview .dev.ad .wn { font-weight: 600; font-size: 15px; }
+.dayview .dev.ad { padding-top: 7px; padding-bottom: 7px; }
+.dayview .dev:not(.ad) .wt { color: var(--muted); font-size: 13px; }

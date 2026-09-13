@@ -1508,11 +1508,11 @@ function renderDayEl(ds) {
     .sort((a, b) => (a.end > a.start ? -1 : 1) - (b.end > b.start ? -1 : 1));
   const timed = here.filter(e => e.end === e.start && effTime(e))
     .sort((a, b) => (effTime(a) < effTime(b) ? -1 : effTime(a) > effTime(b) ? 1 : 0));
-  const row = e => {
+  const row = (e, allday) => {
     const open = String(e.id) === String(state.openEvent);
     const span = e.end > e.start;
     if (!open) {
-      return `<p class="dev ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}" data-eid="${e.id}">`
+      return `<p class="dev ${allday ? 'ad' : ''} ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}" data-eid="${e.id}">`
         + `<span class="wt">${esc(e.time || '')}</span>`
         + `<span class="wn" style="color:${evInk(e)}">${esc(e.title)}</span>`
         + (span ? `<span class="wr">${esc(e.start)} – ${esc(e.end)}</span>` : '')
@@ -1554,9 +1554,9 @@ function renderDayEl(ds) {
       + `<button type="button" class="x" data-close="1">${L().closeEdit}</button></div>`
       + '</form>';
   };
-  const rows = allDay.map(row).join('')
+  const rows = allDay.map(e => row(e, true)).join('')
     + (timed.length ? `<p class="dsplit">${L().atTime}</p>` : '')
-    + timed.map(row).join('');
+    + timed.map(e => row(e, false)).join('');
   // every place he has already typed, once each
   const dmove = state.cities ? cityOn(ds, buildFlightIndex()) : null;
   const dcity = dmove ? cityLabel(dmove.dest) : '';
