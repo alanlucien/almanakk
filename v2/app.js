@@ -1721,6 +1721,12 @@ function alignLinesToBands() {
   document.querySelectorAll('.day .canvas').forEach(cv => {
     const det = cv.querySelector('.detail');
     if (!det) return;
+    // NOT ON A RULED SHEET. This pushes a single WORD sideways so a band's edge
+    // does not cut through it — right for a line that flows, and wrong for one
+    // written on stops, where it moves an entry off the column it was placed on
+    // and the day stops lining up with the days above it. It was the last thing
+    // taking rows off the grid.
+    if (det.classList.contains('grid')) return;
     det.querySelectorAll('.nudge').forEach(sp => { sp.replaceWith(...sp.childNodes); });
     det.normalize();
     if (!det.textContent.trim()) return;
@@ -2307,9 +2313,15 @@ function renderMonthEl(y, m) {
       // front of it starts at stop 1 and a row behind a banner starts later,
       // and both are still on the grid
       const from = Math.min(STOPS - 1, Math.max(0, Math.ceil((lineStartEm - 0.01) / stopEm)));
+      // THE COUNT NEEDS A STOP OF ITS OWN (found on his October: on a day whose
+      // bands reach the last stop, the "+1" was being placed on the same stop
+      // as the entry it was counting, and the two sat on top of each other —
+      // which is also why two rows looked as though they had drifted).
       const room = STOPS - from;
-      const fits = shown.length <= room ? shown : shown.slice(0, Math.max(1, room - 1));
-      const over = shown.length - fits.length;
+      let fits = shown.slice(0, room);
+      let over = shown.length - fits.length;
+      if (over > 0 && fits.length > 1) { fits = shown.slice(0, room - 1); over = shown.length - fits.length; }
+      const moreAt = from + fits.length;
       // EACH STOP IS PLACED, NOT ASKED FOR. A grid column is a request the
       // browser answers with its own auto-placement, and one row in six was
       // coming back in a different place than the column it had been given. A
@@ -2317,7 +2329,7 @@ function renderMonthEl(y, m) {
       const at = k => `left:${(k * stopPx).toFixed(2)}px;width:${stopPx.toFixed(2)}px`;
       detail = `<span class="detail grid${tabbed}">`
         + fits.map((it, k) => evtHtml(it, at(from + k))).join('')
-        + (over > 0 ? `<b class="more" style="${at(STOPS - 1)}">+${over}</b>` : '')
+        + (over > 0 && moreAt <= STOPS - 1 ? `<b class="more" style="${at(moreAt)}">+${over}</b>` : '')
         + '</span>';
     }
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
