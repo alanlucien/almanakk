@@ -900,7 +900,11 @@ function layoutWeekBands() {
         // STOPS AT THE LAST LINE, not at the edge of the day (Alan's red line,
         // 13.09). A day's box includes its blank ruled lines and its padding,
         // so ending there put the arrowhead in the following day's territory.
-        const used = [...z0.querySelectorAll(':scope > h3, :scope > .wev, :scope > .wspan')].pop();
+        // THE LAST LINE OF THE DAY, entries or not (Alan, 13.09: it "should go
+        // all the way down, almost touching the line above 13 TORSDAG"). It
+        // used to take the last ENTRY, so on a day with none it stopped under
+        // the header. A day's ruled lines are still its lines.
+        const used = [...z0.children].pop();
         const foot = used ? used.getBoundingClientRect().bottom : z.bottom;
         // A RUN THAT CARRIES ON RUNS OFF THE PAGE (Alan, 13.09: both of these
         // continue into next week but "looks like they stop on Sunday 22").
