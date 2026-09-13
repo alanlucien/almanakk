@@ -2165,7 +2165,20 @@ function renderMonthEl(y, m) {
         }
       }
       const laneX = laneLeft(i);
-      const w = laneW[i] || laneEm[i];   // the lane's width, so a band is a straight column
+      let w = laneW[i] || laneEm[i];     // the lane's width, so a band is a straight column
+      // A LABEL ONLY SPREADS INTO LANES THAT ARE EMPTY TODAY (Alan, on his
+      // iPad: "the Telephone two-day event was on top of this SweMa event").
+      // A stair lane is deliberately wider than its strip so a name has room,
+      // and that width was being taken whether or not the lane beside it was
+      // occupied — so Telephone, starting the same day, was drawn straight over
+      // the end of "SweMa Wup". The name now stops where the next run begins.
+      if (txt || inband) {
+        for (let j = i + 1; j < laneEvs.length; j++) {
+          if (!laneEvs[j]) continue;
+          w = Math.min(w, Math.max(LANE_STRIPE, laneLeft(j) - laneX));
+          break;
+        }
+      }
       const onRight = false;
       // the line begins after the last band that actually says something here —
       // a band in the right margin is not in its way at all
