@@ -74,7 +74,12 @@ const VIEW_CYCLE = { month: 'week', week: 'month', day: 'month' };
 // written inside its own run's band where nothing of his can ever reach. Off
 // by default until he has looked at it. Declared up here with the other
 // constants, for the reason given above.
-const V3 = /[?&]v3\b/.test(location.search);
+// THIS IS THE MONTH NOW (Alan, 14.09: "I don't care for preview. Just push and
+// I look."). It was built behind ?v3=1 through the evening and he read the
+// plain month twice believing it was the new one — a flag he has to remember is
+// worse than the thing it was protecting. ?v3=0 is the way back if a night's
+// sleep changes his mind.
+const V3 = !/[?&]v3=0\b/.test(location.search);
 if (V3) document.documentElement.classList.add('v3');
 // a clock written into a title ("09:00 Befaring DNK"). It must have the colon
 // to count, so a number that is part of a name is never taken for a time.
