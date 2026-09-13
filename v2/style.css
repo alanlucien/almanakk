@@ -1068,10 +1068,21 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 .dayview .dsplit + .wblank { border-top: 0; }
 .dayview .dband-empty { opacity: .85; }
 
-/* the holiday: red like a Sunday, and small as a date range */
-.dayview > h2 .whol {
-  margin-left: .9em; font-size: 11px; font-style: italic; font-weight: 400;
-  color: var(--red); letter-spacing: .02em; white-space: nowrap;
+/* THE BANDS SHOULD WHISPER (Alan, 14.09: "as elegant as possible"). Three of
+   them on a page is a lot of furniture, so the type steps down and goes italic,
+   the rule under each one goes, and only the first keeps the heavy rule that
+   closes the all-day block above it. The holiday rides that first line, at the
+   right, under the week number — red like a Sunday. */
+.dayview .dsplit {
+  display: flex; align-items: baseline; gap: .6em;
+  font-size: 9px; font-style: italic; letter-spacing: .2em;
+  border-top: 1px solid var(--rule); border-bottom: 0;
+  padding: 5px 10px 3px; background: none;
+}
+.dayview .dsplit.first { border-top: 1.5px solid var(--rule-strong); }
+.dayview .dsplit .whol {
+  margin-left: auto; font-size: 11px; font-style: italic; font-weight: 400;
+  letter-spacing: .02em; color: var(--red); text-transform: none; white-space: nowrap;
 }
 
 /* a note worth opening says so — the almanac's own footnote mark, and nothing

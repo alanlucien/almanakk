@@ -1845,10 +1845,14 @@ function renderDayEl(ds) {
     { key: 'evening', to: '99:99' },
   ];
   const bandOf = e => BANDS.find(b => (effTime(e) || '00:00') < b.to) || BANDS[2];
-  const timedRows = BANDS.map(b => {
+  const timedRows = BANDS.map((b, i) => {
     const mine = timed.filter(e => bandOf(e) === b);
     const lines = mine.map(e => row(e, false)).join('');
-    return `<p class="dsplit">${L()[b.key]}</p>`
+    // THE HOLIDAY SITS UNDER THE WEEK NUMBER (Alan, 14.09), on the first band's
+    // own line rather than crowding the heading — where it also has the room to
+    // be read in full.
+    return `<p class="dsplit ${i ? '' : 'first'}">${L()[b.key]}`
+      + (i === 0 && h ? `<span class="whol">${esc(h.name)}</span>` : '') + '</p>'
       + lines
       // an empty band keeps three lines, a used one keeps one after the last
       // entry — so the page is always a page, and the evening is always down it
@@ -1873,7 +1877,6 @@ function renderDayEl(ds) {
     + `<span class="dname">${L().wdLong[wi]}</span>`
     + `<small>${L().months[d.getMonth()]} ${d.getFullYear()}</small>`
     + (dcity ? `<span class="wcity ${dcity.length <= 7 ? 'short' : ''}">${esc(dcity)}</span>` : '')
-    + (h ? `<span class="whol">${esc(h.name)}</span>` : '')
     + `<span class="wkno">${L().week} ${isoWeek(d)}</span></h2>`
     // A PAGE YOU CAN WRITE ON (Alan, 14.09: "when a day has no event there
     // should at least be one box to click in"). An unused day had a single
