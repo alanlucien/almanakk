@@ -273,13 +273,10 @@ button.active { background: var(--ink); color: var(--card); }
   justify-content: flex-end;
 }
 .v3 .day .band.wg b, .v3 .day .detail .evt.wgd, .v3 .week .wev.wg { font-style: italic; }
-/* THE COLOUR IS ONE WIDTH ALL THE WAY DOWN (Alan, 14.09, on his October:
-   "the uneven width of the colour of the touring band"). --w is an em, and a
-   band's label is set smaller than the row it sits in — so the tinted label box
-   resolved that em against its own smaller font and came out narrower than the
-   band holding it. Every row carrying a name was a different width from the
-   rows that carried none, and the run's edge went ragged down the page. */
-.v3 .day .band b { width: 100%; }
+/* --w is an em, and the label is set smaller than the row — so the label's box
+   came out a third narrower than the band holding it and cut its own text.
+   In the margin the label simply fills its band. */
+.v3 .day .band.wg b { width: 100%; }
 
 /* THE DAY READS LEFT TO RIGHT, WITH AIR (Alan, 14.09: "listed from left to
    right with space in between ... if a day has 4 events we clip the text of
@@ -289,6 +286,29 @@ button.active { background: var(--ink); color: var(--card); }
    that a title says nothing — and what still will not fit is dropped and
    counted, which is the rule that was already there. */
 .v3 .day .detail { display: flex; align-items: baseline; gap: 1.15em; }
+/* TAB STOPS. The row is a grid of equal columns spanning the whole writing
+   area, so the same column falls in the same place on all 31 rows and the days
+   read down the page as well as across. An entry keeps to its stop: a title too
+   long for one gives up its tail rather than borrowing the paper the eye is
+   using to compare rows. */
+.v3 .day .detail.grid {
+  left: 0; right: 0; display: block; padding-left: 0;
+}
+/* A STOP IS A BOUNDARY, NOT JUST A POSITION (Alan's 15 September: "Podcast Tbd
+   Bærum Kulturhus ·Kammerorkesteret" run together into one unreadable line).
+   The entries were placed at the right pixel and then allowed to overflow into
+   the stop after them. display:flex was the reason text-overflow never bit —
+   it is a property of a block of text, and a flex box has none. A block does,
+   and the room for the ellipsis comes out of the stop's own width. */
+.v3 .day .detail.grid > .evt, .v3 .day .detail.grid > .more {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  display: block; line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding-right: .9em; box-sizing: border-box;
+}
+.v3 .day .detail.grid > .more { padding-right: 0; text-align: right; color: var(--muted); }
+/* the step for a timed thing lives INSIDE its stop, so the column is untouched */
+.v3 .day .detail.grid.tabbed > .evt:first-child { padding-left: 2.2em; }
 .v3 .day .detail .evt {
   flex: 0 1 auto; min-width: 4.5em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -331,8 +351,8 @@ button.active { background: var(--ink); color: var(--card); }
 /* a route that has given up its words for its codes must not then give up the
    codes: eight characters is the whole point of the swap */
 .v3 .day .detail .evt[data-long] { flex: 0 0 auto; min-width: 0; }
-/* the day's headline begins at the margin; an hour steps in from it */
-.v3 .day .detail.tabbed { padding-left: 2.2em; }
+/* (the indent for a timed thing now lives inside its stop — see .grid.tabbed
+   above — so it cannot shift the columns it is sitting in) */
 
 /* ?split=1 — Alan's second sketch. The writing area is two columns with one
    rule between them, the same on every row: bands and all-day things on the
