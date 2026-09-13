@@ -76,6 +76,13 @@ const VIEW_CYCLE = { month: 'week', week: 'month', day: 'month' };
 // constants, for the reason given above.
 const V3 = /[?&]v3\b/.test(location.search);
 if (V3) document.documentElement.classList.add('v3');
+// a clock written into a title ("09:00 Befaring DNK"). It must have the colon
+// to count, so a number that is part of a name is never taken for a time.
+function stripClock(t) {
+  const out = String(t).replace(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/g, ' ')
+    .replace(/^[\s\-\u2013\u2014:\u00b7]+/, '').replace(/\s+/g, ' ').trim();
+  return out || t;
+}
 
 const state = {
   view: window.innerWidth < 700 ? 'month' : 'year',
@@ -1684,6 +1691,8 @@ function renderMonthEl(y, m) {
   // project instead of a full title width per project, and the label can stay
   // where it belongs — at its own band's left edge, never packed onto a row.
   const LANE_STRIPE = 4, LABEL_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0, WG_GAP = 4;
+  // read by the lane loop below, so it is declared above it
+  const WIDEBAND = window.innerWidth >= 700;
   // one width per span for the whole month, so a band never changes width
   // between rows; a title too long to fit takes its widest WORD, because that
   // is what gets written down the band one word per row
@@ -1711,6 +1720,33 @@ function renderMonthEl(y, m) {
   let reach = 0;
   for (let i = 0; i < nOwn + nOvl; i++) {
     const gap = (nOvl && nOwn && i === nOwn - 1 ? WG_GAP : 0);
+    // IN THE MARGIN A BANNER MUST SAY ITS WHOLE NAME (Alan, 14.09: "the wg
+    // banner should start so that it can be with all its words before cities,
+    // almost like in v1"). A stair lane is a 3.5em strip that borrows width
+    // from whatever is to its right — in the right margin there is nothing to
+    // borrow from and "ANTIGONE Paris" was cut to "ANTIGONE F". On the right it
+    // takes a column of its own, which is v1's model and what he remembers.
+    if (V3 && nOvl && i >= nOwn) {
+      // sized to the whole TITLE, not to its widest word. natW takes the widest
+      // word for a stair band, because a long title is meant to be written down
+      // the band one word per row — in the margin there is room to say it in
+      // one go, which is what he asked for.
+      // ON A PHONE THE MARGIN IS BOUGHT FROM HIS OWN LINE. "ANTIGONE Paris
+      // TDLV" wants 12.5em, which on 430px is a third of the sheet, and his own
+      // day started clipping at two items. So the whole name is a desk's
+      // reading; a phone keeps a narrow banner and writes the name DOWN it, one
+      // word per row, which is the almanac's own answer and costs nothing.
+      let full = LANE_STRIPE;
+      if (WIDEBAND) {
+        for (const ev of spans) if (ev._lane === i) full = Math.max(full, emWidth(ev.title) + LANE_PAD);
+        full = Math.min(full, 14);
+      } else {
+        full = natW[i];
+      }
+      laneEm[i] = full + LANE_GAP;
+      laneW[i] = full;
+      continue;
+    }
     if (BANDS === 'column') {
       laneEm[i] = natW[i] + LANE_GAP + gap;
       laneW[i] = natW[i];
@@ -1862,7 +1898,9 @@ function renderMonthEl(y, m) {
       const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));
       // still one word per row when the title genuinely will not fit its band
       if (showLabel) {
-        if (words.length > 1 && endInMonth > day && emWidth(ev.title) > LABEL_MAX - 0.4) {
+        // a banner in the margin has its own column and says its name whole
+        if (words.length > 1 && endInMonth > day && emWidth(ev.title) > LABEL_MAX - 0.4
+            && !(V3 && nOvl && ev._wg && WIDEBAND)) {
           wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
         } else {
           delete wrapPlan[ev.id];
@@ -1921,9 +1959,16 @@ function renderMonthEl(y, m) {
     // compact views show WHAT (no clock prefix); Detaljer view and the day box show WHEN
     const evtHtml = (it) => {
       const e = it.e, wg = it.wg;
-      const txt = state.detailed ? (e.time ? e.time + ' ' : '') + e.title
+      let txt = state.detailed ? (e.time ? e.time + ' ' : '') + e.title
         : (it._legs && it._legs.length > 2 ? journeyLabel(it._legs) : compactTitle(e));
-      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
+      // THE CLOCK IS NOT THE POINT IN A MONTH (Alan, 14.09: "my time events
+      // should be stripped of times, and listed left to right with space in
+      // between"). At a month's distance the question is what is on that day,
+      // not when; the day view still has every clock. The order is still the
+      // order of the day, so they read left to right in the order they happen.
+      if (V3 && !state.detailed) txt = stripClock(txt);
+      const allday = !effTime(e) && !wg && !isShow(e);
+      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
         + esc(deco(txt)) + '</b>';
     };
     // starts where the labels stop — far left on a day with no band label at all
@@ -1938,7 +1983,13 @@ function renderMonthEl(y, m) {
     // every other journey goes, and the week keeps its NUMBER, losing only the
     // word "uke" — "Oslo → Bangkok 9". Monday still never gives its week away;
     // it just stops needing a whole cell to say it.
-    if (!h) {
+    // A FLIGHT IS SOMETHING HE DOES (Alan, 14.09: "not sure flights should move
+    // to cities — it takes an event behind wg then"). In the margin it stops
+    // being an event: it loses its time, its place in the day's order, and now
+    // that the tour hangs there too it would be jammed against a banner. The
+    // column goes back to answering only "where am I"; the flight goes back
+    // among the things he is doing.
+    if (!h && !V3) {
       const own = lineFinal.filter(it => !it.wg && it._legs && it._legs.length >= 2);
       if (own.length === 1) {
         const legs = own[0]._legs;

@@ -273,6 +273,28 @@ button.active { background: var(--ink); color: var(--card); }
   justify-content: flex-end;
 }
 .v3 .day .band.wg b, .v3 .day .detail .evt.wgd, .v3 .week .wev.wg { font-style: italic; }
+/* --w is an em, and the label is set smaller than the row — so the label's box
+   came out a third narrower than the band holding it and cut its own text.
+   In the margin the label simply fills its band. */
+.v3 .day .band.wg b { width: 100%; }
+
+/* THE DAY READS LEFT TO RIGHT, WITH AIR (Alan, 14.09: "listed from left to
+   right with space in between ... if a day has 4 events we clip the text of
+   each and put the +1"). A row of items rather than a sentence joined by
+   middle dots: they share the width, each giving up its own tail rather than
+   the last one being thrown out whole. They stop shrinking at 4.5em — below
+   that a title says nothing — and what still will not fit is dropped and
+   counted, which is the rule that was already there. */
+.v3 .day .detail { display: flex; align-items: baseline; gap: 1.15em; }
+.v3 .day .detail .evt {
+  flex: 0 1 auto; min-width: 4.5em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.v3 .day .detail .evt + .evt::before { content: none; }
+.v3 .day .detail .more { flex: 0 0 auto; }
+/* an all-day thing is the day's headline, so it is set like one — the weight of
+   a band label, even on a day it does not span (Alan, 14.09) */
+.v3 .day .detail .evt.allday { font-weight: 700; }
 .day .detail .evt.showevt { opacity: 1; font-weight: 600; } /* shows pop at full red, never dimmed */
 /* No rule down the left of this column. It used to have a dotted one, but the
    cell is centred on its content, so the border was only as tall as whatever
