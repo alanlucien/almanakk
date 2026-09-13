@@ -932,3 +932,12 @@ header #period-year { padding: 5px 8px; }
   .dayview .dedit .drow { flex-wrap: wrap; }
   .dayview .dedit .drow label { flex: 1 1 calc(50% - 5px); min-width: 0; }
 }
+
+/* NOTHING ON THE PAGE IS A WORD TO SELECT (Alan, 14.09). Two quick taps on the
+   writing line read to iOS as a double tap on the page as well as a double tap
+   for us, and with the line replaced by the form there was nothing left under
+   the finger — so Safari reached for the nearest text and put a blue selection
+   round ALMANAKK in the header. The calendar is a surface you tap, not a
+   document you highlight; what he actually writes in stays selectable. */
+body { -webkit-user-select: none; user-select: none; }
+input, textarea, select, [contenteditable] { -webkit-user-select: text; user-select: text; }

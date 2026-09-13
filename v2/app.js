@@ -1924,6 +1924,16 @@ function render(group) {
     const line = document.querySelector('.dayview .wblank');
     if (line) openWeekEntry(line, state.dayOf);
   }
+  // The line he was typing on has just been replaced by the form, so put the
+  // cursor where he was writing — in the title. Without this the second tap
+  // leaves nothing focused, and iOS reads it as a double tap on the page and
+  // selects a word of the header instead (Alan, 14.09: "the word almanakk top
+  // left is highlighted").
+  if (state.draft && !state.draft.landed) {
+    state.draft.landed = true;
+    const t = document.querySelector('.dayview .dedit[data-eid="new"] [name="title"]');
+    if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+  }
   alignLinesToBands();
   updateChips();
 }
