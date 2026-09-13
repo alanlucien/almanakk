@@ -495,7 +495,14 @@ function runName(ev) {
   // abbreviation IS spelled that way, and NNB-Y came back as "Nnb-y" the first
   // time this ran. Five letters or more, nothing but letters: ANTIGONE yes,
   // NNB-Y and DNK no.
-  const spoken = w => /^[A-ZÆØÅa-zæøå]{5,}$/.test(w) && w === w.toLocaleUpperCase('no');
+  const allCaps = w => /^[A-ZÆØÅa-zæøå]+$/.test(w) && w === w.toLocaleUpperCase('no');
+  // A SHORT WORD IN A SHOUTED TITLE IS STILL A WORD (Alan, 14.09: "STILL LIFE"
+  // came out "Still LIFE"). Five letters was the test for telling a spoken word
+  // from an acronym, and it is right for a name of ONE word — DNK stays DNK.
+  // Where two or more shouted words stand together they are a title being
+  // shouted, not initials, so the length stops mattering.
+  const phrase = name.length > 1 && name.every(allCaps);
+  const spoken = w => allCaps(w) && (phrase || w.length >= 5);
   return name.map(w => spoken(w) ? w[0] + w.slice(1).toLocaleLowerCase('no') : w).join(' ') || null;
 }
 function showLabel(title, lend) {
@@ -519,8 +526,16 @@ function showLabel(title, lend) {
       return w;
     });
   }
-  let name = t.replace(SHOW_WORDS, ' ').replace(/[-–—:·,()]+/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!name) name = lend || '';                  // the run lends its name
+  let name = t.replace(SHOW_WORDS, ' ').replace(/[-–—:·,()+]+/g, ' ').replace(/\s+/g, ' ').trim();
+  // A PERFORMANCE READS AS PRODUCTION AND NUMBER, NOTHING ELSE (Alan, 14.09,
+  // from his June: "+ post talk 16", "+ post talk 17", "Japanese + post talk"
+  // down the page in red). His titles carry the evening's details — a post
+  // talk, a language, who is on — and those words survived where the word
+  // "Show" was taken out, so the detail became the headline. When the run can
+  // lend its name it does, always: "Still Life 16" beside "Antigone 6". The
+  // post talk is still there in the week and in the day, where it is something
+  // he acts on.
+  if (lend) name = lend;
   if (!name) return null; // nothing but the word "Performance" and no run to ask
   return num ? name + ' ' + num : name;
 }
