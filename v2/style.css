@@ -1174,3 +1174,38 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
    only pencilled in */
 .dayview .dedit .dticks { display: flex; flex-wrap: wrap; gap: 1.4em; margin: 2px 0 10px; }
 .dayview .dedit .dticks .dpencil { margin: 0; }
+
+/* ---------- THE SPREAD: month | week | day, on a screen wide enough ---------- */
+/* Nothing here is a new view. It is the three we already have, side by side, so
+   every rule about reading and writing them still holds (Alan, 14.09). */
+#app.spread {
+  display: grid; grid-template-columns: 0.8fr 1.25fr 1fr;
+  gap: 14px; align-items: start; padding: 10px 14px 24px;
+}
+#app.spread .col { min-width: 0; }
+#app.spread .month, #app.spread .week, #app.spread .dayview { margin: 0; }
+/* the month beside a week is a reference, not the thing you are reading: it
+   sets smaller so a whole month stands next to seven days without shouting */
+#app.spread .colmonth { font-size: 11px; }
+#app.spread .colmonth .day { min-height: 0; }
+
+/* the arrows live on a desk, where there is no edge to tap and no thumb to
+   swipe with — a phone never sees them */
+.wideonly { display: none; }
+@media (min-width: 1000px) {
+  .wideonly { display: inline-flex; }
+  #prev, #next {
+    border: 0; background: none; font-size: 20px; line-height: 1;
+    color: var(--muted); padding: 2px 8px; cursor: pointer;
+  }
+  #prev:hover, #next:hover { color: var(--ink); }
+  /* THE ROOM UP TOP IS GENEROUS (Alan, 14.09), so what he set once and leaves
+     comes out of the ⋯ and sits where he can see it. The dots go with it. */
+  #more > summary { display: none; }
+  #more-list {
+    position: static; display: flex; flex-direction: row; align-items: center;
+    border: 0; background: none; padding: 0; gap: 8px; min-width: 0;
+  }
+  #more-list #cal-picker { position: relative; }
+  #more-list #cal-list { position: absolute; right: 0; top: calc(100% + 6px); }
+}

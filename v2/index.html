@@ -9,13 +9,20 @@
 <title>Almanakk 2</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="../icon-192-v2.png">
-<link rel="stylesheet" href="style.css?v=20260914zg">
+<link rel="stylesheet" href="style.css?v=20260914zi">
 </head>
 <body>
 <header>
   <h1>ALMANAKK <span class="v2">2</span></h1>
   <nav>
+    <!-- THE ARROWS COME BACK ON A WIDE SCREEN (Alan, 14.09). A phone steps by
+         swiping and by its edges, and the four view buttons went with the
+         arrows in September because the calendar already said what they said.
+         A desk has no edges to tap and no thumb to swipe with, and the room to
+         spare, so they return there and nowhere else. -->
+    <button id="prev" class="wideonly" aria-label="Forrige">‹</button>
     <strong id="period-label"></strong>
+    <button id="next" class="wideonly" aria-label="Neste">›</button>
   </nav>
   <div class="spacer"></div>
   <nav>
@@ -46,11 +53,11 @@
 <!-- null here = Google sign-in in the browser (github.io). publiser.py flips it to
      '/api/gcal' in the Cloudflare build, where the key lives on the server. -->
 <script>window.ALMANAKK_PROXY = null;</script>
-<script src="../config.js?v=20260914zg"></script>
-<script src="../demo-data.js?v=20260914zg"></script>
-<script src="../airports.js?v=20260914zg"></script>
-<script src="app.js?v=20260914zg"></script>
-<script src="../gcal.js?v=20260914zg"></script>
+<script src="../config.js?v=20260914zi"></script>
+<script src="../demo-data.js?v=20260914zi"></script>
+<script src="../airports.js?v=20260914zi"></script>
+<script src="app.js?v=20260914zi"></script>
+<script src="../gcal.js?v=20260914zi"></script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="window.gcalReady && gcalReady()"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

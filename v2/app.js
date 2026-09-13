@@ -1081,11 +1081,14 @@ function onWords(row, e) {
 }
 
 function openDay(date, eventId, write) {
+  // IN THE SPREAD THE DAY IS A COLUMN, not a place you go: opening one fills
+  // the right-hand column and leaves the month and the week where they are.
+  const inSpread = SPREAD.matches && state.view === 'week';
   state.dayOf = date;
   // an id of 0 is an id: `|| null` threw the first event of a set away
   state.openEvent = eventId === undefined || eventId === '' ? null : eventId;
   state.addOnOpen = !!write;
-  state.view = 'day';
+  if (!inSpread) state.view = 'day';
   render();
 }
 
@@ -2206,6 +2209,10 @@ window.addEventListener('popstate', e => {
   navRestoring = false;
 });
 
+// wide enough for three columns of diary side by side
+const SPREAD = window.matchMedia('(min-width: 1000px)');
+SPREAD.addEventListener('change', () => render());
+
 function render(group) {
   cancelTap();
   closePanel(true);
@@ -2234,9 +2241,23 @@ function render(group) {
     $('#period-label').textContent = dd.getDate() + '. ' + L().months[dd.getMonth()].toLowerCase(); $('#period-year').textContent = dd.getFullYear();
   } else if (state.view === 'week') {
     const ws = state.weekOf || fmt(new Date());
-    app.className = 'weekview';
-    app.innerHTML = renderWeekEl(ws);
     const m = mondayOf(ws);
+    // THE SPREAD (Alan, 14.09). On a wide screen going into the week slides the
+    // month left rather than replacing it: the month you came from on the left,
+    // the week in the middle, the day on the right. Nothing here is a new view
+    // — it is the three we already have, side by side, so every rule about
+    // reading and writing them still holds. A phone gets the week alone, as
+    // before, because three columns of diary on 402pt is none of them.
+    if (SPREAD.matches) {
+      const anchor = parseDate(state.weekDay || ws);
+      app.className = 'spread';
+      app.innerHTML = `<div class="col colmonth">${renderMonthEl(anchor.getFullYear(), anchor.getMonth())}</div>`
+        + `<div class="col colweek">${renderWeekEl(ws)}</div>`
+        + `<div class="col colday">${renderDayEl(state.dayOf || state.weekDay || ws)}</div>`;
+    } else {
+      app.className = 'weekview';
+      app.innerHTML = renderWeekEl(ws);
+    }
     $('#period-label').textContent = L().week + ' ' + isoWeek(m); $('#period-year').textContent = m.getFullYear();
   } else {
     app.className = 'strip';
@@ -2576,7 +2597,39 @@ function stepYear(dir) {
   render();
 }
 
+// EACH COLUMN STEPS ON ITS OWN (Alan, 14.09: "on iPad you'd be able to swipe
+// the week back and forth if you do it over the week centre panel, the day if
+// you swipe over the day"). The week keeps the WEEKDAY he was reading rather
+// than dropping him on a Monday — stepping from Thursday should give him next
+// Thursday, which is the comparison he is actually making. The only rule is
+// that the day on the right is always inside the week in the middle.
+function stepPanel(which, dir) {
+  const day = parseDate(state.dayOf || state.weekOf || fmt(new Date()));
+  if (which === 'month') {
+    const m = new Date(day.getFullYear(), day.getMonth() + dir, 1);
+    state.year = m.getFullYear(); state.month = m.getMonth();
+  } else if (which === 'day') {
+    day.setDate(day.getDate() + dir);
+    state.dayOf = state.weekDay = fmt(day);
+    state.weekOf = fmt(mondayOf(fmt(day)));     // the week follows its day out
+  } else {
+    const w = mondayOf(state.weekOf || fmt(day));
+    w.setDate(w.getDate() + dir * 7);
+    state.weekOf = fmt(w);
+    const keep = (day.getDay() + 6) % 7;        // the weekday he was reading
+    const nd = new Date(w); nd.setDate(w.getDate() + keep);
+    state.dayOf = state.weekDay = fmt(nd);
+  }
+  const anchor = parseDate(state.dayOf || state.weekOf);
+  state.year = anchor.getFullYear();
+  if (which !== 'month') state.month = anchor.getMonth();
+  state.openEvent = null;
+  if (state.mode === 'google') window.gcalEnsureYear(state.year);
+  render();
+}
+
 function step(dir) {
+  if (SPREAD.matches && state.view === 'week') return stepPanel('week', dir);
   if (state.view === 'day') {
     const d = parseDate(state.dayOf || fmt(new Date()));
     d.setDate(d.getDate() + dir);
@@ -2635,8 +2688,20 @@ $('#tour-chip').addEventListener('click', async () => {
 // the ⋯ menu shuts as soon as you pick something, and when you tap away —
 // a menu left hanging over the month is worse than the button it replaced
 const moreMenu = $('#more');
-moreMenu.addEventListener('click', e => { if (e.target.closest('button')) moreMenu.open = false; });
-document.addEventListener('click', e => { if (!e.target.closest('#more')) moreMenu.open = false; });
+// ON A WIDE SCREEN IT IS NOT A MENU, it is a row of controls across the top,
+// so it stays open and nothing closes it (Alan, 14.09: "the real estate up top
+// is generous so we can take our buttons out of the ellipsis menu").
+// (SPREAD is the same query the layout uses, declared with render() above —
+// one width decides both, and a const used before its declaration is the
+// mistake that has cost this file three evenings.)
+const shutMore = () => { if (!SPREAD.matches) moreMenu.open = false; };
+// open as a row of controls on a desk, shut as a menu everywhere else — a
+// window dragged narrow must not leave the toolbar hanging over the calendar
+const syncMore = () => { moreMenu.open = SPREAD.matches; };
+SPREAD.addEventListener('change', syncMore);
+syncMore();
+moreMenu.addEventListener('click', e => { if (e.target.closest('button')) shutMore(); });
+document.addEventListener('click', e => { if (!e.target.closest('#more')) shutMore(); });
 
 // THE MONTH IS NAMED ONCE (Alan, 13.09). With the header carrying the period,
 // the block's own title said September a second time and cost a day's worth of
@@ -2649,6 +2714,9 @@ $('#period-year').addEventListener('click', () => {
   if (state.view !== 'month') state.year = anchor.getFullYear();
   state.view = 'year'; state.openEvent = null; render();
 });
+
+$('#prev').addEventListener('click', e => { e.stopPropagation(); step(-1); });
+$('#next').addEventListener('click', e => { e.stopPropagation(); step(1); });
 
 // ALMANAKK IS THE WAY HOME (Alan, 13.09). However deep you are — a week in
 // 2028, a day in April — its own name puts you back on this month, with today
@@ -2693,7 +2761,7 @@ let printGroup = 3;
 $('#print').addEventListener('click', e => {
   e.stopPropagation(); // keep the document click-handler from instantly closing the menu
   closePanel(true);
-  $('#more').open = false;   // ...but the menu it was chosen from should still shut
+  shutMore();                // ...but the menu it was chosen from should still shut
   const pop = document.createElement('div');
   pop.id = 'popover';
   pop.style.cssText = 'top:60px;left:50%;transform:translateX(-50%)';
@@ -2786,7 +2854,8 @@ $('#app').addEventListener('click', e => {
   // well inside the uke/city column on the right. 20% reached too far into the
   // calendar; the columns themselves would have made the two sides different
   // widths, which is harder to hold in the head than one number.
-  const EDGE = { month: 0.14, week: 0.15, day: 0.15 }[state.view];
+  const EDGE = (SPREAD.matches && state.view === 'week') ? 0
+    : { month: 0.14, week: 0.15, day: 0.15 }[state.view];
   if (EDGE && !e.target.closest('.dedit, .wqa, .callist')) {
     const w = window.innerWidth;
     if (e.clientX < w * EDGE) { step(-1); return; }
@@ -2836,13 +2905,15 @@ $('#app').addEventListener('click', e => {
       // single tap: in the week it opens the day you touched — the event with
       // it, if you touched one — and in the month it opens the week.
       const twice = () => ev ? openDay(date, ev.id) : openDay(date, null, true);
-      tapOrDouble(
-        state.view === 'week'
-          ? () => openDay(date, ev ? ev.id : null)
-          : () => { state.weekOf = state.weekDay = date; state.view = 'week'; render(); },
-        twice,
-        ev ? 'e' + ev.id : date,
-      );
+      // IN THE SPREAD a day in the MONTH column moves the week under it as well
+      // as the day beside it — the three columns always describe one place.
+      const inMonthCol = !!e.target.closest('.colmonth');
+      const once = () => {
+        if (SPREAD.matches && state.view === 'week' && inMonthCol) state.weekOf = state.weekDay = date;
+        if (state.view === 'week') { openDay(date, ev ? ev.id : null); return; }
+        state.weekOf = state.weekDay = date; state.view = 'week'; render();
+      };
+      tapOrDouble(once, twice, ev ? 'e' + ev.id : date);
       return;
     }
   }
@@ -2868,6 +2939,7 @@ $('#app').addEventListener('click', e => {
       const free = [...document.querySelectorAll('.dayview .wblank')].find(b => !b.querySelector('input'));
       if (free) { openWeekEntry(free, state.dayOf); return; }
     }
+    if (SPREAD.matches && state.view === 'week') { state.openEvent = null; render(); return; }
     state.weekOf = state.weekDay = state.dayOf;
     state.view = 'week'; state.openEvent = null; render();
     return;
@@ -2955,7 +3027,13 @@ $('#app').addEventListener('touchend', e => {
   const dx = e.changedTouches[0].clientX - touchX;
   const dy = e.changedTouches[0].clientY - touchY;
   // a diagonal thumb-scroll in the year thumbnails used to step a whole year
-  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { step(dx < 0 ? 1 : -1); touchX = touchY = null; return; }
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    const col = e.target.closest('.colmonth, .colweek, .colday');
+    if (col) stepPanel(col.classList.contains('colmonth') ? 'month'
+      : col.classList.contains('colday') ? 'day' : 'week', dx < 0 ? 1 : -1);
+    else step(dx < 0 ? 1 : -1);
+    touchX = touchY = null; return;
+  }
   // UP AND DOWN IN THE MONTH IS THE SAME MONTH, ANOTHER YEAR (Alan, 14.09).
   // Only in the month: it is the one view sized to the screen, so there is no
   // scrolling to take the gesture away from, and the same month a year on is a
