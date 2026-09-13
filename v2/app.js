@@ -2233,7 +2233,13 @@ function renderMonthEl(y, m) {
         + `<span class="detail dright" style="left:${splitEm.toFixed(2)}em;right:0">`
         + timed.map(evtHtml).join('') + '</span>';
     } else {
-      detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em`
+      // A TIMED THING STARTS A LITTLE IN (Alan, 14.09: "I do like that the timed
+      // events sit a little tabbed in, perhaps a little less"). An all-day
+      // thing is the day's headline and begins at the margin; something that
+      // happens at an hour steps in from it. The indent says which it is before
+      // a word of it is read, and it costs no mark and no colour.
+      const tabbed = shown.length && effTime(shown[0].e) ? ' tabbed' : '';
+      detail = `<span class="detail${tabbed} ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em`
         + (wgEm ? `;right:${wgEm.toFixed(2)}em` : '') + `">`
         + shown.map(evtHtml).join('')
         + '</span>';

@@ -325,6 +325,8 @@ button.active { background: var(--ink); color: var(--card); }
 /* the one thing that may be heavier is the day's own headline */
 .v3 .day .detail .evt.allday { font-weight: 700; }
 .v3 .day .detail .evt.showevt { font-weight: 400; }
+/* the day's headline begins at the margin; an hour steps in from it */
+.v3 .day .detail.tabbed { padding-left: 2.2em; }
 
 /* ?split=1 — Alan's second sketch. The writing area is two columns with one
    rule between them, the same on every row: bands and all-day things on the
