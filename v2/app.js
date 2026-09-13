@@ -2145,8 +2145,15 @@ function renderMonthEl(y, m) {
     // of it. It starts after the bands that are actually in front of it and no
     // further; a banner further right is something his line runs past, which is
     // what he is describing both times.
+    // AND A TOUR BANNER NEVER PUSHES IT (Alan, still: "HKG-BKK is not left" on
+    // a build that had the rule above). It was true — his own lanes were clear
+    // on the 7th, but the TOUR's lane was lane 0 that month, because March
+    // holds no multi-day work of his own for the tour to sit after. So his
+    // flight was pushed past a banner that is not his. The line starts after
+    // his OWN bands and no further; the tour is something his writing runs
+    // past, which is the whole difference between his calendar and theirs.
     let firstFree = 0;
-    while (firstFree < laneEvs.length && laneEvs[firstFree]) firstFree++;
+    while (firstFree < nOwn && ownEvs[firstFree]) firstFree++;
     let lineStartEm = laneLeft(firstFree);
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
@@ -2207,7 +2214,15 @@ function renderMonthEl(y, m) {
       const onRight = false;
       // the line begins after the last band that actually says something here —
       // a band in the right margin is not in its way at all
-      if ((txt || inband) && !onRight) lineStartEm = Math.max(lineStartEm, laneX + w);
+      // ...and not for the tour's, whatever it is saying. A banner writing its
+      // name down three rows was pushing his writing off the left on all three
+      // — which is why "Underdog Mainz" sat out on the 1st and "Noe" on the 2nd
+      // while the 7th, where the banner is silent, was already correct. His
+      // entries are cut to a stop's width, so they stop before the banner
+      // rather than being written across it.
+      if ((txt || inband) && !onRight && !ev._wg) {
+        lineStartEm = Math.max(lineStartEm, laneX + w);
+      }
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''} ${isPencil(ev) ? 'pencil' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${ev.end === ds ? 'bend' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="${onRight ? `right:${wgRight(i).toFixed(2)}em` : `left:${laneX}em`};width:${w.toFixed(2)}em;`
@@ -2394,9 +2409,20 @@ function renderMonthEl(y, m) {
       // the page, so it stays on its stop; the width runs to wherever the next
       // entry begins. One event gets the whole row; a crowded day keeps its
       // columns and clips, which is the trade he chose.
+      // WHERE A BANNER STANDS, HIS WRITING STOPS. His line keeps the left even
+      // when a tour banner is on the row — but an entry long enough to reach
+      // the banner must end before it, not be written across its name.
+      let bandEdgePx = Infinity;
+      for (let i2 = 0; i2 < laneEvs.length; i2++) {
+        if (!laneEvs[i2]) continue;
+        const x = laneLeft(i2) * (laneBox.px || 12);
+        if (x >= lineStartEm * (laneBox.px || 12) - 0.5) { bandEdgePx = x; break; }
+      }
       const at = (k, span, trimEm) => {
-        const w = Math.max(1, span) * stopPx - (trimEm || 0) * (laneBox.px || 12);
-        return `left:${(k * stopPx).toFixed(2)}px;width:${Math.max(stopPx * 0.6, w).toFixed(2)}px`;
+        const l = k * stopPx;
+        let w = Math.max(1, span) * stopPx - (trimEm || 0) * (laneBox.px || 12);
+        if (bandEdgePx > l) w = Math.min(w, bandEdgePx - l);
+        return `left:${l.toFixed(2)}px;width:${Math.max(stopPx * 0.6, w).toFixed(2)}px`;
       };
       if (!onGrid) {
         // A LETTER IS NOT AN ENTRY (Alan's February: "W" on the 6th, "O:" on
