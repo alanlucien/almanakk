@@ -897,6 +897,23 @@ function layoutWeekBands() {
   });
 }
 
+// AN ALL-DAY ENTRY MUST NOT RUN UNDER THE LINES (Alan, 13.09: "Middag hos mor
+// is behind the lines, the app should know to push left of arrows"). The lines
+// are placed from the run names, so nothing in the markup knows where they end
+// up — it has to be measured after they are drawn.
+function keepRidersClear() {
+  document.querySelectorAll('.wdays').forEach(box => {
+    const bands = [...box.querySelectorAll('.wband')].filter(b => !b.hidden);
+    if (!bands.length) return;
+    const edge = Math.min(...bands.map(b => b.getBoundingClientRect().left)) - 8;
+    box.querySelectorAll('.dayrider').forEach(r => {
+      r.style.paddingRight = '';
+      const over = r.getBoundingClientRect().right - edge;
+      if (over > 0) r.style.paddingRight = Math.round(over) + 'px';
+    });
+  });
+}
+
 function alignTourItems() {
   document.querySelectorAll('.day .detail').forEach(det => {
     const items = [...det.querySelectorAll(':scope > .evt[data-wg="1"]')];
@@ -1742,6 +1759,7 @@ function render(group) {
   alignTourItems();
   clipLine();
   layoutWeekBands();
+  keepRidersClear();
   wireDayView();
   $('#period-label').classList.toggle('isyear', state.view === 'year');
   markHistory();
