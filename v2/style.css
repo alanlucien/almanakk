@@ -1255,6 +1255,13 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 .pair .pw .wday { border: 1px solid var(--rule); border-left-width: 2px; margin-bottom: 7px; background: var(--card); }
 .pair .pw .wday:last-child { margin-bottom: 0; }
 .pair .pw .week > h2 { border: 1px solid var(--rule-strong); margin-bottom: 9px; }
+/* the week names itself the way the day does: the figure large, the word beside
+   it, and the month it falls in following in small caps */
+.pair .pw .week > h2 .wkfig { font-size: 20px; font-weight: 700; letter-spacing: 0; }
+.pair .pw .week > h2 .wkname {
+  letter-spacing: .12em; color: var(--muted); font-weight: 400;
+  text-transform: uppercase; margin-right: -.3em;
+}
 .pair .pw .wday, .pair .pw .wev, .pair .pd .dev { cursor: pointer; }
 
 /* ---------- the desk's own controls ---------- */

@@ -2033,7 +2033,7 @@ function quarterHtml(d) {
 // together instead of one after the other.
 function pairHtml(ws) {
   return `<div class="pair">`
-    + `<div class="pw">${renderWeekEl(ws)}</div>`
+    + `<div class="pw">${renderWeekEl(ws, true)}</div>`
     + `<div class="pd">${renderDayEl(state.dayOf || state.weekDay || ws)}</div>`
     + `</div>`;
 }
@@ -2222,7 +2222,7 @@ function calName(id) {
   return c ? (c.name || c.id) : id;
 }
 
-function renderWeekEl(ds) {
+function renderWeekEl(ds, inPair) {
   const mon = mondayOf(ds);
   const hol = holidays(mon.getFullYear());
   const holNext = holidays(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6).getFullYear());
@@ -2351,7 +2351,17 @@ function renderWeekEl(ds) {
   // UKE 42 in the largest type on the screen, so the sheet said it again three
   // centimetres below. The DAY view keeps its number — there the header names a
   // date, and the week it falls in is not written anywhere else.
-  return `<section class="week"><h2><span class="wspanlabel">${span}</span> <small>${end.getFullYear()}</small>`
+  // EXCEPT IN THE SPREAD (Alan, 14.09: "a bit confusing alignment here — you
+  // want week 43 above the week column, just like the day has its day
+  // number"). The rule above holds because the header sits directly over the
+  // one column it names. Side by side it sits over the seam between two, so it
+  // names neither, and the week was the only panel on the screen that did not
+  // say what it was. It says it the way the day does: the figure large, the
+  // word beside it.
+  const wkTitle = inPair
+    ? `<span class="wkname">${L().week}</span><span class="wkfig">${isoWeek(mon)}</span>`
+    : '';
+  return `<section class="week"><h2>${wkTitle}<span class="wspanlabel">${span}</span> <small>${end.getFullYear()}</small>`
     + (wcity ? `<span class="wcity ${wcity.length <= 7 ? 'short' : ''}">${esc(wcity)}</span>` : '')
     + '</h2>'
     + `<div class="wdays" style="--wlanes:${nLanes}">${days}`
