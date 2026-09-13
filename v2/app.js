@@ -1761,6 +1761,9 @@ function renderMonthEl(y, m) {
   if (V3 && nOvl) for (let i = nOwn; i < nOwn + nOvl; i++) marginEm += wgLaneW(i) + LANE_GAP;
   const model = (V3 && roomEm && colTotal + marginEm + MIN_LINE <= roomEm)
     ? 'column' : BANDS;
+  // how wide his own bands are on the widest row of the month — a stair lane is
+  // narrow but its LABEL reaches past it, so the honest width is where the
+  // furthest band actually ends
   // TWO MODELS, SO ALAN CAN JUDGE THEM ON HIS OWN CALENDAR (12.09). STAIR is
   // today's: bands overlap, each starting a strip right of the last, which buys
   // width and costs the clean edge you follow a tour down by. COLUMN is v1's:
@@ -1808,6 +1811,7 @@ function renderMonthEl(y, m) {
     }
   }
   const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
+
   // THE TOUR'S BANNERS HANG ON THE RIGHT (preview — Alan, 14.09: "I do want the
   // banners right so my non-wg events don't appear left and right of the
   // tours"). With the tour's lanes in the middle his own line began after
@@ -1965,6 +1969,14 @@ function renderMonthEl(y, m) {
     // calm he is pointing at, more than the colours or the type. The stair
     // cannot have it: its lanes borrow width from each other, so the line has
     // to begin after whatever happens to be said that day.
+    // ONE LEFT EDGE IS RIGHT AND I COULD NOT AFFORD IT TONIGHT (Alan, 14.09).
+    // Holding the band area at its widest row on all 31 rows does give his
+    // writing one starting place — measured, 283px on every row — but on a
+    // 430px phone that left 100px to write in and every entry became
+    // "Befarin...", "Deadli...", "Kostym...". The old almanac can do it because
+    // its band labels CLIP to a narrow fixed area ("El." not "El. Oslo"); ours
+    // widen the band to fit the label instead. Making labels clip is the real
+    // change, and it is his to approve, not mine to slip in at midnight.
     let lineStartEm = model === 'column' ? laneLeft(ownLanes) : 0;
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
