@@ -1411,6 +1411,23 @@ function alignByTime() {
 // TIRSDAG begins moves with the date — the offset is measured from the heading
 // each time rather than guessed at, the same way the day line is measured
 // against the bands.
+// THE MONTH SAYS WHAT IS ENLARGED BESIDE IT (Alan, 14.09). Seven rows carry the
+// week that is open in the next column, and one of them carries the day — so
+// the month is not just where he navigates from, it is where he can see where
+// he is.
+function markSpread() {
+  const col = document.querySelector('.colmonth');
+  if (!col) return;
+  const mon = mondayOf(state.weekOf || fmt(new Date()));
+  const from = fmt(mon);
+  const to = fmt(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6));
+  col.querySelectorAll('.day[data-date]').forEach(d => {
+    const ds = d.dataset.date;
+    d.classList.toggle('inweek', ds >= from && ds <= to);
+    d.classList.toggle('shown', !!state.dayPanel && ds === state.dayOf);
+  });
+}
+
 function alignAllDay() {
   const sec = document.querySelector('.dayview');
   if (!sec) return;
@@ -2309,6 +2326,7 @@ function render(group) {
     const t = document.querySelector('.dayview .dedit[data-eid="new"] [name="title"]');
     if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
   }
+  markSpread();
   alignAllDay();
   alignLinesToBands();
   updateChips();
@@ -2875,9 +2893,21 @@ $('#app').addEventListener('click', e => {
   const EDGE = (SPREAD.matches && state.view === 'week') ? 0
     : { month: 0.14, week: 0.15, day: 0.15 }[state.view];
   if (EDGE && !e.target.closest('.dedit, .wqa, .callist')) {
+    // A THUMB IS A THUMB WHATEVER THE SCREEN (found on his iPad, 14.09). As a
+    // pure fraction these were 60px on a phone and 123px on an iPad — wide
+    // enough there to cover the clock gutter AND the first letters of every
+    // entry, so the tap meant to OPEN an event stepped the day instead. Then
+    // "tapping out" of an edit that had never opened did what a tap does when
+    // nothing is open: it left for the week. Capped, the iPad behaves like the
+    // phone and nothing swallows the entries.
     const w = window.innerWidth;
-    if (e.clientX < w * EDGE) { step(-1); return; }
-    if (e.clientX > w * (1 - EDGE)) { step(1); return; }
+    // 60px, which is what 15% comes to on his phone — the width he approved,
+    // including the trade that the first letters of an all-day entry fall
+    // inside it. An iPad now behaves exactly like the phone instead of eating
+    // whole titles.
+    const edge = Math.min(w * EDGE, 60);
+    if (e.clientX < edge) { step(-1); return; }
+    if (e.clientX > w - edge) { step(1); return; }
   }
   const row = e.target.closest('.day');
   // A TITLE CLIMBS, AND IT IS ASKED FIRST (Alan, 13.09). These sat below the
@@ -2928,8 +2958,13 @@ $('#app').addEventListener('click', e => {
       const inMonthCol = !!e.target.closest('.colmonth');
       const once = () => {
         if (SPREAD.matches && state.view === 'week' && inMonthCol) {
-          // the month moves the week under it and stays where it is
-          state.weekOf = state.weekDay = state.dayOf = date; state.openEvent = null; render(); return;
+          // A CLICK IS A CLICK (Alan, 14.09): a day opens that day, an event
+          // opens that event. He asked how a week is opened then — it is not.
+          // The week follows the day, always showing the week the open day is
+          // in, so there is nothing left to ask for.
+          state.weekOf = state.weekDay = date;
+          openDay(date, ev ? ev.id : null);
+          return;
         }
         if (state.view === 'week') { openDay(date, ev ? ev.id : null); return; }
         state.weekOf = state.weekDay = date; state.view = 'week'; render();

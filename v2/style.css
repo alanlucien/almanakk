@@ -1178,10 +1178,26 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 /* ---------- THE SPREAD: month | week | day, on a screen wide enough ---------- */
 /* Nothing here is a new view. It is the three we already have, side by side, so
    every rule about reading and writing them still holds (Alan, 14.09). */
+/* AN ALMANAC PAGE HAS A SHAPE (Alan, 14.09: "the month feels a bit too wide,
+   it's like an unrecognizable format"). Two thirds of a 1440 screen is 930px of
+   month, which is no longer a month page — it is a spreadsheet. The columns are
+   capped and the pair is centred, so the month keeps the tall narrow proportion
+   the paper has and the screen grows around it rather than stretching it. */
 #app.spread {
-  display: grid; grid-template-columns: 2fr 1fr;
+  display: grid; grid-template-columns: minmax(0, 620px) minmax(0, 430px);
+  justify-content: center;
   gap: 16px; align-items: start; padding: 10px 14px 24px;
 }
+
+/* on a desk there is a pointer, and what it can pick up should say so */
+#app.spread .colmonth .day, #app.spread .colweek .wday,
+#app.spread .day .evt, #app.spread .day .band { cursor: pointer; }
+
+/* WHAT IS ENLARGED BESIDE IT (Alan, 14.09). The seven rows of the open week
+   carry a rule down their left edge; the open day fills it in. Quiet enough to
+   be furniture, definite enough to find without looking for it. */
+#app.spread .colmonth .day.inweek { box-shadow: inset 3px 0 0 var(--rule); }
+#app.spread .colmonth .day.shown { box-shadow: inset 3px 0 0 var(--ink); }
 #app.spread .col { min-width: 0; }
 #app.spread .month, #app.spread .week, #app.spread .dayview { margin: 0; }
 #app.spread .colweek { position: relative; }
