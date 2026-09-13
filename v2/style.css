@@ -857,3 +857,11 @@ html, body { touch-action: manipulation; }
    against the dots. The title keeps the page's dead centre; the year takes the
    middle of what is left. */
 header #period-year { flex: 1; text-align: center; margin-right: 0; }
+
+/* A TOUR'S ENTRIES ARE STILL YOURS TO READ (Alan, 13.09: "Get in (tech),
+   Rehearsal ... too tiny — is this wg events, is that why?"). Yes it was:
+   dimmed to 62% and set a size smaller than the day's own entries. Dimming is
+   meant to say "theirs, and first to be dropped when a line is full", not to
+   make a rehearsal call hard to read on a bright screen. */
+.week .wday .wev { font-size: 13px; }
+.week .wday .wev.wg, .dayview .dev.wg, .week .wspan.wg, .wday > h3 .wspanname.wg { opacity: .82; }
