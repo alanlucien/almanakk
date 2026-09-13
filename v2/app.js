@@ -129,8 +129,15 @@ function wallTitle(title, covers) {
       t = cut; break;
     }
   }
-  t = t.replace(/^[\s\-\u2013\u2014,:\u00b7]+|[\s\-\u2013\u2014,:\u00b7]+$/g, '')
+  t = t.replace(/^[\s\-\u2013\u2014,:\u00b7+]+|[\s\-\u2013\u2014,:\u00b7]+$/g, '')
        .replace(/\s+/g, ' ').trim();
+  // WHAT IS LEFT HAS TO BE A TITLE (Alan, 14.09, from his May: entries reading
+  // "7", "8", "C" and "+ strike 9" in red down the page). Those were events
+  // named after the run they sit in — "ANTIGONE Roma 7", "ANTIGONE Roma +
+  // strike 9" — and taking the run away left the scraps. A remainder with no
+  // word of two letters or more is not a shorter title, it is a fragment, and
+  // the title stands instead.
+  if (!/[\p{L}]{2}/u.test(t)) return original;
   return t || original;
 }
 
@@ -2028,7 +2035,18 @@ function renderMonthEl(y, m) {
     // its band labels CLIP to a narrow fixed area ("El." not "El. Oslo"); ours
     // widen the band to fit the label instead. Making labels clip is the real
     // change, and it is his to approve, not mine to slip in at midnight.
-    let lineStartEm = model === 'column' ? laneLeft(ownLanes) : 0;
+    // AFTER THE BANDS THAT ARE ACTUALLY THERE (Alan, 14.09, on his real May:
+    // "the all-day events start too much tabbed from the left — they begin near
+    // the I in MAI, they should have started where OS off or Téléphone ended").
+    // In columns the line was starting after EVERY lane the month uses, so a
+    // second production running at the other end of the month charged its width
+    // to every row, including the twenty days with nothing in that lane. It now
+    // starts after the last lane holding a band THIS day — which, because the
+    // lanes are columns, is one of only two or three places on the whole sheet,
+    // not the arbitrary jumping the stair produces.
+    let lastCovered = -1;
+    if (model === 'column') laneEvs.forEach((ev, i) => { if (ev) lastCovered = i; });
+    let lineStartEm = model === 'column' ? laneLeft(lastCovered + 1) : 0;
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       const showLabel = labelledAt(ev);
