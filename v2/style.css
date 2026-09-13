@@ -873,10 +873,11 @@ header #period-year {
    header or in the margins still zoomed. The whole page opts out. */
 html, body { touch-action: manipulation; }
 
-/* THE YEAR SITS BETWEEN THE TITLE AND THE DOTS (Alan, 13.09) rather than tucked
-   against the dots. The title keeps the page's dead centre; the year takes the
-   middle of what is left. */
-header #period-year { flex: 1; text-align: center; margin-right: 0; }
+/* THE YEAR SITS BETWEEN THE TITLE AND THE CONTROLS (Alan, 14.09) rather than
+   tucked against them. The title keeps the page's dead centre; the year takes
+   the middle of what is left. flex: 1 did it while the title was in the flow;
+   now that the title is centred absolutely, centreYear() measures the gap. */
+header #period-year { text-align: center; margin-right: 0; }
 
 /* A TOUR'S ENTRIES ARE STILL YOURS TO READ (Alan, 13.09: "Get in (tech),
    Rehearsal ... too tiny — is this wg events, is that why?"). Yes it was:
@@ -1399,4 +1400,34 @@ header nav > #print svg, header nav > #lang-chip svg { display: block; }
 #app.year12 .day .evt { font-size: 6px; }
 @media (max-width: 1199px) {
   #app.year12 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* a blank ruled day, so a short month is printed to the same depth as a long
+   one and the three sheets end level (Alan, 14.09) */
+/* A BLANK DAY IS A DAY (Alan, 14.09: the months must end level "perfectly in
+   sync with my cardboard calendar"). It carries .day itself rather than
+   imitating its height, so the rhythm matches by construction — a hand-set
+   height was a fifth of a pixel out and the quarter ended a pixel crooked. */
+.dayfill { cursor: default; }
+
+/* ---------- the header's middle ---------- */
+@media (min-width: 1000px) {
+  /* THE PERIOD SITS DEAD CENTRE (Alan, 14.09). In a three-column grid it was
+     centred only in ITS column, which the arrows and the year kept shoving
+     about. Out of the flow, it is centred on the page whatever flanks it — and
+     the year takes the space between it and the controls. */
+  header { position: relative; }
+  header nav:first-of-type {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    top: 50%; margin-top: -0.7em; gap: 10px;
+  }
+  header nav:last-of-type { grid-column: 1 / -1; justify-content: flex-end; }
+  header h1 { position: relative; z-index: 1; }
+
+  /* THE ARROWS ARE A DESK'S TOOL. An iPad swipes and taps its edges, and there
+     the arrows only sit close enough to the year to open the year by mistake. */
+  .wideonly#prev, .wideonly#next { display: none; }
+}
+@media (min-width: 1250px) {
+  .wideonly#prev, .wideonly#next { display: inline-flex; }
 }

@@ -385,16 +385,32 @@ function runName(ev) {
   const run = covers.sort((a, b) => (a.start < b.start ? 1 : -1))[0];
   if (!run) return null;
   const words = deco(run.title).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
-  // a place can be two or three words — "ANTIGONE Hong Kong" kept the city
-  // because only the last word was ever tested (found while building, 14.09)
+  // THE PIECE IS THE SHOUTED PART (Alan, 14.09: "ANTIGONE Epidaurus" kept its
+  // city, because Epidaurus is in no airport table and never will be). He writes
+  // a run as PRODUCTION City — the piece in capitals, where it plays in ordinary
+  // case — so the capitals are the name and everything after them is where. A
+  // run with no shouted part keeps all its words: "Kongen av Bastøy" is a title,
+  // not a title and a town.
+  const shout = w => w.length > 1 && w === w.toLocaleUpperCase('no') && /[A-ZÆØÅ]/.test(w);
+  let caps = 0;
+  while (caps < words.length && shout(words[caps])) caps++;
+  let name = caps && caps < words.length ? words.slice(0, caps) : words.slice();
+  // and a known place on the end goes too, for runs written in ordinary case —
+  // one that may be two or three words, since "Hong Kong" is not one
   let cut = true;
-  while (cut && words.length > 1) {
+  while (cut && name.length > 1) {
     cut = false;
-    for (let k = Math.min(3, words.length - 1); k >= 1; k--) {
-      if (placeOf(words.slice(-k).join(' '))) { words.splice(-k, k); cut = true; break; }
+    for (let k = Math.min(3, name.length - 1); k >= 1; k--) {
+      if (placeOf(name.slice(-k).join(' '))) { name.splice(-k, k); cut = true; break; }
     }
   }
-  return words.join(' ') || null;
+  // TITLE CASE (Alan, 14.09). A word he shouted is a word he wrote in capitals
+  // for the calendar's sake, not a word that is spelled that way — but an
+  // abbreviation IS spelled that way, and NNB-Y came back as "Nnb-y" the first
+  // time this ran. Five letters or more, nothing but letters: ANTIGONE yes,
+  // NNB-Y and DNK no.
+  const spoken = w => /^[A-ZÆØÅa-zæøå]{5,}$/.test(w) && w === w.toLocaleUpperCase('no');
+  return name.map(w => spoken(w) ? w[0] + w.slice(1).toLocaleLowerCase('no') : w).join(' ') || null;
 }
 function showLabel(title, lend) {
   if (!isShow({ title })) return null;
@@ -1470,6 +1486,33 @@ function alignByTime() {
 // week that is open in the next column, and one of them carries the day — so
 // the month is not just where he navigates from, it is where he can see where
 // he is.
+// THE YEAR SITS BETWEEN THE PERIOD AND THE CONTROLS (Alan, 14.09). Margins
+// could not do it: the period is out of the flow so it can be dead centre, and
+// a margin in the row that remains only pushes the year to one end or the
+// other. The midpoint is measured — the period's right edge to the first
+// control's left — which is exact and follows a long month name or a short one.
+function centreYear() {
+  const yr = $('#period-year');
+  const loose = () => { yr.style.cssText = ''; };
+  if (!SPREAD.matches) return loose();
+  // the period's own arrows count as part of the title, so the gap starts after them
+  const rest = [...yr.parentNode.children].filter(el => el !== yr && el.offsetParent);
+  if (!rest.length) return loose();
+  // lift it out of the row BEFORE measuring: in the row it pushes the controls
+  // right, so measuring first and moving after would give a different answer on
+  // the first render than on the second
+  yr.style.position = 'absolute';
+  yr.style.top = '50%';
+  yr.style.marginTop = '-0.6em';
+  yr.style.left = '0';
+  const a = $('header nav').getBoundingClientRect().right;
+  const b = rest[0].getBoundingClientRect().left;
+  // a long month name can leave no gap at all; then the year stays in the row
+  // rather than being centred on top of the title
+  if (b - a < yr.offsetWidth + 24) return loose();
+  yr.style.left = Math.round((a + b) / 2 - yr.offsetWidth / 2) + 'px';
+}
+
 function markSpread() {
   const col = document.querySelector('.quarter3');
   if (!col) return;
@@ -1928,10 +1971,21 @@ function renderYearThumbs(y) {
 
 // The quarter that holds a date — fixed thirds of the year, the way the paper
 // sheet is printed, so the same three months are always on the same page.
+// SHEETS THAT END LEVEL (Alan, 14.09: "even though they only have 30 days,
+// extend all the way down, an empty day at the bottom, to be perfectly in sync
+// with my cardboard calendar"). Every month is printed to the same depth on the
+// paper — a short one carries blank ruled days, not a void. That is also what
+// he meant by "close these lines": the space was there, it simply had no rules
+// in it.
+function padMonth(html, y, m) {
+  const missing = 31 - daysInMonth(y, m);
+  return missing > 0 ? html.replace('</section>', '<div class="day dayfill"><span class="num">\u200b</span></div>'.repeat(missing) + '</section>')
+    : html;
+}
 function quarterHtml(d) {
   const y = d.getFullYear(), q = Math.floor(d.getMonth() / 3) * 3;
   let out = '';
-  for (let m = q; m < q + 3; m++) out += `<div class="qmonth">${renderMonthEl(y, m)}</div>`;
+  for (let m = q; m < q + 3; m++) out += `<div class="qmonth">${padMonth(renderMonthEl(y, m), y, m)}</div>`;
   return `<div class="quarter3">${out}</div>`;
 }
 // A SCREEN, NOT A BOX OVER ONE (Alan, 14.09: "on an iPhone it's a new screen
@@ -2320,7 +2374,7 @@ function render(group) {
     // view"). Twelve real month sheets, small — not thumbnails, so what it
     // shows and what a click does are the same as everywhere else.
     let html = '';
-    for (let m = 0; m < 12; m++) html += renderMonthEl(state.year, m);
+    for (let m = 0; m < 12; m++) html += padMonth(renderMonthEl(state.year, m), state.year, m);
     app.className = 'year12';
     app.innerHTML = html;
     $('#period-label').textContent = state.year; $('#period-year').textContent = '';
@@ -2419,6 +2473,7 @@ function render(group) {
     const t = document.querySelector('.dayview .dedit[data-eid="new"] [name="title"]');
     if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
   }
+  centreYear();
   markSpread();
   alignAllDay();
   alignLinesToBands();
@@ -3052,8 +3107,12 @@ $('#app').addEventListener('click', e => {
   // well inside the uke/city column on the right. 20% reached too far into the
   // calendar; the columns themselves would have made the two sides different
   // widths, which is harder to hold in the head than one number.
-  const EDGE = (SPREAD.matches && state.view === 'week') ? 0
-    : { month: 0.14, week: 0.15, day: 0.15 }[state.view];
+  // AN IPAD HAS NO ARROWS, so it keeps the phone's edges (Alan, 14.09: "a little
+  // edge tap zone so we can touch the side of the screen and jump back like on
+  // the iPhone"). A desk has the arrows and a pointer, so its edges stay quiet.
+  const TOUCHY = SPREAD.matches && window.innerWidth < 1250;
+  const EDGE = (SPREAD.matches && !TOUCHY) ? 0
+    : (SPREAD.matches ? 0.15 : { month: 0.14, week: 0.15, day: 0.15 }[state.view]);
   if (EDGE && !e.target.closest('.dedit, .wqa, .callist')) {
     // A THUMB IS A THUMB WHATEVER THE SCREEN (found on his iPad, 14.09). As a
     // pure fraction these were 60px on a phone and 123px on an iPad — wide
