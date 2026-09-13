@@ -2482,6 +2482,20 @@ $('#app').addEventListener('click', e => {
   const cell = e.target.closest('.info.plan');
   if (cell) { e.stopPropagation(); return openCityEdit(cell); }
   if ($('#popover')) { closePanel(); return; }
+  // THE EDGES ARE NAVIGATION, WHATEVER IS UNDER THEM (Alan, 14.09: "the brain
+  // just thinks back, it doesn't realize it's tapped on the number 15"). A
+  // thumb going to the side of the screen means back or forward, and what
+  // happens to sit there — a day number, a clock, the first letters of a title
+  // — does not change that. So position wins over content here, which is the
+  // opposite of every other rule in the app and is the point. The middle 70%
+  // is the calendar. Not while he is writing or editing: a field at the edge
+  // of the form is a field.
+  if ((state.view === 'week' || state.view === 'day')
+      && !e.target.closest('.dedit, .wqa, .callist')) {
+    const w = window.innerWidth;
+    if (e.clientX < w * 0.15) { step(-1); return; }
+    if (e.clientX > w * 0.85) { step(1); return; }
+  }
   const row = e.target.closest('.day');
   // A TITLE CLIMBS, AND IT IS ASKED FIRST (Alan, 13.09). These sat below the
   // tap/double-tap blocks, which catch everything inside a view — so the day's
@@ -2543,22 +2557,29 @@ $('#app').addEventListener('click', e => {
   //   month tap a day    → its week      two taps → the year
   //   week  tap a day    → that day      two taps → the month
   //   day   tap an event → edit it       two taps → its week
+  // A TAP OUTSIDE THE FORM SHUTS IT, AND DOES NOTHING ELSE (Alan, 14.09). Lukk
+  // is still there; this is the way out that needs no aiming. It closes and
+  // stops — it does not also open whatever the finger happened to land on.
+  if (inDay && !e.target.closest('.dedit') && (state.openEvent !== null || state.draft)) {
+    state.openEvent = null; state.draft = null; render(); return;
+  }
+  if (e.target.closest('.wqa')) return;   // he is writing; the field has its own rules
+  // ONE TAP DOES THE OBVIOUS THING, AND ONE TAP LEAVES (Alan, 14.09). On an
+  // entry's words it opens that entry. On the blank paper of a row, or on a
+  // ruled line, it starts writing. On anything else in the day — the divider,
+  // the paper below the last line — it goes back to the week. No waiting for a
+  // second tap that never comes.
   if (inDay && !e.target.closest('.dedit') && !e.target.closest('.wblank')) {
+    const evHit = hit && onWords(hit, e) && state.events.find(x => String(x.id) === String(hit.dataset.eid));
+    if (evHit) { state.openEvent = evHit.id; render(); return; }
     // beside the words of an entry is blank paper, and blank paper is a line to
     // write on — the free line below, never this entry's own
-    if (hit && !onWords(hit, e)) {
+    if (hit) {
       const free = [...document.querySelectorAll('.dayview .wblank')].find(b => !b.querySelector('input'));
       if (free) { openWeekEntry(free, state.dayOf); return; }
     }
-    const evHit = hit && onWords(hit, e) && state.events.find(x => String(x.id) === String(hit.dataset.eid));
-    tapOrDouble(
-      () => { if (evHit) { state.openEvent = evHit.id; render(); } },
-      () => {
-        state.weekOf = state.weekDay = state.dayOf;
-        state.view = 'week'; state.openEvent = null; render();
-      },
-      hit ? hit.dataset.eid : 'day',
-    );
+    state.weekOf = state.weekDay = state.dayOf;
+    state.view = 'week'; state.openEvent = null; render();
     return;
   }
   // ONLY IN THE DAY (Alan, 12.09). Writing on a blank line was swallowing the

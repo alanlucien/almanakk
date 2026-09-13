@@ -986,3 +986,30 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 .dayview .calopt.on { font-weight: 700; }
 .dayview .calopt:hover { background: var(--wash, #f2f2f2); }
 .dayview .dmeta .dot { flex: 0 0 auto; }
+
+/* THE PICKER OPENS WHEN HE ASKS IT TO. `display: flex` outranks the `hidden`
+   attribute, so the list of calendars was drawn open from the moment the form
+   appeared (Alan, 14.09). */
+.dayview .callist[hidden] { display: none; }
+
+/* AN ALL-DAY ENTRY STARTS WHERE THE DAY DOES (Alan, 14.09), sharing the day
+   number's left edge instead of the timed entries' title column — so you can
+   see what kind of thing it is before reading a word, and a long one has the
+   whole width to run in. Its dates come off the right margin and follow the
+   title, because they belong to that entry and read as a pair with it. */
+.dayview .dev.ad .wt { display: none; }
+.dayview .dev.ad .wn { flex: 0 1 auto; }
+.dayview .dev.ad .wr { margin-right: auto; }
+
+/* THE WEEK'S TITLE HOLDS ONE LINE. With the week number gone the line packs
+   differently, and a two-month span beside a two-city label ("LONDON / BERGEN")
+   wrapped — which dragged the year across the page to sit against the city
+   (Alan, 14.09). The span gives way instead: it shrinks, and the city stays
+   hard right where it has always been. */
+.week > h2 { flex-wrap: nowrap; }
+.week > h2 small { flex: 0 0 auto; }
+.week > h2 .wcity { flex: 0 1 auto; text-align: right; }
+@media (max-width: 430px) {
+  .week > h2 { font-size: 12px; letter-spacing: .2em; gap: .45em; }
+  .week > h2 .wcity { font-size: 9px; letter-spacing: .05em; }
+}
