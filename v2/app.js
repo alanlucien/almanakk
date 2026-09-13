@@ -2160,7 +2160,7 @@ function renderMonthEl(y, m) {
       // a band in the right margin is not in its way at all
       if ((txt || inband) && !onRight) lineStartEm = Math.max(lineStartEm, laneX + w);
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''} ${isPencil(ev) ? 'pencil' : ''}`
-        + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
+        + ` ${ev.start === ds ? 'bstart' : ''} ${ev.end === ds ? 'bend' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="${onRight ? `right:${wgRight(i).toFixed(2)}em` : `left:${laneX}em`};width:${w.toFixed(2)}em;`
         + `--w:${w.toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (txt ? `<b>${esc(deco(txt))}</b>` : '')

@@ -225,6 +225,20 @@ button.active { background: var(--ink); color: var(--card); }
 .day .band.bstart, .day .band.bstart b {
   box-shadow: inset 0 1px 0 var(--ci, var(--c));
 }
+/* A RUN CLOSES (Alan, on his February: "I have a hard time knowing when the
+   multi-day events END at the top of the month — they have the same colour and
+   overlap, so I can see where they start but not where they stop"). The name
+   says where a run begins; nothing said where it finished, and five runs of one
+   colour overlapping is exactly where that matters. The last day draws a rule
+   under itself in the run's own ink — the same seam the first day already
+   draws, closing the block instead of opening it. A run carrying on into the
+   next month has no last day here and so draws nothing, which is the truth. */
+.v3 .day .band.bend, .v3 .day .band.bend b {
+  box-shadow: inset 0 -1px 0 var(--ci, var(--c));
+}
+.v3 .day .band.bstart.bend, .v3 .day .band.bstart.bend b {
+  box-shadow: inset 0 1px 0 var(--ci, var(--c)), inset 0 -1px 0 var(--ci, var(--c));
+}
 .day .band.tbc { border-left-style: dashed; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
 .day .band.tbc b { font-style: italic; background: color-mix(in srgb, var(--c) 9%, var(--card)); }
 .day .band.showband b { color: var(--red); }
