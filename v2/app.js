@@ -1487,6 +1487,11 @@ function keepRidersClear() {
 
 function alignTourItems() {
   document.querySelectorAll('.day .detail').forEach(det => {
+    // NOT ON A RULED SHEET. Written for the free-flowing line, where an item
+    // could be nudged sideways to build a column of its own. On the stops the
+    // column already exists, and nudging only takes an entry off it — which is
+    // what pushed "Kort" 18.8px into the entry beside it on 27 June.
+    if (det.classList.contains('grid')) return;
     const items = [...det.querySelectorAll(':scope > .evt[data-wg="1"]')];
     if (!items.length) return;
     const cv = det.closest('.canvas');
@@ -1534,7 +1539,7 @@ function alignTourItems() {
 }
 
 function alignByTime() {
-  if (!KVELD) return;
+  if (!KVELD || V3) return;   // the stops are the columns now; see alignTourItems
   const hour = b => b.dataset.t ? Number(b.dataset.t.slice(0, 2)) : -1;
   // widest, ignoring one that is half again longer than the next down
   const ordinary = ws => {
@@ -2429,11 +2434,15 @@ function renderMonthEl(y, m) {
       // an entry whose stop is already inside it was never asked. The row uses
       // the stops in front of the banner and counts the rest.
       const px = laneBox.px || 12;
-      let edgePx = Infinity;
+      let edgePx = Infinity, edgeRightPx = 0;
       for (let i2 = 0; i2 < laneEvs.length; i2++) {
         if (!laneEvs[i2]) continue;
         const x = laneLeft(i2) * px;
-        if (x >= lineStartEm * px - 0.5) { edgePx = x; break; }
+        if (x >= lineStartEm * px - 0.5) {
+          edgePx = x;
+          edgeRightPx = x + (laneW[i2] || laneEm[i2]) * px;
+          break;
+        }
       }
       const lastStop = edgePx === Infinity ? STOPS
         : Math.max(1, Math.min(STOPS, Math.round(edgePx / stopPx)));
@@ -2462,11 +2471,43 @@ function renderMonthEl(y, m) {
       // when a tour banner is on the row — but an entry long enough to reach
       // the banner must end before it, not be written across its name.
       const bandEdgePx = edgePx;
+      // THE COUNT GOES AFTER THE LAST ENTRY, NOT AT ITS OWN STOP (found in a
+      // sweep of the year: on 1 March "Underdog Mainz" expands to fill the
+      // paper up to the banner — 0 to 133 — while "+2" was still placed at
+      // stop 1, which is 82, i.e. inside the entry it was counting). The stops
+      // are for entries; the count follows whatever the row actually wrote.
+      let lastRight = 0;
+      // AND IT NEEDS ROOM OF ITS OWN. Two characters is about 2.4em; if what is
+      // left between the last entry and the banner cannot hold that, the count
+      // goes to the right edge of the row rather than leaning on the banner.
+      // ROOM FOR THE COUNT IS RESERVED, NOT FOUND. On 1 March the banner runs
+      // from 165 to past the right edge, so there is no free paper at all — and
+      // "right: 0" put the count inside the banner, which is the one place it
+      // must not be. The entry gives up the last 2.4em of its own width
+      // instead: a title one word shorter is a small price, a count written
+      // over a production's name is not.
+      const needPx = 2.4 * (laneBox.px || 12);
+      // "no free paper" means the band reaches the RIGHT EDGE of the sheet, not
+      // that it begins near it — on 1 March the banner starts at 152 of a
+      // 246-wide row and runs past 246, so the right edge is inside it.
+      const countRoomAt = (bandEdgePx !== Infinity && edgeRightPx >= (laneBox.cw || 1e9) - 2)
+        ? bandEdgePx - needPx : null;
+      const countPos = () => {
+        const want = Math.max(moreAt * stopPx, lastRight);
+        if (countRoomAt !== null) return `left:${countRoomAt.toFixed(2)}px`;
+        if (moreAt >= lastStop - 1 && lastStop >= STOPS) return 'right:0';
+        if (bandEdgePx !== Infinity && bandEdgePx - want < needPx) return 'right:0';
+        return `left:${want.toFixed(2)}px`;
+      };
       const at = (k, span, trimEm) => {
         const l = k * stopPx;
         let w = Math.max(1, span) * stopPx - (trimEm || 0) * (laneBox.px || 12);
         if (bandEdgePx > l) w = Math.min(w, bandEdgePx - l);
-        return `left:${l.toFixed(2)}px;width:${Math.max(stopPx * 0.6, w).toFixed(2)}px`;
+        w = Math.max(stopPx * 0.6, w);
+        // and the entry stops short of the count when the count has nowhere else
+        if (counted && countRoomAt !== null && l + w > countRoomAt) w = Math.max(stopPx * 0.6, countRoomAt - l);
+        lastRight = Math.max(lastRight, l + w);
+        return `left:${l.toFixed(2)}px;width:${w.toFixed(2)}px`;
       };
       if (!onGrid) {
         // A LETTER IS NOT AN ENTRY (Alan's February: "W" on the 6th, "O:" on
@@ -2515,7 +2556,7 @@ function renderMonthEl(y, m) {
         // the last stop can end at the very edge of a narrow sheet, and a count
         // placed there is clipped to "+". At the last stop it hangs off the
         // right edge instead, where there is always room for two characters.
-        + (counted ? `<b class="more" style="${(moreAt >= lastStop - 1 && lastStop >= STOPS) ? 'right:0' : `left:${(moreAt * stopPx).toFixed(2)}px`}">+${over}</b>` : '')
+        + (counted ? `<b class="more" style="${countPos()}">+${over}</b>` : '')
         + '</span>';
     }
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
