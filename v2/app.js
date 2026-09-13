@@ -23,6 +23,7 @@ const LANGS = {
     fWhere: 'Sted', fNotes: 'Notat', save: 'Lagre', closeEdit: 'Lukk', atTime: 'Klokken', onMap: 'Kart',
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
+    needTitle: 'Skriv en tittel først.',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender', savedIn: 'Lagret i', goesTo: 'Ny hendelse →',
     cityHint: 'Trykk for å planlegge en reise', cityAsk: 'Skriv bynavnet — lagres som «→ By»',
     cityPlanAsk: 'Planlagt reise — lagres som «→ By tbc» til en flybillett dukker opp', cityPh: 'By',
@@ -43,6 +44,7 @@ const LANGS = {
     fWhere: 'Location', fNotes: 'Notes', save: 'Save', closeEdit: 'Close', atTime: 'By the clock', onMap: 'Map',
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
+    needTitle: 'Give it a title first.',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar', savedIn: 'Saved to', goesTo: 'New event →',
     cityHint: 'Tap to plan a move', cityAsk: 'Type the city — saved as "→ City"',
     cityPlanAsk: 'Planned move — saved as "→ City tbc" until a booking turns up', cityPh: 'City',
@@ -738,7 +740,7 @@ function wireDayView() {
       catch (err) { toast(err.message); }
       return;
     }
-    if (e.target.dataset.close) { state.openEvent = null; render(); return; }
+    if (e.target.dataset.close) { state.openEvent = null; state.draft = null; render(); return; }
     const sw = e.target.closest('.sw');
     if (sw) {
       const box = sw.closest('.swatches');
@@ -757,9 +759,22 @@ function wireDayView() {
     e.preventDefault();
     const form = e.target.closest('.dedit');
     if (!form || form.dataset.busy) return;
+    const v = n => (form.querySelector(`[name="${n}"]`) || {}).value || '';
+    if (form.dataset.eid === 'new') {          // a draft: create it
+      const box = form.querySelector('.swatches');
+      form.dataset.busy = '1';
+      try {
+        await createEvent({
+          title: v('title').trim(), time: v('time').trim(), endTime: v('endtime').trim(),
+          start: v('start'), end: v('end'), location: v('location').trim(),
+          notes: v('notes').trim(), colorId: box ? (box.dataset.cid || '') : '',
+        });
+        state.draft = null;
+      } catch (err) { toast(err.message); delete form.dataset.busy; }
+      return;
+    }
     const ev = state.events.find(x => String(x.id) === String(form.dataset.eid));
     if (!ev) return;
-    const v = n => (form.querySelector(`[name="${n}"]`) || {}).value || '';
     form.dataset.busy = '1';
     try {
       const box = form.querySelector('.swatches');
@@ -788,6 +803,24 @@ function wireDayView() {
 
 // Everything the day view can change, in one patch. A time is written into the
 // title the way Alan writes it elsewhere in this app, so the two agree.
+// The draft's own save. It goes through the same create as the quick line, but
+// with every field the form offers rather than one sentence to be parsed.
+async function createEvent(f) {
+  const title = f.title.trim();
+  if (!title) throw new Error(L().needTitle);
+  const end = f.end && f.end >= f.start ? f.end : f.start;
+  if (state.mode !== 'google') {
+    if (ALMANAKK_CONFIG.clientId) throw new Error('Logg inn med Google først for å legge til.');
+    DEMO_EVENTS.push({ c: 'alan', t: (f.time ? f.time + ' ' : '') + title, s: f.start, e: end });
+    loadDemo();
+    toast(L().added);
+    return;
+  }
+  await window.gcalCreateEvent(f.start, end, { ...f, title, end });
+  const t = window.gcalTarget && window.gcalTarget();
+  toast(t ? `${L().savedIn} ${t.name}` : L().saved);
+}
+
 async function saveEvent(ev, f) {
   if (state.mode !== 'google') {
     if (ALMANAKK_CONFIG.clientId) throw new Error('Logg inn med Google først.');
@@ -851,6 +884,37 @@ function openDay(date, eventId) {
   render();
 }
 
+// What the quick line says, read the same way whether you press enter on it or
+// open it out into the form: "8-12 tekst" is a run of days, a clock in the text
+// is a time, and what is left is the title.
+function draftFrom(date, text) {
+  const t = arrowForm((text || '').trim());
+  const range = parseRange(date, t);
+  let body = range ? range.title : t;
+  const hhmm = (h, m) => String(h).padStart(2, '0') + ':' + m;
+  // A CLOCK HE WROTE FIRST IS THE TIME, and the form has a field for it — so it
+  // comes out of the title rather than being said twice. "10-12" on the front
+  // of a line is a pair of clocks, the same way he writes it by hand. A clock
+  // anywhere else is left where he put it.
+  let time = '', endTime = '';
+  const lead = body.match(/^([01]?\d|2[0-3])[:.]([0-5]\d)(?:\s*[-–]\s*([01]?\d|2[0-3])[:.]([0-5]\d))?\s+(.+)$/);
+  if (!range && lead) {
+    time = hhmm(lead[1], lead[2]);
+    if (lead[3]) endTime = hhmm(lead[3], lead[4]);
+    body = lead[5];
+  } else if (!range) {
+    const any = body.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/);
+    if (any) time = hhmm(any[1], any[2]);
+  }
+  return {
+    date,
+    title: body,
+    start: range ? range.start : date,
+    end: range ? range.end : date,
+    time, endTime,
+  };
+}
+
 function openWeekEntry(line, date) {
   if (!date) return;
   const form = document.createElement('form');
@@ -860,6 +924,15 @@ function openWeekEntry(line, date) {
   line.appendChild(form);
   const input = form.querySelector('input');
   input.focus();
+  // TAP THE LINE AGAIN FOR THE REST OF IT (Alan, 14.09). The line is enough for
+  // "13:00 Tannlege"; when it is not, tapping it a second time turns whatever
+  // stands there into the full form — end time, place, notes, colour — instead
+  // of making him save a stub and open it again.
+  input.addEventListener('click', () => {
+    state.draft = draftFrom(date, input.value);
+    state.openEvent = null;
+    if (state.view !== 'day') openDay(date, null); else render();
+  });
   const give = () => { if (form.isConnected) { line.textContent = ''; } };
   input.addEventListener('keydown', e => { if (e.key === 'Escape') give(); });
   input.addEventListener('blur', () => { if (!input.value.trim()) give(); });
@@ -1543,7 +1616,7 @@ function renderDayEl(ds) {
   const timed = here.filter(e => e.end === e.start && effTime(e))
     .sort((a, b) => (effTime(a) < effTime(b) ? -1 : effTime(a) > effTime(b) ? 1 : 0));
   const row = (e, allday) => {
-    const open = String(e.id) === String(state.openEvent);
+    const open = e.id === 'new' || String(e.id) === String(state.openEvent);
     const span = e.end > e.start;
     if (!open) {
       return `<p class="dev ${allday ? 'ad' : ''} ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}" data-eid="${e.id}">`
@@ -1584,13 +1657,25 @@ function renderDayEl(ds) {
           `<i class="sw ${String(e.colorId) === id ? 'on' : ''}" data-cid="${id}" style="--c:${c}"></i>`).join('')
       + `</span></p>`
       + `<div class="dbtns"><button type="submit" class="add">${L().save}</button>`
-      + `<button type="button" class="x" data-del="${e.id}">${L().del}</button>`
+      + (e.id === 'new' ? '' : `<button type="button" class="x" data-del="${e.id}">${L().del}</button>`)
       + `<button type="button" class="x" data-close="1">${L().closeEdit}</button></div>`
       + '</form>';
   };
+  // ONE MORE TAP AND THE WHOLE FORM OPENS (Alan, 14.09). The ruled line takes a
+  // sentence; tapping it again turns what you have typed into the same form an
+  // existing event gets — end time, place, notes, a colour. The draft is an
+  // event that does not exist yet, rendered by exactly the same builder.
+  if (state.draft && state.draft.date !== ds) state.draft = null;
+  const draft = state.draft;
   const rows = allDay.map(e => row(e, true)).join('')
     + (timed.length ? `<p class="dsplit">${L().atTime}</p>` : '')
-    + timed.map(e => row(e, false)).join('');
+    + timed.map(e => row(e, false)).join('')
+    + (draft ? row({
+        id: 'new', title: draft.title, start: draft.start, end: draft.end,
+        time: draft.time, endTime: draft.endTime, location: '', notes: '',
+        colorId: '', color: (window.gcalTarget && window.gcalTarget() || {}).color || 'var(--ink)',
+        calId: (window.gcalTarget && window.gcalTarget() || {}).id || '',
+      }, !draft.time) : '');
   // every place he has already typed, once each
   const dmove = state.cities ? cityOn(ds, buildFlightIndex()) : null;
   const dcity = dmove ? cityLabel(dmove.dest) : '';
@@ -1604,8 +1689,13 @@ function renderDayEl(ds) {
     + (h ? `<span class="whol">${esc(h.name)}</span>` : '')
     + (dcity ? `<span class="wcity ${dcity.length <= 7 ? 'short' : ''}">${esc(dcity)}</span>` : '')
     + `<span class="wkno">${L().week} ${isoWeek(d)}</span></h2>`
-    + (rows || `<p class="wblank"></p>`)
-    + `<p class="wblank"></p></section>`;
+    // A PAGE YOU CAN WRITE ON (Alan, 14.09: "when a day has no event there
+    // should at least be one box to click in"). An unused day had a single
+    // hairline and read as broken paper; it now keeps the diary's ruling, and
+    // any line of it opens the entry.
+    + rows
+    + '<p class="wblank"></p>'.repeat(rows ? 1 : 4)
+    + '</section>';
 }
 
 function calName(id) {

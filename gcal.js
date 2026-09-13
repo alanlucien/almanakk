@@ -365,9 +365,40 @@
     if (window.almanakkAfterLoad) window.almanakkAfterLoad();
   };
 
+  // The third argument may be the typed line (v1, and the quick-add line here)
+  // or a filled-in form: {title, time, endTime, location, notes, colorId}. The
+  // form is what the day view opens when one line is not enough (14.09).
   window.gcalCreateEvent = async function (startDate, endDate, text) {
     const target = targetId();
     if (!target) throw new Error('Ingen skrivbar kalender valgt.');
+    if (text && typeof text === 'object') {
+      const f = text;
+      const body = { summary: f.title };
+      if (f.location) body.location = f.location;
+      if (f.notes) body.description = f.notes;
+      if (f.colorId) body.colorId = f.colorId;
+      if (f.time) {
+        const endClock = f.endTime || f.time;
+        const endDay = endDate >= startDate ? endDate : startDate;
+        body.start = { dateTime: startDate + 'T' + f.time + ':00', timeZone: 'Europe/Oslo' };
+        body.end = { dateTime: endDay + 'T' + endClock + ':00', timeZone: 'Europe/Oslo' };
+        // an end clock at or before the start means he means the next morning
+        if (body.end.dateTime <= body.start.dateTime) {
+          const n = parseDate(endDay); n.setDate(n.getDate() + 1);
+          body.end.dateTime = fmt(n) + 'T' + endClock + ':00';
+        }
+      } else {
+        const next = parseDate(endDate); next.setDate(next.getDate() + 1);
+        body.start = { date: startDate };
+        body.end = { date: fmt(next) };          // end exclusive
+      }
+      await api('calendars/' + encodeURIComponent(target) + '/events', {}, {
+        method: 'POST', body: JSON.stringify(body),
+      });
+      resetCache();
+      await window.gcalEnsureYear(state.year);
+      return;
+    }
     const timeMatch = startDate === endDate && text.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/);
     let body;
     if (timeMatch) {

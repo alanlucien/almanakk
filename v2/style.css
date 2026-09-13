@@ -924,3 +924,11 @@ header #period-year { padding: 5px 8px; }
 
 /* a run of days, said once and short: "21–22 apr" */
 .wday .wev .wr, .dayview .dev .wr { white-space: nowrap; }
+
+/* FOUR FIELDS ACROSS DO NOT FIT A NARROW PHONE. From clock, to clock, from
+   date, to date sat in one flex row, so on a 375pt screen the last one hung
+   off the paper and the page scrolled sideways. Two and two below 430pt. */
+@media (max-width: 430px) {
+  .dayview .dedit .drow { flex-wrap: wrap; }
+  .dayview .dedit .drow label { flex: 1 1 calc(50% - 5px); min-width: 0; }
+}
