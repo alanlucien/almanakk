@@ -1726,6 +1726,15 @@ function renderMonthEl(y, m) {
     }
   }
   const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
+  // THE TOUR'S BANNERS HANG ON THE RIGHT (preview — Alan, 14.09: "I do want the
+  // banners right so my non-wg events don't appear left and right of the
+  // tours"). With the tour's lanes in the middle his own line began after
+  // whichever band happened to say something that day, so the left edge of his
+  // own writing moved from row to row and his events read as broken around the
+  // tour. Sent to the right, the tour is a margin: his writing starts at the
+  // same place on every row and stops before the banner.
+  const wgEm = (V3 && nOvl) ? laneEm.slice(nOwn, nOwn + nOvl).reduce((a, b) => a + b, 0) : 0;
+  const wgRight = i => laneEm.slice(i + 1, nOwn + nOvl).reduce((a, b) => a + b, 0);
 
   // WHICH DAY A LABEL LANDS ON (Alan, 12.09). A band that begins this month has
   // to say its name on the day it begins — that is the one label that cannot
@@ -1879,11 +1888,13 @@ function renderMonthEl(y, m) {
       }
       const laneX = laneLeft(i);
       const w = laneW[i] || laneEm[i];   // the lane's width, so a band is a straight column
-      // the line begins after the last band that actually says something here
-      if (txt || inband) lineStartEm = Math.max(lineStartEm, laneX + w);
+      const onRight = !!wgEm && i >= nOwn;
+      // the line begins after the last band that actually says something here —
+      // a band in the right margin is not in its way at all
+      if ((txt || inband) && !onRight) lineStartEm = Math.max(lineStartEm, laneX + w);
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''} ${isPencil(ev) ? 'pencil' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
-        + ` data-eid="${ev.id}" style="left:${laneX}em;width:${w.toFixed(2)}em;`
+        + ` data-eid="${ev.id}" style="${onRight ? `right:${wgRight(i).toFixed(2)}em` : `left:${laneX}em`};width:${w.toFixed(2)}em;`
         + `--w:${w.toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (txt ? `<b>${esc(deco(txt))}</b>` : '')
         + (inband ? `<b class="bshow">${esc(inband)}</b>` : '') + '</i>';
@@ -1975,7 +1986,8 @@ function renderMonthEl(y, m) {
     const shown = lineFinal.filter(it => it !== movedToInfo);
     const only = shown.length === 1 ? effTime(shown[0].e) : null;
     const kveld = KVELD && only && Number(only.slice(0, 2)) >= EVENING_FROM;
-    const detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em">`
+    const detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em`
+      + (wgEm ? `;right:${wgEm.toFixed(2)}em` : '') + `">`
       + shown.map(evtHtml).join('')
       + '</span>';
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
