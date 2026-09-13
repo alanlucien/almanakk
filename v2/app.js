@@ -1695,8 +1695,6 @@ function renderMonthEl(y, m) {
   // project instead of a full title width per project, and the label can stay
   // where it belongs — at its own band's left edge, never packed onto a row.
   const LANE_STRIPE = 4, LABEL_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0, WG_GAP = 4;
-  // read by the lane loop below, so it is declared above it
-  const WIDEBAND = window.innerWidth >= 700;
   // EACH BAND ITS OWN COLUMN WHEN THE MONTH CAN AFFORD IT (Alan, 14.09, from
   // two of his own sheets). February 2027 holds two bands and a line with one
   // thing on it, and they overlap for no reason; February 2026 holds five
@@ -1707,6 +1705,15 @@ function renderMonthEl(y, m) {
   // not, the stair, which is what it was invented for.
   const MIN_LINE = 11;                       // two items and the air between
   const roomEm = laneBox.cw && laneBox.px ? laneBox.cw / laneBox.px : 0;
+  // THE SHEET, NOT THE SCREEN (Alan, 14.09: "I'm looking at my phone because
+  // that's what I use most, and if it looks good here it will look fantastic on
+  // the 3-month view on desktop"). He is right, and my breakpoint was wrong. A
+  // quarter column on a 1440px desk is 368px wide and its writing area is 246px
+  // — NARROWER than the 300px his phone gives it — yet window.innerWidth said
+  // "desk, plenty of room" and would have handed a 154px banner 63% of it. What
+  // decides this is the width of the sheet being drawn, which is measured.
+  // Below 30em the banner stays a strip and writes its name down the page.
+  const WIDEBAND = roomEm >= 30;
   // one width per span for the whole month, so a band never changes width
   // between rows; a title too long to fit takes its widest WORD, because that
   // is what gets written down the band one word per row
