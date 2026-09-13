@@ -1733,9 +1733,13 @@ function renderWeekEl(ds) {
     const an = a && cityLabel(a.dest), zn = z && cityLabel(z.dest);
     wcity = an && zn && an !== zn ? an + ' / ' + zn : (zn || an || '');
   }
+  // THE WEEK IS NUMBERED ONCE (Alan, 14.09, circling both). The header carries
+  // UKE 42 in the largest type on the screen, so the sheet said it again three
+  // centimetres below. The DAY view keeps its number — there the header names a
+  // date, and the week it falls in is not written anywhere else.
   return `<section class="week"><h2>${span} <small>${end.getFullYear()}</small>`
     + (wcity ? `<span class="wcity ${wcity.length <= 7 ? 'short' : ''}">${esc(wcity)}</span>` : '')
-    + `<span class="wkno">${L().week} ${isoWeek(mon)}</span></h2>`
+    + '</h2>'
     + `<div class="wdays" style="--wlanes:${nLanes}">${days}`
     // the arrowhead means FINISHED, so only a run that actually ends inside
     // this week gets one; one that carries on simply runs off the bottom edge
@@ -1846,10 +1850,13 @@ function applyLang() {
 function shortRange(start, end) {
   const a = parseDate(start), b = parseDate(end);
   const mon = d => L().months[d.getMonth()].slice(0, 3).toLowerCase();
-  const yr = a.getFullYear() !== b.getFullYear();
-  if (!yr && a.getMonth() === b.getMonth()) return `${a.getDate()}–${b.getDate()} ${mon(b)}`;
-  const side = d => d.getDate() + ' ' + mon(d) + (yr ? ' ' + d.getFullYear() : '');
-  return side(a) + ' – ' + side(b);
+  // no years, even across New Year (Alan, 14.09: "i understand it"). "28 des –
+  // 3 jan" can only mean the turn of the year you are standing in.
+  if (a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear())
+    return `${a.getDate()}–${b.getDate()} ${mon(b)}`;
+  // the one run that would lie without a year: same month, a year apart
+  const yr = a.getMonth() === b.getMonth() ? d => ' ' + d.getFullYear() : () => '';
+  return `${a.getDate()} ${mon(a)}${yr(a)} – ${b.getDate()} ${mon(b)}${yr(b)}`;
 }
 
 // "8-12 Antigone" on a day in March -> span March 8–12.
