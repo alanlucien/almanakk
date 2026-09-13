@@ -24,7 +24,7 @@ const LANGS = {
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     needTitle: 'Skriv en tittel først.', movedTo: 'Flyttet til',
-    saving: 'Lagrer…', deleting: 'Sletter…', pencil: 'Blyant',
+    saving: 'Lagrer…', deleting: 'Sletter…', pencil: 'Blyant', trip: 'Reise',
     morning: 'Morgen', afternoon: 'Ettermiddag', evening: 'Kveld',
     added: 'Lagt til (demo — lagres ikke)', saved: 'Lagret i Google Kalender', savedIn: 'Lagret i', goesTo: 'Ny hendelse →',
     cityHint: 'Trykk for å se flyet',
@@ -46,7 +46,7 @@ const LANGS = {
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
     signin: 'Sign in with Google', cals: 'Calendars',
     needTitle: 'Give it a title first.', movedTo: 'Moved to',
-    saving: 'Saving…', deleting: 'Deleting…', pencil: 'Pencilled',
+    saving: 'Saving…', deleting: 'Deleting…', pencil: 'Pencilled', trip: 'Trip',
     morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening',
     added: 'Added (demo — not saved)', saved: 'Saved to Google Calendar', savedIn: 'Saved to', goesTo: 'New event →',
     cityHint: 'Tap to see the flight',
@@ -869,6 +869,17 @@ function wireDayView() {
     }
   });
   sec.addEventListener('input', e => {
+    // A NEW EVENT IS NAMED IN THE FORM, so the trip tick has to follow the
+    // typing rather than wait for a render that never comes. It offers itself
+    // the moment the title is nothing but a place, and takes itself away again
+    // if he writes more — but never unticks a choice he has already made.
+    if (e.target.name === 'title') {
+      const box = e.target.closest('.dedit').querySelector('.dtrip');
+      const was = box.hidden;
+      box.hidden = !barePlace(e.target.value);
+      if (was && !box.hidden) box.querySelector('input').checked = true;
+      return;
+    }
     if (e.target.name !== 'location') return;
     const a = e.target.closest('.wherebar').querySelector('.maplink');
     const v = e.target.value.trim();
@@ -886,7 +897,7 @@ function wireDayView() {
       const undo = working(form.querySelector('button[type="submit"]'), L().saving);
       try {
         await createEvent({
-          title: v('title').trim(), time: v('time').trim(), endTime: v('endtime').trim(),
+          title: tripTitle(form, v('title')), time: v('time').trim(), endTime: v('endtime').trim(),
           start: v('start'), end: v('end'), location: v('location').trim(),
           notes: pencilled(form, v('notes')), colorId: box ? (box.dataset.cid || '') : '',
           calId: form.querySelector('.dcal')?.dataset.calid || '',
@@ -911,7 +922,7 @@ function wireDayView() {
         || v('time') !== (ev.time || '') || v('endtime') !== (ev.endTime || '');
       await saveEvent(ev, {
         colorId: box ? (box.dataset.cid !== undefined ? box.dataset.cid : (ev.colorId || '')) : '',
-        title: v('title').trim(), time: v('time').trim(), endTime: v('endtime').trim(),
+        title: tripTitle(form, v('title')), time: v('time').trim(), endTime: v('endtime').trim(),
         start: v('start'), end: v('end'), moved,
         location: v('location').trim(),
         notes: pencilled(form, v('notes')),
@@ -929,6 +940,22 @@ function wireDayView() {
       delete form.dataset.busy;
     }
   });
+}
+
+// A TRIP IS WRITTEN AS A MOVE, so the people subscribed to his calendar see one
+// (Alan, 14.09, choosing the rewrite over leaving his words alone). "Roma"
+// becomes "→ Roma" in Google, which is what "-Roma" has always become. A trip
+// only pencilled in keeps the word tbc in its title as well as the P in its
+// notes: the P is the app's, and tbc is what tells everyone else it is not
+// booked yet. Untick the trip and the arrow comes off again.
+function tripTitle(form, title) {
+  const t = String(title || '').trim();
+  const box = form.querySelector('[name="trip"]');
+  const plain = cityMarker(t) || t;                       // the place, arrow or not
+  if (!box) return t;
+  if (!box.checked) return cityMarker(t) ? plain.replace(/\s*\btbc\b.*$/i, '').trim() : t;
+  const tbc = form.querySelector('[name="pencil"]')?.checked ? ' tbc' : '';
+  return arrowForm('-' + plain.replace(/\s*\btbc\b.*$/i, '').trim()) + tbc;
 }
 
 // what goes in the notes field: what he wrote, with the pencil mark put back on
@@ -1880,8 +1907,20 @@ function renderDayEl(ds) {
       // lone P as the first line of the event's notes, which is the one place
       // that survives every client he opens. The notes box above never shows
       // it — he ticks the box, the marker is the app's business.
-      + `<label class="dpencil"><input type="checkbox" name="pencil"${isPencil(e) ? ' checked' : ''}>`
+      + `<p class="dticks">`
+      // A MOVE ALREADY MARKED tbc IS A PENCILLED MOVE. Without this, opening an
+      // old "→ Roma tbc" and saving it would quietly BOOK it: the tick would be
+      // off, so the tbc would be written away. The two conventions mean the same
+      // thing, so here they read as the same thing.
+      + `<label class="dpencil"><input type="checkbox" name="pencil"${isPencil(e) || (cityMarker(e.title) && isTbc(e)) ? ' checked' : ''}>`
       + `<span>${L().pencil}</span></label>`
+      + `<label class="dpencil dtrip"${barePlace(e.title) ? '' : ' hidden'}>`
+      // ON BY DEFAULT FOR SOMETHING NEW, and only the truth for something that
+      // already exists: an old event simply called "Bergen" must not be rewritten
+      // into a move just because he opened it to fix a typo.
+      + `<input type="checkbox" name="trip"${(e.id === 'new' ? barePlace(e.title) : cityMarker(e.title)) ? ' checked' : ''}>`
+      + `<span>${L().trip}</span></label>`
+      + `</p>`
       // A COLOUR OF ITS OWN (Alan, 13.09). It is stored on the event in Google,
       // so it follows him to his other devices. Worth knowing, and he already
       // found this out in September: his other calendar clients throw event
@@ -2289,6 +2328,20 @@ function parseRange(date, text) {
 // Google Calendar too, where Ornella and anyone subscribed sees it — so the
 // stored title becomes "→ Oslo". Any leading/trailing time and "tbc" survive,
 // and the parser already reads the arrow form, so nothing downstream changes.
+// A TRIP IS A PLACE AND NOTHING ELSE (Alan, 14.09: "it should be enough with
+// Roma, and to tick pencilled"). The dash was only ever a way of telling the
+// app what he meant; the form can ask instead. A title that is nothing but a
+// place he could fly to — Roma, Bergen, Tokyo, BGO — is offered as a trip, with
+// the tick already on, so nothing is decided behind his back and one tap undoes
+// it. Anything with more in it than the place is not offered at all.
+function barePlace(title) {
+  const t = String(title || '').trim();
+  if (!t || /[,(]/.test(t)) return null;
+  if (cityMarker(t)) return cityMarker(t);              // already a marker
+  if (t.split(/\s+/).length > 3) return null;            // a sentence, not a place
+  return placeOf(t) ? t : null;
+}
+
 function arrowForm(text) {
   if (!cityMarker(text)) return text;
   // Capitalise a word only when it is entirely lower case. Anything already
