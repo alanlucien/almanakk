@@ -316,10 +316,14 @@ main.strip { height: 100%; overflow-y: auto; }
   border-left: none; border-right: none;
   min-height: 100%; /* fill the screen when sparse, grow + scroll when dense */
   display: flex; flex-direction: column;
-  /* keep the last day clear of the home indicator (PWA) and of Safari's
-     floating toolbar, which overlays the bottom of the viewport */
-  padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
 }
+/* THE SHEET CLOSES AT ITS LAST DAY (Alan, 14.09: "close these lines"). The room
+   kept clear of the home indicator and Safari's floating toolbar used to be
+   padding INSIDE the month, so the frame and the red rule ran on past the last
+   row into a strip of nothing — an open-ended box. The room is still kept; it
+   is simply kept outside the sheet, where it belongs, so every month ends where
+   its days end however long or short it is. */
+main.strip { padding-bottom: calc(env(safe-area-inset-bottom) + 12px); }
 /* the month must visibly END: without this the last row — and any tour band
    running through it — bleeds into the screen edge and reads as cut off */
 .strip .day:last-child { border-bottom: 1px solid var(--rule-strong); }
@@ -1245,6 +1249,9 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
      you to the next one. A set of three was a row of chrome for a thing the
      titles already do. */
   #views { display: inline-flex; margin-left: 16px; }
+  /* display beats the hidden attribute — the same trap the calendar list fell
+     into, so the button went on saying UKE in the year view (14.09) */
+  #views[hidden] { display: none; }
   #views button {
     border: 1px solid var(--rule); border-radius: 3px; background: none;
     font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
@@ -1260,9 +1267,8 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 
   /* PRINT AND LANGUAGE ARE SYMBOLS (Alan, 14.09) — the row is for setting
      things once, and two words of it were saying what a glyph says. */
-  #more-list #print .btxt, #more-list #lang-chip .btxt { display: none; }
-  #more-list #print, #more-list #lang-chip { padding: 4px 8px; }
-  #more-list #print svg, #more-list #lang-chip svg { display: block; }
+  /* (the chips moved out of the menu into the nav, so selectors pointing inside
+     #more-list stopped matching and the words came back — 14.09) */
 }
 
 /* A TABLET IS NOT A BIG PHONE (Alan, 14.09, from his iPad: "month view is too
@@ -1273,7 +1279,7 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
    floated rather than sat on the page. Between the two it gets the width and
    the four sides of a printed page. */
 @media (min-width: 600px) and (max-width: 999px) {
-  main.strip { padding: 12px 0 18px; }
+  main.strip { padding-top: 12px; }
   .strip .month {
     /* a little narrower again (Alan, 14.09) — a page, not a poster */
     max-width: min(700px, calc(100% - 56px));
@@ -1305,9 +1311,7 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
   header #period-year { font-size: 15px; }
   /* and the app's own name comes in off the edge, the way the sheet does */
   header { padding-left: 28px; padding-right: 22px; }
-  /* print and language are glyphs beside the dots, not words in the menu */
-  header nav > #print, header nav > #lang-chip { padding: 4px 8px; }
-  header nav > #print .btxt, header nav > #lang-chip .btxt { display: none; }
+
 }
 
 /* THE HEADER GETS OUT OF THE WAY on the way down the page, and comes back the
@@ -1341,4 +1345,46 @@ header.hid { transform: translateY(-100%); }
   #views button { min-width: 5.4em; padding: 4px 8px; }
   #tour-chip { font-size: 11px; padding: 3px 7px; }
   header #period-year { font-size: 15px; }
+}
+
+/* ---------- the header trades itself for blank paper ---------- */
+/* EMPTY SPACE ONLY, SO HE STILL SEES THE MONTH AT A GLANCE (Alan, 14.09). The
+   sheet was sized to the screen exactly, so there was nothing to scroll and the
+   header could never get out of the way. Now the header is out of the flow, the
+   page is padded by its height, and there is a tail of blank paper below the
+   sheet exactly as tall as the header. Scrolling that tail into view slides the
+   sheet up by the same amount the header takes: the month is whole at the top
+   of the scroll AND at the bottom of it — only the header is traded away. No
+   calendar is ever pushed off the screen to make the room. */
+@media (min-width: 600px) {
+  body { padding-top: var(--hdr, 56px); }
+  header { position: fixed; top: 0; left: 0; right: 0; }
+  /* THE TAIL COMES AFTER THE SHEET, not inside it. Making the sheet itself
+     taller pushed its last day 20px off the screen until he scrolled, which is
+     the opposite of "all at a glance". The sheet fills the space it is given;
+     the blank paper is one header's worth of padding below it, so the scroll
+     runs exactly as far as the header is tall — whole month at the top of the
+     scroll, whole month at the bottom of it, and only the header traded. */
+  .strip .month { margin-bottom: calc(var(--hdr, 56px) + 28px); }
+}
+
+
+/* PRINT AND SPRÅK ARE GLYPHS WHEREVER THEY SIT IN THE ROW (Alan, 14.09). In the
+   menu they keep their names, because there a name is the whole point. */
+header nav > #print, header nav > #lang-chip { padding: 4px 8px; gap: 0; }
+header nav > #print .btxt, header nav > #lang-chip .btxt { display: none; }
+header nav > #print svg, header nav > #lang-chip svg { display: block; }
+
+/* A MENU IS NOT A DRAWER ON A TABLET (Alan, 14.09, from his iPad in portrait:
+   "this dropdown opens a full width, it should not"). Spanning the screen is
+   right on a phone, where 150px of menu cannot hold a calendar's name and there
+   is nothing else on the row. On an iPad it is a panel hanging off the dots, so
+   it anchors to them and takes the width it needs. */
+@media (min-width: 600px) and (max-width: 999px) {
+  header #more { position: relative; }
+  #more-list, #more-list:has(#cal-picker[open]) {
+    left: auto; right: 0; top: calc(100% + 6px);
+    width: 340px; min-width: 0; max-width: calc(100vw - 24px);
+  }
+  #cal-list { max-height: 60vh; }
 }

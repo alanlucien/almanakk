@@ -9,7 +9,7 @@
 <title>Almanakk 2</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="../icon-192-v2.png">
-<link rel="stylesheet" href="style.css?v=20260914zs">
+<link rel="stylesheet" href="style.css?v=20260915a">
 </head>
 <body>
 <header>
@@ -23,16 +23,16 @@
     <button id="prev" class="wideonly" aria-label="Forrige">‹</button>
     <strong id="period-label"></strong>
     <button id="next" class="wideonly" aria-label="Neste">›</button>
-    <!-- THE VIEW BUTTONS COME BACK ON A DESK (Alan, 14.09). They went in
-         September because on a phone the calendar already said what they said
-         and the header was crowded; a desk has neither problem. The titles
-         still climb, and the year still opens the year — these are a shortcut,
-         not a replacement. -->
-    <span id="views" class="wideonly"><button></button></span>
+    <!-- the year keeps the title company, so the two things that say WHEN are
+         read together (Alan, 14.09) -->
+    <span id="period-year"></span>
   </nav>
   <div class="spacer"></div>
   <nav>
-    <span id="period-year"></span>
+    <!-- ONE BUTTON, AND IT NAMES WHERE IT TAKES YOU (Alan, 14.09): "week" in the
+         month, "month" in the week, and nothing at all in the year. It sits with
+         the other controls rather than beside the title. -->
+    <span id="views" class="wideonly"><button></button></span>
     <button id="signin" hidden>Logg inn med Google</button>
     <!-- ONE CONTROL IN THE HEADER (Alan, 13.09). The month's own name opens the
          year, a day opens its week, a title closes back up and a swipe steps
@@ -59,11 +59,11 @@
 <!-- null here = Google sign-in in the browser (github.io). publiser.py flips it to
      '/api/gcal' in the Cloudflare build, where the key lives on the server. -->
 <script>window.ALMANAKK_PROXY = null;</script>
-<script src="../config.js?v=20260914zs"></script>
-<script src="../demo-data.js?v=20260914zs"></script>
-<script src="../airports.js?v=20260914zs"></script>
-<script src="app.js?v=20260914zs"></script>
-<script src="../gcal.js?v=20260914zs"></script>
+<script src="../config.js?v=20260915a"></script>
+<script src="../demo-data.js?v=20260915a"></script>
+<script src="../airports.js?v=20260915a"></script>
+<script src="app.js?v=20260915a"></script>
+<script src="../gcal.js?v=20260915a"></script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="window.gcalReady && gcalReady()"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

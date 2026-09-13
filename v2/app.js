@@ -59,6 +59,12 @@ const LANGS = {
   },
 };
 const L = () => LANGS[state.lang] || LANGS.no;
+// ONE BUTTON, AND IT NAMES WHERE IT TAKES YOU (Alan, 14.09): "week" in the
+// month, "month" in the week, nothing at all in the year. Declared up here with
+// the other constants — it is read by render() and by applyLang(), and a const
+// used above its declaration is the mistake that has cost this file three
+// evenings.
+const VIEW_CYCLE = { month: 'week', week: 'month', day: 'month' };
 
 const state = {
   view: window.innerWidth < 700 ? 'month' : 'year',
@@ -2336,7 +2342,9 @@ function render(group) {
   wireDayView();
   $('#period-label').classList.toggle('isyear', state.view === 'year');
   // the set says which of the three you are in; a day counts as its week
-  $('#views').querySelector('button').textContent = L()[state.view === 'day' ? 'week' : state.view];
+  const dest = VIEW_CYCLE[state.view];
+  $('#views').hidden = !dest;
+  if (dest) $('#views').querySelector('button').textContent = L()[dest];
   // A YEAR HAS A COLOUR, so he never has to read it to know it (Alan, 14.09:
   // green, yellow, red, "you suggest onwards"). Five, then it repeats — long
   // enough that two years on the screen are never the same colour, short enough
@@ -2374,6 +2382,12 @@ function render(group) {
 function wireHeaderHide() {
   const hdr = document.querySelector('header');
   let last = 0;
+  // the page is padded by the header's own height and the blank tail matches
+  // it, so the two cancel: what the scroll takes off the top, the header gives
+  // back. Measured rather than assumed — it differs by width and by language.
+  const measure = () => document.documentElement.style.setProperty('--hdr', Math.round(hdr.getBoundingClientRect().height) + 'px');
+  measure();
+  window.addEventListener('resize', measure);
   const onScroll = el => {
     const y = el.scrollTop !== undefined ? el.scrollTop : window.scrollY;
     if (y <= 8) hdr.classList.remove('hid');
@@ -2388,7 +2402,8 @@ wireHeaderHide();
 
 function applyLang() {
   $('#print').querySelector('.btxt').textContent = L().print;
-  $('#views').querySelector('button').textContent = L()[state.view === 'day' ? 'week' : state.view];
+  const d2 = VIEW_CYCLE[state.view];
+  if (d2) $('#views').querySelector('button').textContent = L()[d2];
   $('#signin').textContent = L().signin;
   $('#cal-picker summary').textContent = L().cals;
 }
@@ -2850,7 +2865,6 @@ document.addEventListener('keydown', e => {
 
 // ONE BUTTON, NOT THREE (Alan, 14.09). It says the view you are in and takes
 // you to the next one: måned → uke → år → måned.
-const VIEW_CYCLE = { month: 'week', week: 'year', day: 'year', year: 'month' };
 $('#views').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
