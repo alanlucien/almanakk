@@ -1818,6 +1818,26 @@ function renderMonthEl(y, m) {
   const activeOn = (ev, d) => ev.start <= dayStr(d) && ev.end >= dayStr(d);
   const coveredOn = (ev, d) => spans.some(o => o !== ev && o._lane > ev._lane
     && activeOn(o, d) && laneLeft(o._lane) < laneLeft(ev._lane) + (bandEm[ev.id] || 0));
+  // A PERFORMANCE OUTRANKS A REPEAT OF THE NAME (Alan, 14.09, on his October
+  // page: "I'd probably choose not to write ANTIGONE PARIS on top of the line
+  // so that the shows could be inside it — I'd let it be said on September 28
+  // instead. Cleaner. With the performance inside the banner and then not
+  // competing for the real estate.")
+  // The one label that cannot move is the one on the day the run STARTS: that
+  // is the run introducing itself. Everything else is a beat, and a beat means
+  // nothing to a reader — so where a beat wants the same cell as a performance
+  // it moves up to an earlier free day of its own run, and if there is no
+  // earlier day in this month it gives the cell up altogether. October then
+  // carries nothing but performances down the band, and the name is said in
+  // September where the run begins.
+  const showDayOf = {};
+  if (V3) {
+    for (const e of wgDet) if (isShow(e) && e.start.slice(0, 7) === mp.slice(0, 7)) {
+      (showDayOf[e.calId] = showDayOf[e.calId] || new Set()).add(Number(e.start.slice(8, 10)));
+    }
+  }
+  const showWants = (ev, d) => !!(V3 && ev._wg && showDayOf[ev.calId] && showDayOf[ev.calId].has(d)
+    && activeOn(ev, d));
   const labelDays = {};
   for (const ev of spans) {
     const set = new Set();
@@ -1826,11 +1846,13 @@ function renderMonthEl(y, m) {
       const off = Math.round((parseDate(dayStr(d)) - parseDate(ev.start)) / 864e5);
       const untilNextBeat = (14 - (off % 14)) % 14;
       if (!(off % 14 === 0 || (d === 1 && off > 0 && untilNextBeat > 7))) continue;
-      if (off === 0 || !coveredOn(ev, d)) { set.add(d); continue; }
+      if (off === 0 || (!coveredOn(ev, d) && !showWants(ev, d))) { set.add(d); continue; }
       let moved = null;
       for (let k = d - 1; k >= 1 && activeOn(ev, k); k--) {
-        if (!coveredOn(ev, k) && !set.has(k)) { moved = k; break; }
+        if (!coveredOn(ev, k) && !showWants(ev, k) && !set.has(k)) { moved = k; break; }
       }
+      // nowhere earlier to say it, and a performance wants the cell: let it go
+      if (moved === null && showWants(ev, d)) continue;
       set.add(moved === null ? d : moved);
     }
     labelDays[ev.id] = set;
