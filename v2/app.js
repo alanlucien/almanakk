@@ -1000,11 +1000,25 @@ function openWeekEntry(line, date) {
   // "13:00 Tannlege"; when it is not, tapping it a second time turns whatever
   // stands there into the full form — end time, place, notes, colour — instead
   // of making him save a stub and open it again.
-  input.addEventListener('click', () => {
+  // IT HUNG ON `click` ALONE, which a real finger on a focused field does not
+  // always produce — iOS can spend the second tap on its own caret and
+  // selection handling and never synthesise one (Alan, 14.09: "I lost, or never
+  // got, my function"). It listens on the touch itself as well now, and on the
+  // whole ruled line rather than only the text box, so the hour rule at the
+  // left of it opens the form too. One gesture can raise both events, so the
+  // second is ignored.
+  // the gesture that OPENED this line is still in flight — its own touchend and
+  // click land here next, and without this they would open the form instantly
+  let lastOpen = Date.now();
+  const wider = () => {
+    if (Date.now() - lastOpen < 450) return;   // one gesture, not two events
+    lastOpen = Date.now();
     state.draft = draftFrom(date, input.value);
     state.openEvent = null;
     if (state.view !== 'day') openDay(date, null); else render();
-  });
+  };
+  line.addEventListener('click', wider);
+  line.addEventListener('touchend', wider);
   const give = () => { if (form.isConnected) { line.textContent = ''; } };
   input.addEventListener('keydown', e => { if (e.key === 'Escape') give(); });
   input.addEventListener('blur', () => { if (!input.value.trim()) give(); });
