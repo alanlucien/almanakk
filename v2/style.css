@@ -650,6 +650,18 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 
 /* ---------- the day: where an event is edited, in its own day ---------- */
 .dayview { background: var(--card); border: 1.5px solid var(--rule-strong); margin: 14px; }
+
+/* ROOM UNDER AN OPEN FORM (Alan, 14.09: "the save button disappears and there
+   is no outside to click below"). The day sheet is cut to the height of the
+   screen, so a form opened at its foot ran under Safari's floating toolbar with
+   only a few pixels of scroll to give — Lagre was there and unreachable. While
+   a form is open the sheet carries a band of paper beneath it: it lifts the
+   buttons clear of the toolbar and the home indicator, and it is the "outside"
+   the gesture for closing needs. A margin, not padding: padding at the foot of
+   a scrolling box is the thing browsers have historically dropped. */
+#app.dayviewwrap:has(.dedit) .dayview {
+  margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+}
 .dayview > h2 {
   margin: 0; padding: 6px 10px; display: flex; align-items: baseline; gap: .5em;
   border-bottom: 1.5px solid var(--rule-strong); cursor: pointer; font-size: 13px;
@@ -692,7 +704,9 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
 .dayview .dedit .drow label { flex: 1; }
 .dayview .dmeta { margin: 2px 0 8px; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: .4em; }
 .dayview .dmeta .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); display: inline-block; }
-.dayview .dbtns { display: flex; gap: 8px; }
+/* scroll-margin so bringing them into view leaves them a little air rather
+   than jamming them against the foot of the screen */
+.dayview .dbtns { display: flex; gap: 8px; scroll-margin-bottom: 28px; }
 /* the day breaks in two: what is true all day, then what happens at an hour */
 .dayview .dsplit {
   margin: 0; padding: 3px 10px; font-size: 10px; letter-spacing: .14em;

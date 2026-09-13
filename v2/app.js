@@ -1491,6 +1491,32 @@ function alignByTime() {
 // a margin in the row that remains only pushes the year to one end or the
 // other. The midpoint is measured — the period's right edge to the first
 // control's left — which is exact and follows a long month name or a short one.
+// AND THE BUTTONS ARE BROUGHT INTO THE ROOM (Alan, 14.09). The band of paper
+// under the form gives them somewhere to be; this puts them there without him
+// having to find the scroll. It asks first, so it does nothing once they are
+// visible and cannot fight him while he types.
+// THE FOOT OF THE SCREEN IS NOT WHERE THE SCREEN ENDS on an iPhone: Safari's
+// floating toolbar sits over it, and so does the keyboard. visualViewport is
+// the only thing that knows where the paper actually stops being visible —
+// measuring against the window would call a button hidden under the keyboard
+// visible, which is the whole complaint.
+function seenBottom() {
+  const vv = window.visualViewport;
+  const app = document.querySelector('#app').getBoundingClientRect().bottom;
+  return vv ? Math.min(app, vv.offsetTop + vv.height) : app;
+}
+function showSaveRow() {
+  const btns = document.querySelector('.dayviewwrap .dedit .dbtns');
+  if (!btns) return;
+  if (btns.getBoundingClientRect().bottom > seenBottom()) {
+    btns.scrollIntoView({ block: 'nearest' });
+  }
+}
+// the keyboard coming up is the moment the buttons go under it
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => setTimeout(showSaveRow, 60));
+}
+
 function centreYear() {
   const yr = $('#period-year');
   const loose = () => { yr.style.cssText = ''; };
@@ -2473,6 +2499,7 @@ function render(group) {
     const t = document.querySelector('.dayview .dedit[data-eid="new"] [name="title"]');
     if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
   }
+  showSaveRow();
   centreYear();
   markSpread();
   alignAllDay();
@@ -3326,9 +3353,17 @@ document.addEventListener('keydown', e => {
 });
 
 // Swipe between months in strip view.
-let touchX = null, touchY = null;
+let touchX = null, touchY = null, touchInField = false;
 $('#app').addEventListener('touchstart', e => {
   touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
+  // DRAGGING ACROSS A WORD IS NOT A SWIPE (Alan, 14.09, on both the iPhone and
+  // the iPad: selecting a title to cut it made the whole day disappear and he
+  // could neither edit nor save). Selecting text is a finger travelling
+  // sideways across the screen, which is exactly the shape of the gesture that
+  // steps a day — so every attempt to select ended somewhere else. A gesture
+  // that STARTS in something you write in belongs to that field, whatever
+  // distance it covers.
+  touchInField = !!e.target.closest('input, textarea, select, [contenteditable], .dedit, .wqa, .callist');
 }, { passive: true });
 // A SWIPE IS NOT ALSO A TAP. iOS sends a click after the touch, and in the year
 // view that click landed on the month under his finger — so one swipe stepped
@@ -3336,6 +3371,7 @@ $('#app').addEventListener('touchstart', e => {
 let swipedAt = 0;
 $('#app').addEventListener('touchend', e => {
   if (touchX === null) return;   // every view steps sideways, the year by a year
+  if (touchInField) { touchX = touchY = null; return; }
   const dx = e.changedTouches[0].clientX - touchX;
   const dy = e.changedTouches[0].clientY - touchY;
   // a diagonal thumb-scroll in the year thumbnails used to step a whole year
