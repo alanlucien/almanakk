@@ -888,7 +888,13 @@ function layoutWeekBands() {
         // so ending there put the arrowhead in the following day's territory.
         const used = [...z0.querySelectorAll(':scope > h3, :scope > .wev, :scope > .wspan')].pop();
         const foot = used ? used.getBoundingClientRect().bottom : z.bottom;
-        b.style.height = Math.max(2, foot - n.bottom) + 'px';
+        // A RUN THAT CARRIES ON RUNS OFF THE PAGE (Alan, 13.09: both of these
+        // continue into next week but "looks like they stop on Sunday 22").
+        // Ending at the last line is what a FINISHED run does, and it has the
+        // arrow to say so. One that continues goes to the sheet's own edge and
+        // is cut by it, which is how a line says "more than this".
+        const bottom = b.classList.contains('ends') ? foot : boxEl.getBoundingClientRect().bottom;
+        b.style.height = Math.max(2, bottom - n.bottom) + 'px';
       } else {
         b.style.top = (a.top - top0) + 'px';
         b.style.height = Math.max(2, z.bottom - a.top) + 'px';
