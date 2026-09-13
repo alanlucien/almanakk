@@ -1149,3 +1149,23 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
   .dayview > h2 small { display: none; }
   .dayview > h2 .whol { margin-left: .5em; }
 }
+
+/* A YEAR HAS A COLOUR (Alan, 14.09). Green 2026, ochre 2027, red 2028, then two
+   of my own — blue and violet — and it repeats. Five is long enough that two
+   years on one screen never share a colour, short enough to learn without
+   thinking about it. His "yellow" is an ochre on purpose: true yellow on white
+   paper is a rumour, and this column has to be read at a glance.
+   Only the year takes the colour. The month keeps its ink — the colour is a
+   fact about the page you are on, not a decoration of it. */
+#period-year { font-weight: 700; }
+#period-year[data-yr="0"] { color: #166534; }   /* 2026 — green */
+#period-year[data-yr="1"] { color: #a16207; }   /* 2027 — ochre */
+#period-year[data-yr="2"] { color: #b91c1c; }   /* 2028 — red */
+#period-year[data-yr="3"] { color: #1d4ed8; }   /* 2029 — blue */
+#period-year[data-yr="4"] { color: #6d28d9; }   /* 2030 — violet */
+/* in the year view the year IS the title, so the title takes the colour */
+#period-label.isyear[data-yr="0"] { color: #166534; }
+#period-label.isyear[data-yr="1"] { color: #a16207; }
+#period-label.isyear[data-yr="2"] { color: #b91c1c; }
+#period-label.isyear[data-yr="3"] { color: #1d4ed8; }
+#period-label.isyear[data-yr="4"] { color: #6d28d9; }

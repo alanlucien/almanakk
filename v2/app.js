@@ -2215,6 +2215,12 @@ function render(group) {
   keepRidersClear();
   wireDayView();
   $('#period-label').classList.toggle('isyear', state.view === 'year');
+  // A YEAR HAS A COLOUR, so he never has to read it to know it (Alan, 14.09:
+  // green, yellow, red, "you suggest onwards"). Five, then it repeats — long
+  // enough that two years on the screen are never the same colour, short enough
+  // to learn. Yellow is an ochre: a true yellow on white paper is a rumour.
+  $('#period-year').dataset.yr = String(((state.year - 2026) % 5 + 5) % 5);
+  $('#period-label').dataset.yr = $('#period-year').dataset.yr;
   markHistory();
   if (state.addOnOpen) {
     state.addOnOpen = false;
@@ -2505,6 +2511,16 @@ function toast(msg, action) {
   t.hidden = false;
   clearTimeout(toast._h);
   toast._h = setTimeout(() => { t.hidden = true; }, action ? 8000 : 2500);
+}
+
+// the same month, a year away — the colour of the year in the header is what
+// tells him he has moved
+function stepYear(dir) {
+  state.year += dir;
+  state.weekOf = state.weekDay = state.dayOf = fmt(new Date(state.year, state.month, 1));
+  state.openEvent = null;
+  if (state.mode === 'google') window.gcalEnsureYear(state.year);
+  render();
 }
 
 function step(dir) {
@@ -2886,7 +2902,14 @@ $('#app').addEventListener('touchend', e => {
   const dx = e.changedTouches[0].clientX - touchX;
   const dy = e.changedTouches[0].clientY - touchY;
   // a diagonal thumb-scroll in the year thumbnails used to step a whole year
-  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { step(dx < 0 ? 1 : -1); touchX = touchY = null; return; }
+  // UP AND DOWN IN THE MONTH IS THE SAME MONTH, ANOTHER YEAR (Alan, 14.09).
+  // Only in the month: it is the one view sized to the screen, so there is no
+  // scrolling to take the gesture away from, and the same month a year on is a
+  // thing he actually looks for — next season, the same festival.
+  if (state.view === 'month' && Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+    stepYear(dy < 0 ? 1 : -1);
+  }
   touchX = touchY = null;
 }, { passive: true });
 
