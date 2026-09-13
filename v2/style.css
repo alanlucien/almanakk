@@ -326,6 +326,14 @@ button.active { background: var(--ink); color: var(--card); }
 .v3 .day .detail .evt.allday { font-weight: 700; }
 .v3 .day .detail .evt.showevt { font-weight: 400; }
 
+/* ?split=1 — Alan's second sketch. The writing area is two columns with one
+   rule between them, the same on every row: bands and all-day things on the
+   left, anything with a clock on the right. The rule is what makes it read —
+   without it the two halves are just a wider gap. */
+.split .day .canvas { box-shadow: inset -1px 0 0 0 transparent; }
+.split .day .detail.dright { box-shadow: inset 1px 0 0 0 var(--rule); padding-left: 10px; }
+.split .day .detail.dleft { padding-right: 8px; }
+
 .day .detail .evt.showevt { opacity: 1; font-weight: 600; } /* shows pop at full red, never dimmed */
 /* No rule down the left of this column. It used to have a dotted one, but the
    cell is centred on its content, so the border was only as tall as whatever

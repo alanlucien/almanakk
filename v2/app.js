@@ -80,6 +80,13 @@ const VIEW_CYCLE = { month: 'week', week: 'month', day: 'month' };
 // worse than the thing it was protecting. ?v3=0 is the way back if a night's
 // sleep changes his mind.
 const V3 = !/[?&]v3=0\b/.test(location.search);
+// TWO COLUMNS INSTEAD OF ONE LINE (Alan's second sketch, 14.09): the bands and
+// the all-day things keep the left, everything with a clock goes right, and the
+// rule between them is the same on every row. Built beside the one-line reading
+// rather than instead of it — ?split=1 to see it, and they are two switches so
+// he can hold them against each other.
+const SPLIT = /[?&]split\b/.test(location.search);
+if (SPLIT) document.documentElement.classList.add('split');
 if (V3) document.documentElement.classList.add('v3');
 // a clock written into a title ("09:00 Befaring DNK"). It must have the colon
 // to count, so a number that is part of a name is never taken for a time.
@@ -614,8 +621,10 @@ function cityMarker(title) {
 // Alan: "i start the day in bergen end in pisa" — the legs are the airline's
 // business. Detaljer and the day panel always keep them whole.
 function journeyLabel(legs) {
-  const stops = '\u2022'.repeat(Math.max(0, legs.length - 2));
-  return cityLabel(legs[0]) + ' \u2192' + stops + '\u2192 ' + cityLabel(legs[legs.length - 1]);
+  // the dots counted the stops in between — "Oslo \u2192\u2022\u2192 Bangkok" — and Alan read
+  // them as breakage, not as information (14.09). Where he changes planes is
+  // not something he acts on from a month away; where he ends up is.
+  return cityLabel(legs[0]) + ' \u2192 ' + cityLabel(legs[legs.length - 1]);
 }
 
 // Two events that meet — "BGO-OSL" then "OSL-PSA" — are one journey, and eat
@@ -1830,6 +1839,21 @@ function renderMonthEl(y, m) {
     }
   }
   const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
+  // WHERE THE RULE GOES IN THE SPLIT READING. It has to clear every band —
+  // a banner landing on the timed side is the one thing the split is for
+  // preventing — so it sits just past the furthest band of the month, and never
+  // nearer the middle than two fifths. The right column keeps 10em whatever
+  // happens, or the rule buys tidiness with everything he wrote.
+  let bandAreaEm = 0;
+  for (let i = 0; i < nOwn + nOvl; i++) {
+    bandAreaEm = Math.max(bandAreaEm, laneLeft(i) + (laneW[i] || laneEm[i]));
+  }
+  // clearing the bands wins over keeping the right column wide: a banner on the
+  // timed side is the one thing this reading exists to prevent. On a narrow
+  // sheet with three productions running that leaves the right column thin, and
+  // that IS the finding — the split is a wide sheet's reading.
+  let splitEm = Math.max(bandAreaEm + 1, (roomEm || 30) * 0.42);
+  if (roomEm) splitEm = Math.min(splitEm, roomEm - 7);
 
   // THE TOUR'S BANNERS HANG ON THE RIGHT (preview — Alan, 14.09: "I do want the
   // banners right so my non-wg events don't appear left and right of the
@@ -2155,10 +2179,22 @@ function renderMonthEl(y, m) {
     // single evening thing to the right edge was meant to say "late in the
     // day"; what it actually says is that the page has two left margins.
     const kveld = !V3 && KVELD && only && Number(only.slice(0, 2)) >= EVENING_FROM;
-    const detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em`
-      + (wgEm ? `;right:${wgEm.toFixed(2)}em` : '') + `">`
-      + shown.map(evtHtml).join('')
-      + '</span>';
+    let detail;
+    if (SPLIT) {
+      // a thing with a clock is a thing with a clock, wherever its title puts it
+      const timed = shown.filter(it => effTime(it.e));
+      const allday = shown.filter(it => !effTime(it.e));
+      const lw = Math.max(0, splitEm - lineStartEm);
+      detail = `<span class="detail dleft" style="left:${lineStartEm}em;width:${lw.toFixed(2)}em;right:auto">`
+        + allday.map(evtHtml).join('') + '</span>'
+        + `<span class="detail dright" style="left:${splitEm.toFixed(2)}em;right:0">`
+        + timed.map(evtHtml).join('') + '</span>';
+    } else {
+      detail = `<span class="detail ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em`
+        + (wgEm ? `;right:${wgEm.toFixed(2)}em` : '') + `">`
+        + shown.map(evtHtml).join('')
+        + '</span>';
+    }
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
       || ownEvs.some(e => e && isShow(e)) || wgEvs.some(e => e && isShow(e));
     // NOTHING IN THE CITY CELL, SO LEND IT TO THE LINE (Alan, 12.09: "there is
