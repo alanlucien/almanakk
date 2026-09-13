@@ -316,16 +316,6 @@ button.active { background: var(--ink); color: var(--card); }
 .v3 .day .detail .evt.allday { font-weight: 700; }
 .v3 .day .detail .evt.showevt { font-weight: 400; }
 
-/* TWO THINGS AT THE SAME HOUR (Alan, 14.09: "it's all about availability and
-   double booking, to flag that"). A red hairline under both of them — not a new
-   colour on the words, not a new glyph to learn, and it marks the PAIR rather
-   than the day, so he can see which two are arguing. */
-.v3 .day .detail .evt.clash {
-  text-decoration: underline;
-  text-decoration-color: var(--red);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
-}
 .day .detail .evt.showevt { opacity: 1; font-weight: 600; } /* shows pop at full red, never dimmed */
 /* No rule down the left of this column. It used to have a dotted one, but the
    cell is centred on its content, so the border was only as tall as whatever

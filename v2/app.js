@@ -133,39 +133,6 @@ function wallTitle(title, covers) {
   return t || original;
 }
 
-// DOUBLE BOOKING IS THE QUESTION THE PAGE IS FOR (Alan, 14.09: "it's all about
-// availability and double booking, to flag that"). Two things at the same hour
-// is the one thing a calendar must not let him walk past, and until now the
-// month drew them side by side like any other pair.
-//
-// It reads a clash only where it can be sure of one: both entries have a clock,
-// and their hours actually overlap. An entry with no end time is given an hour,
-// which is what a meeting is unless it says otherwise. All-day things never
-// clash — being in Paris all week does not collide with a dentist — and the
-// tour's own day never clashes with his, because that is context, not a
-// commitment of his.
-function minsOf(hhmm) {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || '');
-  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
-}
-function clashIds(evs) {
-  const spans = [];
-  for (const e of evs) {
-    const from = minsOf(effTime(e));
-    if (from === null) continue;
-    const to = minsOf(e.endTime);
-    spans.push({ id: e.id, from, to: to !== null && to > from ? to : from + 60 });
-  }
-  const hit = new Set();
-  for (let i = 0; i < spans.length; i++) {
-    for (let j = i + 1; j < spans.length; j++) {
-      if (spans[i].from < spans[j].to && spans[j].from < spans[i].to) {
-        hit.add(String(spans[i].id)); hit.add(String(spans[j].id));
-      }
-    }
-  }
-  return hit;
-}
 
 function stripClock(t) {
   const out = String(t).replace(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/g, ' ')
@@ -1980,8 +1947,6 @@ function renderMonthEl(y, m) {
     const todays = details.filter(e => e.start === ds);
     // the runs drawn on this very row: their names are already on the page
     const coverNames = spans.filter(e => e.start <= ds && e.end >= ds).map(e => deco(e.title));
-    // two of HIS OWN things at the same hour, on this day
-    const clashes = V3 ? clashIds(details.filter(e => e.start === ds)) : new Set();
     let wgTodays = wgDet.filter(e => e.start === ds);
     // in the preview the tour's day leaves the line: the performances go to
     // the band below, and everything else goes nowhere
@@ -2123,8 +2088,7 @@ function renderMonthEl(y, m) {
       // order of the day, so they read left to right in the order they happen.
       if (V3 && !state.detailed) txt = wallTitle(stripClock(txt), coverNames);
       const allday = !effTime(e) && !wg && !isShow(e);
-      const clash = !wg && clashes.has(String(e.id));
-      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''} ${clash ? 'clash' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
+      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
         + esc(deco(txt)) + '</b>';
     };
     // starts where the labels stop — far left on a day with no band label at all
