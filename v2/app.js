@@ -3703,8 +3703,20 @@ document.addEventListener('keydown', e => {
 });
 
 // Swipe between months in strip view.
-let touchX = null, touchY = null, touchInField = false;
+let touchX = null, touchY = null, touchInField = false, touchMulti = false;
+// A PINCH IS NOT A SWIPE (Alan, 14.09: "when I pinch in and zoom on the phone
+// it's registered as a swipe"). The handler watched one finger and never asked
+// how many there were, so spreading two fingers apart moved the first one far
+// enough sideways to step the month. A gesture that has had a second finger in
+// it at any point belongs to the browser, not to us — and the second finger
+// often lands AFTER the first, so touchmove has to be asked too, not only
+// touchstart.
+$('#app').addEventListener('touchmove', e => {
+  if (e.touches.length > 1) touchMulti = true;
+}, { passive: true });
 $('#app').addEventListener('touchstart', e => {
+  if (e.touches.length > 1) { touchMulti = true; touchX = touchY = null; return; }
+  touchMulti = false;
   touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
   // DRAGGING ACROSS A WORD IS NOT A SWIPE (Alan, 14.09, on both the iPhone and
   // the iPad: selecting a title to cut it made the whole day disappear and he
@@ -3720,6 +3732,7 @@ $('#app').addEventListener('touchstart', e => {
 // the year AND opened something, which is what "skips two" feels like.
 let swipedAt = 0;
 $('#app').addEventListener('touchend', e => {
+  if (touchMulti) { if (!e.touches.length) touchMulti = false; touchX = touchY = null; return; }
   if (touchX === null) return;   // every view steps sideways, the year by a year
   if (touchInField) { touchX = touchY = null; return; }
   const dx = e.changedTouches[0].clientX - touchX;
