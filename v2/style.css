@@ -1372,3 +1372,31 @@ header nav > #print svg, header nav > #lang-chip svg { display: block; }
   }
   #cal-list { max-height: 60vh; }
 }
+
+/* ---------- the year, rudimentary: twelve months on one page ---------- */
+/* Real month sheets, not thumbnails, so what it shows and what a click does are
+   the same as everywhere else — which is the point of the proof (Alan, 14.09).
+   It will be rebuilt on the revised month design; this is here to check that
+   year → month → week → day steps one level at a time. */
+#app.year12 {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px; padding: 8px 12px 18px; align-items: start;
+  width: 100%; max-width: 1160px; margin-inline: auto;
+}
+#app.year12 .month { margin: 0; font-size: 7px; line-height: 1.05; }
+/* THE WHOLE YEAR HAS TO FIT ON THE PAGE or it is not a year view — at the
+   day view's own row height twelve months came to 1892px on a 900px screen.
+   A row here is one line of 7px type and nothing else. */
+#app.year12 .day { min-height: 0; padding: 0; align-items: center; }
+#app.year12 .day > * { padding-top: 0; padding-bottom: 0; }
+#app.year12 .day .num, #app.year12 .day .wd { font-size: 7px; }
+#app.year12 .month h2 { font-size: 9px; letter-spacing: .2em; padding: 3px 2px; }
+#app.year12 .day { min-height: 0; cursor: pointer; }
+#app.year12 .day .info { font-size: 6px; }
+#app.year12 .day .detail, #app.year12 .day .canvas { overflow: hidden; }
+/* the whole year is a map: nothing in it is meant to be read word by word, so
+   the entries hold their colour and give up their detail */
+#app.year12 .day .evt { font-size: 6px; }
+@media (max-width: 1199px) {
+  #app.year12 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

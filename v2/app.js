@@ -2272,6 +2272,17 @@ function render(group) {
     app.className = 'yearthumbs';
     app.innerHTML = renderYearThumbs(state.year);
     $('#period-label').textContent = state.year; $('#period-year').textContent = '';
+  } else if (state.view === 'year' && !group && SPREAD.matches) {
+    // THE WHOLE YEAR ON ONE PAGE (Alan, 14.09, asking for it rudimentary first:
+    // "proof of concept... to see that we have the 1-2-3 step navigation
+    // correct, and then we can rebuild it properly based on our revised month
+    // view"). Twelve real month sheets, small — not thumbnails, so what it
+    // shows and what a click does are the same as everywhere else.
+    let html = '';
+    for (let m = 0; m < 12; m++) html += renderMonthEl(state.year, m);
+    app.className = 'year12';
+    app.innerHTML = html;
+    $('#period-label').textContent = state.year; $('#period-year').textContent = '';
   } else if (state.view === 'year') {
     $('#period-label').textContent = state.year; $('#period-year').textContent = '';
     const g = group || 3;
@@ -2747,7 +2758,7 @@ function step(dir) {
     return;
   }
   if (state.view === 'year') {
-    state.year += dir * 2;          // two at a time (Alan, 14.09)
+    state.year += dir;              // one (he asked for two, then found it wrong)
   } else {
     state.month += dir;
     if (state.month < 0) { state.month = 11; state.year--; }
@@ -3042,6 +3053,22 @@ $('#app').addEventListener('click', e => {
   //   an empty day, double-tapped, opens straight onto its writing line.
   // Both gestures live on the same target, so the single one waits a moment to
   // see whether a second is coming. Titles still climb back up, one level a tap.
+  if (Date.now() - swipedAt < 450) return;    // the tail of a swipe, not a tap
+  // A MONTH IN THE YEAR OPENS THAT MONTH (Alan, 14.09: "I think that now we jump
+  // from year view to week view when you click a month in year view"). He was
+  // right: the year's months are ordinary month sheets, so a click on one fell
+  // through to the month view's own rule and opened the WEEK — skipping a level
+  // of his own 1-2-3.
+  if (state.view === 'year') {
+    const cell = e.target.closest('.day[data-date], .month');
+    const ds = cell && (cell.dataset.date || cell.querySelector('.day[data-date]')?.dataset.date);
+    if (ds) {
+      const d = parseDate(ds);
+      state.year = d.getFullYear(); state.month = d.getMonth();
+      state.view = 'month'; state.openEvent = null; render();
+      return;
+    }
+  }
   const hit = e.target.closest('[data-eid]');
   const inDay = e.target.closest('.dayview');
   if (!inDay && !e.target.closest('#popover')) {
@@ -3203,6 +3230,10 @@ let touchX = null, touchY = null;
 $('#app').addEventListener('touchstart', e => {
   touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
 }, { passive: true });
+// A SWIPE IS NOT ALSO A TAP. iOS sends a click after the touch, and in the year
+// view that click landed on the month under his finger — so one swipe stepped
+// the year AND opened something, which is what "skips two" feels like.
+let swipedAt = 0;
 $('#app').addEventListener('touchend', e => {
   if (touchX === null) return;   // every view steps sideways, the year by a year
   const dx = e.changedTouches[0].clientX - touchX;
@@ -3214,6 +3245,7 @@ $('#app').addEventListener('touchend', e => {
     const col = e.target.closest('.pw, .pd');
     if (col) stepPanel(col.classList.contains('pd') ? 'day' : 'week', dx < 0 ? 1 : -1);
     else step(dx < 0 ? 1 : -1);
+    swipedAt = Date.now();
     touchX = touchY = null; return;
   }
   // UP AND DOWN IN THE MONTH IS THE SAME MONTH, ANOTHER YEAR (Alan, 14.09).
@@ -3225,6 +3257,7 @@ $('#app').addEventListener('touchend', e => {
   if ((state.view === 'month' || state.view === 'week')
       && Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
     stepYear(dy < 0 ? 1 : -1);
+    swipedAt = Date.now();
   }
   touchX = touchY = null;
 }, { passive: true });
