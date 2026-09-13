@@ -345,10 +345,21 @@ function holidays(y) {
    the left; single-day events stack in one detail column on the right.     */
 
 const MAX_LANES = 4;
+// A LANE IS NOT REUSED WHILE SOMETHING IS STILL RUNNING TO ITS RIGHT (Alan, on
+// his 4 February: "there is a weird artefact where it can look like SweMa Wup is
+// a one-day event"). AntG remount ended on the 3rd, so SweMa Wup inherited its
+// column on the 4th and stood shoulder to shoulder with NNB-Y, which was still
+// running in the column beside it. Two blocks of the same colour meeting at an
+// edge read as one block ending. A freed lane is only taken back when nothing
+// to its right is still going, so a run that begins beside another begins
+// OUTSIDE it.
 function packLanes(spans, cap, base) {
   const laneEnds = [];
+  const busyRight = (li, from) => laneEnds.some((end, k) => k > li && end && end >= from);
   for (const ev of spans) {
-    let lane = laneEnds.findIndex(end => end < ev.start);
+    // a free lane only counts if nothing to its right is still running: taking
+    // it back under a live neighbour is what made two runs meet at an edge
+    let lane = laneEnds.findIndex((end, li) => end < ev.start && !busyRight(li, ev.start));
     if (lane === -1) lane = laneEnds.length;
     ev._lane = base + Math.min(lane, cap - 1);
     const li = Math.min(lane, cap - 1);
@@ -3828,6 +3839,14 @@ $('#app').addEventListener('touchstart', e => {
 let swipedAt = 0;
 $('#app').addEventListener('touchend', e => {
   if (touchMulti) { if (!e.touches.length) touchMulti = false; touchX = touchY = null; return; }
+  // AND NOTHING IS A SWIPE WHILE THE PAGE IS ZOOMED (Alan, 14.09: "two finger
+  // zoom around on the page also registers as swipe up, change year"). Once he
+  // has pinched in, moving about the page is a ONE-finger drag — iOS panning a
+  // zoomed page — so the guard above, which only knows about second fingers,
+  // never sees it. While the page is magnified every drag belongs to the
+  // browser; ours start again when he zooms back out.
+  const vv = window.visualViewport;
+  if (vv && vv.scale > 1.02) { touchX = touchY = null; return; }
   if (touchX === null) return;   // every view steps sideways, the year by a year
   if (touchInField) { touchX = touchY = null; return; }
   const dx = e.changedTouches[0].clientX - touchX;
