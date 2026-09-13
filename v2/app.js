@@ -2195,7 +2195,13 @@ function renderMonthEl(y, m) {
           // A move without a clock was sorting as a headline and taking the
           // margin from the rehearsal it was travelling to.
           if (!t && !x.wg && !isShow(x.e)) {
-            return flightLegs(deco(x.e.title)).length >= 2 ? '05' : '0';
+            // A MOVE FOLLOWS THE DAY'S HEADLINE (Alan, on his 20 September:
+            // "since Prøve Vildanden is a full-day event, why should it not
+            // swap place with the travel event → Oslo?"). A two-legged flight
+            // already did; a one-legged marker like "→ Oslo" did not, because
+            // the test only knew about flights with both ends named.
+            const move = flightLegs(deco(x.e.title)).length >= 2 || cityMarker(x.e.title);
+            return move ? '05' : '0';
           }
           if (isShow(x.e)) return '1' + t;
           return (x.wg ? '3' : '2') + t;

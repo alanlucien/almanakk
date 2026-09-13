@@ -330,13 +330,14 @@ button.active { background: var(--ink); color: var(--card); }
 .v3 .day .detail.grid > .more {
   width: auto; padding-right: 0; text-align: left; color: var(--muted);
 }
-/* THE STEP BELONGS TO THE ENTRY, NOT TO THE ROW (Alan: "the third events on
-   the 15th, 14th, 11th and 10th are not aligning"). It was being given to
-   whatever entry came first, so a row whose first entry happened to land on the
-   third stop stood 2.2em right of another row's third entry, and the column
-   broke. Every timed entry steps in by the same amount wherever it sits, so
-   timed lines up with timed and a headline lines up with a headline. */
-.v3 .day .detail.grid > .evt:not(.allday) { padding-left: 2.2em; }
+/* THE STEP IS GONE (Alan, on his 20 September: "why is Prøve Vildanden not
+   aligning with the event on the 15th and the 16th?"). Because it was an
+   all-day thing and they were timed, and the step put those two kinds in two
+   sub-columns 2.2em apart — so nothing lined up with anything unless it
+   happened to be the same kind. The step was doing a job the WEIGHT already
+   does: an all-day thing is set bold and a timed one is not, which he can read
+   without measuring. One stop, one position, and the columns hold whatever is
+   standing in them. */
 .v3 .day .detail .evt {
   flex: 0 1 auto; min-width: 4.5em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
