@@ -2114,6 +2114,18 @@ function renderMonthEl(y, m) {
     // label before it. It carries its own tint with it: they overlap only
     // partly, so each band's colour still shows on the row (Alan: "we still
     // see each band's color").
+    // A RUN CLOSING INTO ANOTHER NEEDS NO LINE (Alan, 6 February on the iPad:
+    // "the grey line behind Nanterre"). Telephone closes on the 5th and
+    // Nanterre opens on the 6th in the same lane, so the closing rule and the
+    // opening seam were drawn a pixel apart and read as one thick grey bar. The
+    // new run's own seam already says where the old one stopped; the rule is
+    // for a run closing into empty paper.
+    const closesHere = (ev, d) => {
+      if (ev.end !== dayStr(d)) return false;
+      const next = dayStr(d + 1);
+      return d >= n || !spans.some(x => x !== ev && x._lane === ev._lane
+        && x.start <= next && x.end >= next);
+    };
     let bands = '';
     // ONE LEFT EDGE, WHICH IS WHAT THE OLD ALMANAC DOES (Alan, 14.09, holding
     // up his October/November 2026 sheet: "it looks very manageable and not
@@ -2247,7 +2259,7 @@ function renderMonthEl(y, m) {
         lineStartEm = Math.max(lineStartEm, laneX + w);
       }
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''} ${isPencil(ev) ? 'pencil' : ''}`
-        + ` ${ev.start === ds ? 'bstart' : ''} ${ev.end === ds ? 'bend' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
+        + ` ${ev.start === ds ? 'bstart' : ''} ${closesHere(ev, day) ? 'bend' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="${onRight ? `right:${wgRight(i).toFixed(2)}em` : `left:${laneX}em`};width:${w.toFixed(2)}em;`
         + `--w:${w.toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (txt ? `<b>${esc(deco(txt))}</b>` : '')
