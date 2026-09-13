@@ -133,6 +133,40 @@ function wallTitle(title, covers) {
   return t || original;
 }
 
+// DOUBLE BOOKING IS THE QUESTION THE PAGE IS FOR (Alan, 14.09: "it's all about
+// availability and double booking, to flag that"). Two things at the same hour
+// is the one thing a calendar must not let him walk past, and until now the
+// month drew them side by side like any other pair.
+//
+// It reads a clash only where it can be sure of one: both entries have a clock,
+// and their hours actually overlap. An entry with no end time is given an hour,
+// which is what a meeting is unless it says otherwise. All-day things never
+// clash — being in Paris all week does not collide with a dentist — and the
+// tour's own day never clashes with his, because that is context, not a
+// commitment of his.
+function minsOf(hhmm) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || '');
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+function clashIds(evs) {
+  const spans = [];
+  for (const e of evs) {
+    const from = minsOf(effTime(e));
+    if (from === null) continue;
+    const to = minsOf(e.endTime);
+    spans.push({ id: e.id, from, to: to !== null && to > from ? to : from + 60 });
+  }
+  const hit = new Set();
+  for (let i = 0; i < spans.length; i++) {
+    for (let j = i + 1; j < spans.length; j++) {
+      if (spans[i].from < spans[j].to && spans[j].from < spans[i].to) {
+        hit.add(String(spans[i].id)); hit.add(String(spans[j].id));
+      }
+    }
+  }
+  return hit;
+}
+
 function stripClock(t) {
   const out = String(t).replace(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/g, ' ')
     .replace(/^[\s\-\u2013\u2014:\u00b7]+/, '').replace(/\s+/g, ' ').trim();
@@ -1760,15 +1794,6 @@ function renderMonthEl(y, m) {
   // not, the stair, which is what it was invented for.
   const MIN_LINE = 11;                       // two items and the air between
   const roomEm = laneBox.cw && laneBox.px ? laneBox.cw / laneBox.px : 0;
-  // THE SHEET, NOT THE SCREEN (Alan, 14.09: "I'm looking at my phone because
-  // that's what I use most, and if it looks good here it will look fantastic on
-  // the 3-month view on desktop"). He is right, and my breakpoint was wrong. A
-  // quarter column on a 1440px desk is 368px wide and its writing area is 246px
-  // — NARROWER than the 300px his phone gives it — yet window.innerWidth said
-  // "desk, plenty of room" and would have handed a 154px banner 63% of it. What
-  // decides this is the width of the sheet being drawn, which is measured.
-  // Below 30em the banner stays a strip and writes its name down the page.
-  const WIDEBAND = roomEm >= 30;
   // one width per span for the whole month, so a band never changes width
   // between rows; a title too long to fit takes its widest WORD, because that
   // is what gets written down the band one word per row
@@ -1806,9 +1831,7 @@ function renderMonthEl(y, m) {
   if (nOvl && nOwn && ownLanes > nOwn) colTotal += WG_GAP;
   // the right margin's width, worked out once here so the decision below and
   // the lane loop further down cannot disagree about it
-  const wgLaneW = i => (WIDEBAND ? Math.min(fullW[i], 14) : natW[i]);
-  let marginEm = 0;
-  if (V3 && nOvl) for (let i = nOwn; i < nOwn + nOvl; i++) marginEm += wgLaneW(i) + LANE_GAP;
+  const marginEm = 0;      // nothing is held out in a margin any more
   const model = (V3 && roomEm && colTotal + marginEm + MIN_LINE <= roomEm)
     ? 'column' : BANDS;
   // how wide his own bands are on the widest row of the month — a stair lane is
@@ -1829,21 +1852,6 @@ function renderMonthEl(y, m) {
     // from whatever is to its right — in the right margin there is nothing to
     // borrow from and "ANTIGONE Paris" was cut to "ANTIGONE F". On the right it
     // takes a column of its own, which is v1's model and what he remembers.
-    if (V3 && nOvl && i >= nOwn) {
-      // sized to the whole TITLE, not to its widest word. natW takes the widest
-      // word for a stair band, because a long title is meant to be written down
-      // the band one word per row — in the margin there is room to say it in
-      // one go, which is what he asked for.
-      // ON A PHONE THE MARGIN IS BOUGHT FROM HIS OWN LINE. "ANTIGONE Paris
-      // TDLV" wants 12.5em, which on 430px is a third of the sheet, and his own
-      // day started clipping at two items. So the whole name is a desk's
-      // reading; a phone keeps a narrow banner and writes the name DOWN it, one
-      // word per row, which is the almanac's own answer and costs nothing.
-      const full = wgLaneW(i);
-      laneEm[i] = full + LANE_GAP;
-      laneW[i] = full;
-      continue;
-    }
     if (model === 'column') {
       // a column says the title whole, so it is sized to the title
       const w = (model === BANDS) ? natW[i] : fullW[i];
@@ -1869,7 +1877,13 @@ function renderMonthEl(y, m) {
   // own writing moved from row to row and his events read as broken around the
   // tour. Sent to the right, the tour is a margin: his writing starts at the
   // same place on every row and stops before the banner.
-  const wgEm = (V3 && nOvl) ? laneEm.slice(nOwn, nOwn + nOvl).reduce((a, b) => a + b, 0) : 0;
+  // THE BANNER GOES BACK WHERE IT WAS (Alan, 14.09: "can we not keep the old wg
+  // banner alignment — it never conflicted with cities, I don't like it flushing
+  // right"). Sending it to the margin was meant to give his own writing the left
+  // edge; it put the tour up against the city column instead, which is a
+  // different kind of information and reads as a collision. Its old place after
+  // his own lanes never fought with anything. The performances stay inside it.
+  const wgEm = 0;
   const wgRight = i => laneEm.slice(i + 1, nOwn + nOvl).reduce((a, b) => a + b, 0);
 
   // WHICH DAY A LABEL LANDS ON (Alan, 12.09). A band that begins this month has
@@ -1966,6 +1980,8 @@ function renderMonthEl(y, m) {
     const todays = details.filter(e => e.start === ds);
     // the runs drawn on this very row: their names are already on the page
     const coverNames = spans.filter(e => e.start <= ds && e.end >= ds).map(e => deco(e.title));
+    // two of HIS OWN things at the same hour, on this day
+    const clashes = V3 ? clashIds(details.filter(e => e.start === ds)) : new Set();
     let wgTodays = wgDet.filter(e => e.start === ds);
     // in the preview the tour's day leaves the line: the performances go to
     // the band below, and everything else goes nowhere
@@ -2039,7 +2055,7 @@ function renderMonthEl(y, m) {
       if (showLabel) {
         // a banner in the margin has its own column and says its name whole
         if (words.length > 1 && endInMonth > day && emWidth(ev.title) > LABEL_MAX - 0.4
-            && !(V3 && nOvl && ev._wg && WIDEBAND)) {
+            ) {
           wrapPlan[ev.id] = { from: day, words: words.slice(0, Math.min(3, endInMonth - day + 1)) };
         } else {
           delete wrapPlan[ev.id];
@@ -2065,7 +2081,7 @@ function renderMonthEl(y, m) {
       }
       const laneX = laneLeft(i);
       const w = laneW[i] || laneEm[i];   // the lane's width, so a band is a straight column
-      const onRight = !!wgEm && i >= nOwn;
+      const onRight = false;
       // the line begins after the last band that actually says something here —
       // a band in the right margin is not in its way at all
       if ((txt || inband) && !onRight) lineStartEm = Math.max(lineStartEm, laneX + w);
@@ -2107,7 +2123,8 @@ function renderMonthEl(y, m) {
       // order of the day, so they read left to right in the order they happen.
       if (V3 && !state.detailed) txt = wallTitle(stripClock(txt), coverNames);
       const allday = !effTime(e) && !wg && !isShow(e);
-      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
+      const clash = !wg && clashes.has(String(e.id));
+      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''} ${clash ? 'clash' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
         + esc(deco(txt)) + '</b>';
     };
     // starts where the labels stop — far left on a day with no band label at all
