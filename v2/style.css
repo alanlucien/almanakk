@@ -890,3 +890,18 @@ header #period-year { cursor: pointer; }
 .dayview .dev.ad .wn { font-weight: 600; font-size: 15px; }
 .dayview .dev.ad { padding-top: 7px; padding-bottom: 7px; }
 .dayview .dev:not(.ad) .wt { color: var(--muted); font-size: 13px; }
+
+/* THE DAY'S WRITING LINES WERE INVISIBLE AND ZERO HIGH (found in review,
+   13.09). Every rule that gives a blank line its height, its ruling and its
+   text cursor was scoped to .wday — the week — so in the DAY view the line
+   existed in the markup with no height at all and no tap could ever reach it.
+   The result: on any day that already held an event, there was no way left to
+   add another, because the old day panel is gone. */
+.dayview .wblank {
+  margin: 0; height: 1.45em; cursor: text;
+  background-image: linear-gradient(var(--rule-soft), var(--rule-soft)),
+                    linear-gradient(var(--rule-soft), var(--rule-soft));
+  background-size: 2.6em 1px, calc(100% - 4.6em) 1px;
+  background-position: 10px bottom, 4.0em bottom;
+  background-repeat: no-repeat;
+}

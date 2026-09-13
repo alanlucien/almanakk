@@ -822,10 +822,20 @@ async function saveEvent(ev, f) {
 
 // A tap that might be half of a double. 260ms is long enough to catch a real
 // double tap and short enough not to feel like a pause.
-let tapTimer = null;
-function tapOrDouble(single, double) {
-  if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; double(); return; }
-  tapTimer = setTimeout(() => { tapTimer = null; single(); }, 260);
+// A PENDING TAP BELONGS TO ONE TARGET IN ONE VIEW (found in review, 13.09).
+// One bare module-level timer meant a tap on the 5th followed by a tap on the
+// 19th read as a double tap on the 19th; a tap followed by a title tap dragged
+// you back into the week 260ms later; and an orphan firing render() wiped a
+// popover that had just opened. The timer now remembers what armed it, and
+// anything that navigates cancels it.
+let tapTimer = null, tapKey = null;
+function cancelTap() { if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; tapKey = null; } }
+function tapOrDouble(single, double, key) {
+  const k = (key || '') + '|' + state.view;
+  if (tapTimer && tapKey === k) { cancelTap(); double(); return; }
+  cancelTap();
+  tapKey = k;
+  tapTimer = setTimeout(() => { tapTimer = null; tapKey = null; single(); }, 260);
 }
 
 function openDay(date, eventId) {
@@ -945,10 +955,18 @@ function keepRidersClear() {
   document.querySelectorAll('.wdays').forEach(box => {
     const bands = [...box.querySelectorAll('.wband')].filter(b => !b.hidden);
     if (!bands.length) return;
-    const edge = Math.min(...bands.map(b => b.getBoundingClientRect().left)) - 8;
+    // A RIDER ONLY HAS TO CLEAR THE BANDS ON ITS OWN ROW (found in review,
+    // 13.09). The edge used to be the leftmost band ANYWHERE in the week, so
+    // one band starting far left on the Monday narrowed every other day of the
+    // week, including days with no band at all.
+    const boxes = bands.map(b => b.getBoundingClientRect());
     box.querySelectorAll('.dayrider').forEach(r => {
       r.style.paddingRight = '';
-      const over = r.getBoundingClientRect().right - edge;
+      const rr = r.getBoundingClientRect();
+      const mine = boxes.filter(b => b.bottom > rr.top + 1 && b.top < rr.bottom - 1);
+      if (!mine.length) return;
+      const edge = Math.min(...mine.map(b => b.left)) - 8;
+      const over = rr.right - edge;
       if (over > 0) r.style.paddingRight = Math.round(over) + 'px';
     });
   });
@@ -1752,11 +1770,14 @@ window.addEventListener('popstate', e => {
   if (!e.state) return;                 // nothing of ours: let the browser leave
   navRestoring = true;
   Object.assign(state, e.state);
+  // back into a year that was never loaded showed an empty sheet (13.09)
+  if (state.mode === 'google') window.gcalEnsureYear(state.year);
   render();
   navRestoring = false;
 });
 
 function render(group) {
+  cancelTap();
   closePanel(true);
   const app = $('#app');
   if (state.view === 'year' && !group && window.matchMedia('(max-width: 820px)').matches) {
@@ -2123,17 +2144,22 @@ function step(dir) {
   if (state.view === 'day') {
     const d = parseDate(state.dayOf || fmt(new Date()));
     d.setDate(d.getDate() + dir);
-    state.dayOf = fmt(d);
+    state.dayOf = state.weekDay = fmt(d);
+    state.year = d.getFullYear();
     state.openEvent = null;              // a new day, nothing opened in it yet
-    if (state.mode === 'google') window.gcalEnsureYear(d.getFullYear());
+    if (state.mode === 'google') window.gcalEnsureYear(state.year);
     render();
     return;
   }
   if (state.view === 'week') {
     const d = mondayOf(state.weekOf || fmt(new Date()));
     d.setDate(d.getDate() + dir * 7);
-    state.weekOf = fmt(d);
-    if (state.mode === 'google') window.gcalEnsureYear(d.getFullYear());
+    // the anchor and the loaded year travel with the view, or climbing out of
+    // a stepped week lands in the month you started from, and an edit reloads
+    // the wrong year and empties the sheet (found in review, 13.09)
+    state.weekOf = state.weekDay = fmt(d);
+    state.year = d.getFullYear();
+    if (state.mode === 'google') window.gcalEnsureYear(state.year);
     render();
     return;
   }
@@ -2182,7 +2208,8 @@ document.addEventListener('click', e => { if (!e.target.closest('#more')) moreMe
 // THE YEAR OPENS THE YEAR, from wherever you are (Alan, 13.09).
 $('#period-year').addEventListener('click', () => {
   if (state.view === 'year') return;
-  const anchor = parseDate(state.dayOf || state.weekOf || fmt(new Date()));
+  // name what the header names: the day only when a day is open (13.09)
+  const anchor = parseDate((state.view === 'day' ? state.dayOf : state.weekOf) || fmt(new Date()));
   if (state.view !== 'month') state.year = anchor.getFullYear();
   state.view = 'year'; state.openEvent = null; render();
 });
@@ -2227,6 +2254,7 @@ let printGroup = 3;
 $('#print').addEventListener('click', e => {
   e.stopPropagation(); // keep the document click-handler from instantly closing the menu
   closePanel(true);
+  $('#more').open = false;   // ...but the menu it was chosen from should still shut
   const pop = document.createElement('div');
   pop.id = 'popover';
   pop.style.cssText = 'top:60px;left:50%;transform:translateX(-50%)';
@@ -2318,6 +2346,7 @@ $('#app').addEventListener('click', e => {
           // tap does not need to carry that too.
           openDay(date, ev ? ev.id : null);
         },
+        date,
       );
       return;
     }
@@ -2337,6 +2366,7 @@ $('#app').addEventListener('click', e => {
         state.weekOf = state.weekDay = state.dayOf;
         state.view = 'week'; state.openEvent = null; render();
       },
+      hit ? hit.dataset.eid : 'day',
     );
     return;
   }
@@ -2406,13 +2436,17 @@ document.addEventListener('keydown', e => {
 });
 
 // Swipe between months in strip view.
-let touchX = null;
-$('#app').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+let touchX = null, touchY = null;
+$('#app').addEventListener('touchstart', e => {
+  touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
+}, { passive: true });
 $('#app').addEventListener('touchend', e => {
   if (touchX === null) return;   // every view steps sideways, the year by a year
   const dx = e.changedTouches[0].clientX - touchX;
-  if (Math.abs(dx) > 60) step(dx < 0 ? 1 : -1);
-  touchX = null;
+  const dy = e.changedTouches[0].clientY - touchY;
+  // a diagonal thumb-scroll in the year thumbnails used to step a whole year
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
+  touchX = touchY = null;
 }, { passive: true });
 
 // ?demo=1 forces sample data and lands on the month that has it, so the app
