@@ -286,6 +286,23 @@ button.active { background: var(--ink); color: var(--card); }
    that a title says nothing — and what still will not fit is dropped and
    counted, which is the rule that was already there. */
 .v3 .day .detail { display: flex; align-items: baseline; gap: 1.15em; }
+/* TAB STOPS. The row is a grid of equal columns spanning the whole writing
+   area, so the same column falls in the same place on all 31 rows and the days
+   read down the page as well as across. An entry keeps to its stop: a title too
+   long for one gives up its tail rather than borrowing the paper the eye is
+   using to compare rows. */
+.v3 .day .detail.grid {
+  left: 0; right: 0; display: block; padding-left: 0;
+}
+.v3 .day .detail.grid > .evt, .v3 .day .detail.grid > .more {
+  position: absolute; top: 0; bottom: 0; display: flex; align-items: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding-right: .9em; box-sizing: border-box;
+}
+.v3 .day .detail.grid > .evt > * { overflow: hidden; text-overflow: ellipsis; }
+.v3 .day .detail.grid > .more { padding-right: 0; text-align: right; color: var(--muted); }
+/* the step for a timed thing lives INSIDE its stop, so the column is untouched */
+.v3 .day .detail.grid.tabbed > .evt:first-child { padding-left: 2.2em; }
 .v3 .day .detail .evt {
   flex: 0 1 auto; min-width: 4.5em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -328,8 +345,8 @@ button.active { background: var(--ink); color: var(--card); }
 /* a route that has given up its words for its codes must not then give up the
    codes: eight characters is the whole point of the swap */
 .v3 .day .detail .evt[data-long] { flex: 0 0 auto; min-width: 0; }
-/* the day's headline begins at the margin; an hour steps in from it */
-.v3 .day .detail.tabbed { padding-left: 2.2em; }
+/* (the indent for a timed thing now lives inside its stop — see .grid.tabbed
+   above — so it cannot shift the columns it is sitting in) */
 
 /* ?split=1 — Alan's second sketch. The writing area is two columns with one
    rule between them, the same on every row: bands and all-day things on the

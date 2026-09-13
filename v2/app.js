@@ -400,11 +400,22 @@ function measureLane() {
   const probe = el.querySelector('i');
   // the room a day actually has for bands AND the line, so the sheet can
   // decide between columns and the stair by measurement rather than by taste
-  const canvas = document.querySelector('.day .canvas');
+  // THE NARROWEST ROW, NOT THE FIRST (Alan, 14.09: "why don't these three
+  // events line up?"). A Monday carries the week number and so has a narrower
+  // writing area than the rest of the week — 301px against 385px on his phone.
+  // Measuring one row and calling it the sheet's width made "a third" mean
+  // something different on every Monday, which is exactly the rows that would
+  // not line up. The stops are cut to the narrowest row, so every row can hold
+  // all of them.
+  let cw = 0;
+  document.querySelectorAll('.day .canvas').forEach(c => {
+    const w = c.getBoundingClientRect().width;
+    if (w > 0 && (!cw || w < cw)) cw = w;
+  });
   laneBox = {
     font: probe ? getComputedStyle(probe).font : cs.font,
     px: parseFloat(cs.fontSize) || 12,
-    cw: canvas ? canvas.getBoundingClientRect().width : 0,
+    cw,
   };
   // the first paint has nothing to measure yet, so draw once more now that we do
   if (!measured && laneBox.px > 0) { measured = true; render(); }
@@ -963,6 +974,17 @@ const SLOT_GAP = 10;            // clear air between one slot and the next
 // silently gone.
 function clipLine() {
   document.querySelectorAll('.day .detail').forEach(det => {
+    // THE STOPS DECIDE WHAT FITS, NOT THE WIDTH — asked first, because the two
+    // lines below tidy away the "+2" that the stops themselves put there, and a
+    // four-event day was quietly losing its count.
+    if (det.classList.contains('grid')) {
+      det.querySelectorAll(':scope > .evt').forEach(b => {
+        if (b.dataset.short && b.scrollWidth > b.clientWidth + 1) {
+          b.dataset.long = b.textContent; b.textContent = b.dataset.short;
+        }
+      });
+      return;
+    }
     det.querySelectorAll(':scope > .more').forEach(m => m.remove());
     det.querySelectorAll(':scope > .evt').forEach(e => { e.hidden = false; });
     if (state.detailed) return;
@@ -1884,6 +1906,22 @@ function renderMonthEl(y, m) {
   // timed side is the one thing this reading exists to prevent. On a narrow
   // sheet with three productions running that leaves the right column thin, and
   // that IS the finding — the split is a wide sheet's reading.
+  // TAB STOPS (Alan, 14.09: "could even Bærum on the 15th align with the two
+  // others? Then it would be even easier to see that it's individual events" —
+  // and, asked whether a full day may break the grid, "no, don't break the
+  // grid"). The writing area is divided into equal columns, in the same place
+  // on every row of the sheet, and each entry takes the next free one. Days
+  // then line up down the page, and how far the ink reaches across a row says
+  // how full that day is without reading a word.
+  // How many is decided by the sheet, never by the day: three is about thirteen
+  // characters on his phone, four would be ten, which is one word.
+  const STOPS = roomEm >= 40 ? 5 : roomEm >= 32 ? 4 : 3;
+  const stopEm = (roomEm || 30) / STOPS;
+  // IN PIXELS, NOT EM. An em is read against the font of the box it is written
+  // on, and the day line does not carry the same size on every row — so the
+  // same "one third" came out 100px on one row and 119px on another, and the
+  // rows would not line up. A stop is a measured distance, not a relative one.
+  const stopPx = laneBox.cw ? laneBox.cw / STOPS : 0;
   let splitEm = Math.max(bandAreaEm + 1, (roomEm || 30) * 0.42);
   if (roomEm) splitEm = Math.min(splitEm, roomEm - 7);
 
@@ -2155,7 +2193,7 @@ function renderMonthEl(y, m) {
         return ka < kb ? -1 : ka > kb ? 1 : 0;
       });
     // compact views show WHAT (no clock prefix); Detaljer view and the day box show WHEN
-    const evtHtml = (it) => {
+    const evtHtml = (it, col) => {
       const e = it.e, wg = it.wg;
       let txt = state.detailed ? (e.time ? e.time + ' ' : '') + e.title
         : (it._legs && it._legs.length > 2 ? journeyLabel(it._legs) : compactTitle(e));
@@ -2176,7 +2214,7 @@ function renderMonthEl(y, m) {
       const short = legs && legs.length >= 2
         ? legs.map(cityCode).join('-') : '';
       const allday = !effTime(e) && !wg && !isShow(e);
-      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''}" data-eid="${e.id}"${short ? ` data-short="${esc(short)}"` : ''} data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
+      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''}" data-eid="${e.id}"${short ? ` data-short="${esc(short)}"` : ''} data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}${typeof col === 'string' && col ? ';' + col : ''}">`
         + esc(deco(txt)) + '</b>';
     };
     // starts where the labels stop — far left on a day with no band label at all
@@ -2256,19 +2294,30 @@ function renderMonthEl(y, m) {
       const allday = shown.filter(it => !effTime(it.e));
       const lw = Math.max(0, splitEm - lineStartEm);
       detail = `<span class="detail dleft" style="left:${lineStartEm}em;width:${lw.toFixed(2)}em;right:auto">`
-        + allday.map(evtHtml).join('') + '</span>'
+        + allday.map(it => evtHtml(it)).join('') + '</span>'
         + `<span class="detail dright" style="left:${splitEm.toFixed(2)}em;right:0">`
-        + timed.map(evtHtml).join('') + '</span>';
+        + timed.map(it => evtHtml(it)).join('') + '</span>';
     } else {
-      // A TIMED THING STARTS A LITTLE IN (Alan, 14.09: "I do like that the timed
-      // events sit a little tabbed in, perhaps a little less"). An all-day
-      // thing is the day's headline and begins at the margin; something that
-      // happens at an hour steps in from it. The indent says which it is before
-      // a word of it is read, and it costs no mark and no colour.
+      // A TIMED THING STARTS A LITTLE IN: an all-day thing is the day's
+      // headline and begins at its stop, something that happens at an hour
+      // steps in from it. The indent lives inside the stop, so the column is
+      // untouched.
       const tabbed = shown.length && effTime(shown[0].e) ? ' tabbed' : '';
-      detail = `<span class="detail${tabbed} ${kveld ? 'kveld' : ''}" style="left:${lineStartEm}em`
-        + (wgEm ? `;right:${wgEm.toFixed(2)}em` : '') + `">`
-        + shown.map(evtHtml).join('')
+      // the first stop clear of this row's bands — so a row with nothing in
+      // front of it starts at stop 1 and a row behind a banner starts later,
+      // and both are still on the grid
+      const from = Math.min(STOPS - 1, Math.max(0, Math.ceil((lineStartEm - 0.01) / stopEm)));
+      const room = STOPS - from;
+      const fits = shown.length <= room ? shown : shown.slice(0, Math.max(1, room - 1));
+      const over = shown.length - fits.length;
+      // EACH STOP IS PLACED, NOT ASKED FOR. A grid column is a request the
+      // browser answers with its own auto-placement, and one row in six was
+      // coming back in a different place than the column it had been given. A
+      // measured left and a measured width cannot be reinterpreted.
+      const at = k => `left:${(k * stopPx).toFixed(2)}px;width:${stopPx.toFixed(2)}px`;
+      detail = `<span class="detail grid${tabbed}">`
+        + fits.map((it, k) => evtHtml(it, at(from + k))).join('')
+        + (over > 0 ? `<b class="more" style="${at(STOPS - 1)}">+${over}</b>` : '')
         + '</span>';
     }
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
