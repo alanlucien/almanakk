@@ -974,6 +974,16 @@ function clipLine() {
       const vis = evts.filter(e => !e.hidden);
       return vis.length && vis[vis.length - 1].getBoundingClientRect().right > edge() + 0.5;
     };
+    // words first, codes second, dropping only as a last resort. The trigger is
+    // the route being CUT, not the row overflowing: the items share the width
+    // and each gives up its own tail, so a row never overflows — it just ends
+    // in "Bergen ...", which is the thing he cannot read.
+    for (const b of evts) {
+      if (!b.dataset.short || b.hidden) continue;
+      if (b.scrollWidth <= b.clientWidth + 1) continue;
+      b.dataset.long = b.textContent;
+      b.textContent = b.dataset.short;
+    }
     let dropped = 0;
     for (let i = evts.length - 1; i > 0 && overflows(); i--) { evts[i].hidden = true; dropped++; }
     if (!dropped) return;
@@ -2130,7 +2140,14 @@ function renderMonthEl(y, m) {
           const t = effTime(x.e) || '';
           // Detaljer view: pure running order (pinning exists only where clipping exists)
           if (state.detailed) return t ? '1' + t : '0';
-          if (!t && !x.wg && !isShow(x.e)) return '0';
+          // AN ALL-DAY THING IS THE DAY'S HEADLINE, A MOVE IS NOT (Alan, 14.09,
+          // on his 20 September: "there is a flight aligned all the way to the
+          // left when it shouldn't be, and it's before an all-day event").
+          // A move without a clock was sorting as a headline and taking the
+          // margin from the rehearsal it was travelling to.
+          if (!t && !x.wg && !isShow(x.e)) {
+            return flightLegs(deco(x.e.title)).length >= 2 ? '05' : '0';
+          }
           if (isShow(x.e)) return '1' + t;
           return (x.wg ? '3' : '2') + t;
         };
@@ -2148,8 +2165,18 @@ function renderMonthEl(y, m) {
       // not when; the day view still has every clock. The order is still the
       // order of the day, so they read left to right in the order they happen.
       if (V3 && !state.detailed) txt = wallTitle(stripClock(txt), coverNames);
+      // A ROUTE HAS A SHORTER READING (Alan, 14.09, on his 8 September:
+      // "if we have a flight on a day with many events and it gets clipped,
+      // switch to outputting codes, so we would have managed to see BGO-OSL").
+      // "Bergen ..." tells him nothing; BGO-OSL tells him the whole journey in
+      // eight characters. The codes are only reached for when the names will
+      // not fit, so an uncrowded day still reads in words.
+      const legs = it._legs && it._legs.length >= 2 ? it._legs
+        : (state.detailed ? null : flightLegs(deco(e.title)));
+      const short = legs && legs.length >= 2
+        ? legs.map(cityCode).join('-') : '';
       const allday = !effTime(e) && !wg && !isShow(e);
-      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
+      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''}" data-eid="${e.id}"${short ? ` data-short="${esc(short)}"` : ''} data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
         + esc(deco(txt)) + '</b>';
     };
     // starts where the labels stop — far left on a day with no band label at all

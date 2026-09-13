@@ -325,6 +325,9 @@ button.active { background: var(--ink); color: var(--card); }
 /* the one thing that may be heavier is the day's own headline */
 .v3 .day .detail .evt.allday { font-weight: 700; }
 .v3 .day .detail .evt.showevt { font-weight: 400; }
+/* a route that has given up its words for its codes must not then give up the
+   codes: eight characters is the whole point of the swap */
+.v3 .day .detail .evt[data-long] { flex: 0 0 auto; min-width: 0; }
 /* the day's headline begins at the margin; an hour steps in from it */
 .v3 .day .detail.tabbed { padding-left: 2.2em; }
 
