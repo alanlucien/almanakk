@@ -1533,10 +1533,23 @@ function centreYear() {
   yr.style.left = '0';
   const a = $('header nav').getBoundingClientRect().right;
   const b = rest[0].getBoundingClientRect().left;
+  const w = yr.offsetWidth;
   // a long month name can leave no gap at all; then the year stays in the row
   // rather than being centred on top of the title
-  if (b - a < yr.offsetWidth + 24) return loose();
-  yr.style.left = Math.round((a + b) / 2 - yr.offsetWidth / 2) + 'px';
+  if (b - a < w + 24) return loose();
+  // AN ARROW IS THE ONE THING IT MUST NOT CROWD (Alan, 14.09: "one risks
+  // clicking that instead of the arrows to go forward to next quarter"). The
+  // middle of the gap is the fair place for it when nothing is competing, but
+  // "OKTOBER – DESEMBER" leaves a gap barely twice the year's own width, and
+  // the middle of that is a thumb's width from the arrow. So when the arrows
+  // are showing the year gives up the middle and goes to the far end of the
+  // gap, where its neighbour is a button with a border drawn round it — easy
+  // to aim at, and easy to aim past. The iPad has no arrows and keeps the
+  // middle.
+  const arrows = $('#next') && $('#next').offsetParent;
+  const mid = (a + b) / 2 - w / 2;
+  const far = b - 20 - w;
+  yr.style.left = Math.round(arrows ? Math.max(mid, far) : mid) + 'px';
 }
 
 function markSpread() {

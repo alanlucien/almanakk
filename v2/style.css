@@ -1199,9 +1199,11 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 .wideonly { display: none; }
 @media (min-width: 1000px) {
   .wideonly { display: inline-flex; }
+  /* quiet to look at, but a real target to hit: 21x24 was smaller than the
+     glyph deserved and much smaller than a finger (Alan, 14.09) */
   #prev, #next {
     border: 0; background: none; font-size: 20px; line-height: 1;
-    color: var(--muted); padding: 2px 8px; cursor: pointer;
+    color: var(--muted); padding: 7px 10px; cursor: pointer;
   }
   #prev:hover, #next:hover { color: var(--ink); }
   /* THE ROOM UP TOP IS GENEROUS (Alan, 14.09), so what he set once and leaves
@@ -1433,7 +1435,10 @@ header nav > #print svg, header nav > #lang-chip svg { display: block; }
   header { position: relative; }
   header nav:first-of-type {
     position: absolute; left: 50%; transform: translateX(-50%);
-    top: 50%; margin-top: -0.7em; gap: 10px;
+    top: 50%; margin-top: -0.7em;
+    /* 10px put the arrow a hair off the end of the word, so reaching for the
+       arrow hit the month name and climbed a view instead (Alan, 14.09) */
+    gap: 20px;
   }
   header nav:last-of-type { grid-column: 1 / -1; justify-content: flex-end; }
   header h1 { position: relative; z-index: 1; }
