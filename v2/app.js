@@ -1731,8 +1731,15 @@ function renderMonthEl(y, m) {
     }
     // One cell, one line, one thing in it: a holiday, else the week number on
     // Monday, else the city. Long names step down a size rather than clip.
+    // A MONDAY HOLIDAY SHARES THE CELL TOO (Alan, 14.09). A flight on a Monday
+    // has done this since 12.09 — it keeps the NUMBER and drops only the word
+    // "uke" — but a holiday took the whole cell, so a week with a bank holiday
+    // on its Monday went unnumbered. 2. Påskedag 15, and the week is never
+    // given away. The name steps down a size sooner when it is sharing.
+    const shareWk = wi === 0 ? ` <span class="wknum">${isoWeek(d)}</span>` : '';
+    const hlen = h ? h.name.length + (shareWk ? 3 : 0) : 0;
     const info = h
-      ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="${h.red ? 'red' : ''} ${h.name.length > 11 ? 'long' : ''} ${h.name.length > 15 ? 'xlong' : ''}">${esc(h.name)}</span></span>`
+      ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="${h.red ? 'red' : ''} ${hlen > 11 ? 'long' : ''} ${hlen > 15 ? 'xlong' : ''}">${esc(h.name)}${shareWk}</span></span>`
       : journeyTxt
         ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey ${journeyAlone ? 'wide' : ''}" data-short="${esc(journeyShort)}" data-tiny="${esc(journeyTiny)}">${journeyTxt}</span></span>`
       : cityTxt
