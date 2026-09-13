@@ -312,8 +312,13 @@ button.active { background: var(--ink); color: var(--card); }
   padding: 0 .9em 0 7px; box-sizing: border-box;
 }
 .v3 .day .detail.grid > .more { padding-right: 0; text-align: right; color: var(--muted); }
-/* the step for a timed thing lives INSIDE its stop, so the column is untouched */
-.v3 .day .detail.grid.tabbed > .evt:first-child { padding-left: 2.2em; }
+/* THE STEP BELONGS TO THE ENTRY, NOT TO THE ROW (Alan: "the third events on
+   the 15th, 14th, 11th and 10th are not aligning"). It was being given to
+   whatever entry came first, so a row whose first entry happened to land on the
+   third stop stood 2.2em right of another row's third entry, and the column
+   broke. Every timed entry steps in by the same amount wherever it sits, so
+   timed lines up with timed and a headline lines up with a headline. */
+.v3 .day .detail.grid > .evt:not(.allday) { padding-left: 2.2em; }
 .v3 .day .detail .evt {
   flex: 0 1 auto; min-width: 4.5em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

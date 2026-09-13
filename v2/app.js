@@ -2213,7 +2213,13 @@ function renderMonthEl(y, m) {
         : (state.detailed ? null : flightLegs(deco(e.title)));
       const short = legs && legs.length >= 2
         ? legs.map(cityCode).join('-') : '';
-      const allday = !effTime(e) && !wg && !isShow(e);
+      // A MOVE IS NOT THE DAY'S HEADLINE (Alan, on his 17 September: "the trip
+      // pulls left"). It carries no clock, so it was being set like an all-day
+      // thing and sitting at the margin while the meetings above and below it
+      // stood indented — the one entry out of line on the page. A move is
+      // something that happens AT a time even when the title does not say so.
+      const moves = !!short || !!cityMarker(e.title);
+      const allday = !effTime(e) && !wg && !isShow(e) && !moves;
       return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''}" data-eid="${e.id}"${short ? ` data-short="${esc(short)}"` : ''} data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}${typeof col === 'string' && col ? ';' + col : ''}">`
         + esc(deco(txt)) + '</b>';
     };
@@ -2302,7 +2308,7 @@ function renderMonthEl(y, m) {
       // headline and begins at its stop, something that happens at an hour
       // steps in from it. The indent lives inside the stop, so the column is
       // untouched.
-      const tabbed = shown.length && effTime(shown[0].e) ? ' tabbed' : '';
+      const tabbed = '';   // the step belongs to each entry now, see .evt:not(.allday)
       // the first stop clear of this row's bands — so a row with nothing in
       // front of it starts at stop 1 and a row behind a banner starts later,
       // and both are still on the grid
