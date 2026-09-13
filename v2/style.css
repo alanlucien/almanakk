@@ -326,7 +326,7 @@ main.strip { height: 100%; overflow-y: auto; }
 .strip .day { flex: 1 0 auto; font-size: 13px; align-items: center; }
 .strip .day .info { font-size: 11px; }
 
-@media (max-width: 720px) {
+@media (max-width: 999px) {
   /* the header wraps, so the Kalendere button can sit at the far left — anchor
      the panel to the screen instead of the button, or it runs off the edge */
   #cal-picker, #more { position: static; }
@@ -933,7 +933,7 @@ header { padding: 11px 14px; gap: 12px; }
 header nav:first-of-type { align-self: stretch; cursor: pointer; }
 header #period-label { display: block; width: 100%; padding: 6px; }
 header #period-year { padding: 5px 8px; }
-@media (max-width: 720px) {
+@media (max-width: 999px) {
   header { padding: 9px 10px; gap: 4px 8px; }
   #app { padding-top: 4px; }
 }
@@ -1175,60 +1175,6 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 .dayview .dedit .dticks { display: flex; flex-wrap: wrap; gap: 1.4em; margin: 2px 0 10px; }
 .dayview .dedit .dticks .dpencil { margin: 0; }
 
-/* ---------- THE SPREAD: month | week | day, on a screen wide enough ---------- */
-/* Nothing here is a new view. It is the three we already have, side by side, so
-   every rule about reading and writing them still holds (Alan, 14.09). */
-/* AN ALMANAC PAGE HAS A SHAPE (Alan, 14.09: "the month feels a bit too wide,
-   it's like an unrecognizable format"). Two thirds of a 1440 screen is 930px of
-   month, which is no longer a month page — it is a spreadsheet. The columns are
-   capped and the pair is centred, so the month keeps the tall narrow proportion
-   the paper has and the screen grows around it rather than stretching it. */
-#app.spread {
-  display: grid; grid-template-columns: minmax(0, 620px) minmax(0, 430px);
-  justify-content: center;
-  gap: 16px; align-items: start; padding: 10px 14px 24px;
-}
-
-/* on a desk there is a pointer, and what it can pick up should say so */
-#app.spread .colmonth .day, #app.spread .colweek .wday,
-#app.spread .day .evt, #app.spread .day .band { cursor: pointer; }
-
-/* WHAT IS ENLARGED BESIDE IT (Alan, 14.09). The seven rows of the open week
-   carry a rule down their left edge; the open day fills it in. Quiet enough to
-   be furniture, definite enough to find without looking for it. */
-#app.spread .colmonth .day.inweek { box-shadow: inset 3px 0 0 var(--rule); }
-#app.spread .colmonth .day.shown { box-shadow: inset 3px 0 0 var(--ink); }
-#app.spread .col { min-width: 0; }
-#app.spread .month, #app.spread .week, #app.spread .dayview { margin: 0; }
-#app.spread .colweek { position: relative; }
-
-/* THE DAY IS A PANEL OVER THE WEEK (Alan, 14.09), never over the month: the
-   thing he navigates by should not be the thing that disappears while he reads
-   a day. Off it puts it away. */
-#app.spread .dayover {
-  position: absolute; left: -10px; right: -10px; top: -8px; z-index: 9;
-  background: var(--card); border: 1.5px solid var(--rule-strong);
-  box-shadow: -8px 10px 30px rgba(0, 0, 0, .17);
-  max-height: calc(100vh - 90px); overflow-y: auto;
-}
-#app.spread .dayover .dayview { border: 0; }
-
-/* SEVEN THINGS, NOT THIRTY LINES (Alan, 14.09: "week view must truly look like
-   almanac so all the lines don't make us mistake it for month view"). The two
-   columns were both stacks of thin rules at much the same pitch. The week's
-   days become blocks with air between them — you count seven — and the month
-   stays the tight continuous list a month should be, its rules lightened so the
-   week's writing lines are the only ruling that reads as ruling. */
-#app.spread .colweek .week { border: 0; background: none; }
-#app.spread .colweek .wday {
-  border: 1px solid var(--rule); border-left-width: 2px;
-  margin-bottom: 7px; background: var(--card);
-}
-#app.spread .colweek .wday:last-child { margin-bottom: 0; }
-#app.spread .colweek .week > h2 { border: 1px solid var(--rule-strong); margin-bottom: 9px; }
-#app.spread .colmonth .day { border-bottom-color: var(--rule-soft); }
-#app.spread .colmonth .day.free::after { opacity: .75; }
-
 /* the arrows live on a desk, where there is no edge to tap and no thumb to
    swipe with — a phone never sees them */
 .wideonly { display: none; }
@@ -1249,3 +1195,43 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
   #more-list #cal-picker { position: relative; }
   #more-list #cal-list { position: absolute; right: 0; top: calc(100% + 6px); }
 }
+
+
+/* ---------- THE QUARTER: three months, which is what the paper sheet is ----- */
+/* A whole season visible at once is the almanac's whole virtue, and it is where
+   he plans. The week and the day are things you pop open over it (Alan, 14.09,
+   taking back the permanent two-column spread). */
+#app.quarter-wrap { padding: 10px 14px 24px; position: relative; }
+.quarter3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.quarter3 .qmonth { min-width: 0; }
+.quarter3 .month { margin: 0; }
+/* three months on one screen means each is a map, not a document: the type
+   steps down and a long day line clips rather than widening the sheet */
+.quarter3 .month { font-size: 11px; }
+.quarter3 .day .detail { overflow: hidden; }
+.quarter3 .day, .quarter3 .day .evt, .quarter3 .day .band { cursor: pointer; }
+
+/* what is open beside it, said quietly */
+.quarter3 .day.inweek { box-shadow: inset 3px 0 0 var(--rule); }
+.quarter3 .day.shown { box-shadow: inset 3px 0 0 var(--ink); }
+
+/* ---------- the week and the day, arriving together ---------- */
+/* A SCREEN, NOT A BOX OVER ONE (Alan, 14.09). Everything the phone does it does
+   here; the only difference a desk makes is that the week and the day it opens
+   onto arrive at the same time instead of one after the other. So there is no
+   backdrop and nothing to dismiss — off the boxes climbs a level, exactly as
+   off the paper does on the phone. */
+#app.pairview { padding: 10px 14px 24px; }
+.pair {
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 16px; align-items: start;
+  width: min(1020px, 100%); margin: 0 auto;
+}
+.pair .pw, .pair .pd { min-width: 0; }
+.pair .week, .pair .dayview { margin: 0; }
+/* seven things, not thirty lines — the same separation the week gets anywhere */
+.pair .pw .week { border: 0; background: none; }
+.pair .pw .wday { border: 1px solid var(--rule); border-left-width: 2px; margin-bottom: 7px; background: var(--card); }
+.pair .pw .wday:last-child { margin-bottom: 0; }
+.pair .pw .week > h2 { border: 1px solid var(--rule-strong); margin-bottom: 9px; }
+.pair .pw .wday, .pair .pw .wev, .pair .pd .dev { cursor: pointer; }

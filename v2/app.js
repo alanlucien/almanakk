@@ -1084,7 +1084,6 @@ function openDay(date, eventId, write) {
   // IN THE SPREAD THE DAY IS A COLUMN, not a place you go: opening one fills
   // the right-hand column and leaves the month and the week where they are.
   const inSpread = SPREAD.matches && state.view === 'week';
-  if (inSpread) state.dayPanel = true;
   state.dayOf = date;
   // an id of 0 is an id: `|| null` threw the first event of a set away
   state.openEvent = eventId === undefined || eventId === '' ? null : eventId;
@@ -1416,7 +1415,7 @@ function alignByTime() {
 // the month is not just where he navigates from, it is where he can see where
 // he is.
 function markSpread() {
-  const col = document.querySelector('.colmonth');
+  const col = document.querySelector('.quarter3');
   if (!col) return;
   const mon = mondayOf(state.weekOf || fmt(new Date()));
   const from = fmt(mon);
@@ -1424,7 +1423,7 @@ function markSpread() {
   col.querySelectorAll('.day[data-date]').forEach(d => {
     const ds = d.dataset.date;
     d.classList.toggle('inweek', ds >= from && ds <= to);
-    d.classList.toggle('shown', !!state.dayPanel && ds === state.dayOf);
+    d.classList.toggle('shown', ds === state.dayOf);
   });
 }
 
@@ -1871,6 +1870,25 @@ function renderYearThumbs(y) {
   return `<div class="thumbs">${out}</div>`;
 }
 
+// The quarter that holds a date — fixed thirds of the year, the way the paper
+// sheet is printed, so the same three months are always on the same page.
+function quarterHtml(d) {
+  const y = d.getFullYear(), q = Math.floor(d.getMonth() / 3) * 3;
+  let out = '';
+  for (let m = q; m < q + 3; m++) out += `<div class="qmonth">${renderMonthEl(y, m)}</div>`;
+  return `<div class="quarter3">${out}</div>`;
+}
+// A SCREEN, NOT A BOX OVER ONE (Alan, 14.09: "on an iPhone it's a new screen
+// with a new view"). Everything the phone does, it does here — the only
+// difference a desk makes is that the week and the day it opens onto arrive
+// together instead of one after the other.
+function pairHtml(ws) {
+  return `<div class="pair">`
+    + `<div class="pw">${renderWeekEl(ws)}</div>`
+    + `<div class="pd">${renderDayEl(state.dayOf || state.weekDay || ws)}</div>`
+    + `</div>`;
+}
+
 function renderDayEl(ds) {
   const d = parseDate(ds);
   const wi = (d.getDay() + 6) % 7;
@@ -2233,9 +2251,6 @@ SPREAD.addEventListener('change', () => render());
 
 function render(group) {
   cancelTap();
-  // the panel belongs to the spread: a window dragged narrow, or a step out of
-  // the week, must not leave the flag standing where it will swallow a tap
-  if (!(SPREAD.matches && state.view === 'week')) state.dayPanel = false;
   closePanel(true);
   const app = $('#app');
   if (state.view === 'year' && !group && window.matchMedia('(max-width: 820px)').matches) {
@@ -2254,6 +2269,13 @@ function render(group) {
     app.className = 'year';
     app.innerHTML = html;
     $('#period-label').textContent = state.year;
+  } else if (state.view === 'day' && SPREAD.matches) {
+    const dsx = state.dayOf || fmt(new Date());
+    state.weekOf = state.weekOf || dsx;
+    app.className = 'pairview';
+    app.innerHTML = pairHtml(state.weekOf);
+    const mm = mondayOf(state.weekOf);
+    $('#period-label').textContent = L().week + ' ' + isoWeek(mm); $('#period-year').textContent = mm.getFullYear();
   } else if (state.view === 'day') {
     const dsx = state.dayOf || fmt(new Date());
     app.className = 'dayviewwrap';
@@ -2270,24 +2292,24 @@ function render(group) {
     // reading and writing them still holds. A phone gets the week alone, as
     // before, because three columns of diary on 402pt is none of them.
     if (SPREAD.matches) {
-      const anchor = parseDate(state.weekDay || ws);
-      app.className = 'spread';
-      // TWO COLUMNS, NOT THREE (Alan, 14.09, with his own grid over a
-      // screenshot): the month is where he orients, so it takes two thirds and
-      // nothing in it clips; the week is "info when you need it" beside it. The
-      // day was a third of the screen showing three band headings and one
-      // flight. It is a panel now, and it covers the WEEK — never the month,
-      // because the thing you navigate by should not be the thing that
-      // disappears while you read a day.
-      app.innerHTML = `<div class="col colmonth">${renderMonthEl(anchor.getFullYear(), anchor.getMonth())}</div>`
-        + `<div class="col colweek">${renderWeekEl(ws)}`
-        + (state.dayPanel ? `<div class="dayover">${renderDayEl(state.dayOf || state.weekDay || ws)}</div>` : '')
-        + `</div>`;
+      app.className = 'pairview';
+      app.innerHTML = pairHtml(ws);
+      $('#period-label').textContent = L().week + ' ' + isoWeek(m); $('#period-year').textContent = m.getFullYear();
     } else {
       app.className = 'weekview';
       app.innerHTML = renderWeekEl(ws);
     }
     $('#period-label').textContent = L().week + ' ' + isoWeek(m); $('#period-year').textContent = m.getFullYear();
+  } else if (state.view === 'month' && SPREAD.matches) {
+    // THREE MONTHS IS THE ALMANAC (Alan, 14.09, taking back the permanent
+    // spread). A whole season visible at once is what the paper sheet is FOR,
+    // and it is where he plans; the week and the day are things you pop open
+    // over it when you need to read or write, not columns that live there.
+    app.className = 'quarter-wrap';
+    app.innerHTML = quarterHtml(new Date(state.year, state.month, 1));
+    const q = Math.floor(state.month / 3) * 3;
+    $('#period-label').textContent = L().months[q] + ' – ' + L().months[q + 2];
+    $('#period-year').textContent = state.year;
   } else {
     app.className = 'strip';
     app.innerHTML = renderMonthEl(state.year, state.month);
@@ -2634,7 +2656,6 @@ function stepYear(dir) {
 // Thursday, which is the comparison he is actually making. The only rule is
 // that the day on the right is always inside the week in the middle.
 function stepPanel(which, dir) {
-  if (which !== 'day') state.dayPanel = false;
   const day = parseDate(state.dayOf || state.weekOf || fmt(new Date()));
   if (which === 'month') {
     const m = new Date(day.getFullYear(), day.getMonth() + dir, 1);
@@ -2660,7 +2681,13 @@ function stepPanel(which, dir) {
 }
 
 function step(dir) {
-  if (SPREAD.matches && state.view === 'week') return stepPanel('week', dir);
+  if (SPREAD.matches && state.view === 'month') {   // three months at a time
+    const m = new Date(state.year, state.month + dir * 3, 1);
+    state.year = m.getFullYear(); state.month = m.getMonth();
+    if (state.mode === 'google') window.gcalEnsureYear(state.year);
+    render(); return;
+  }
+  if (SPREAD.matches && (state.view === 'week' || state.view === 'day')) return stepPanel('week', dir);
   if (state.view === 'day') {
     const d = parseDate(state.dayOf || fmt(new Date()));
     d.setDate(d.getDate() + dir);
@@ -2861,7 +2888,7 @@ $('#app').addEventListener('click', e => {
   // instead of closing. An open form outranks both.
   // The writing line is not "outside": tapping it is what OPENS the form, and
   // this rule ran on the same click afterwards and threw the draft away again.
-  if ((state.openEvent !== null || state.draft) && (state.view === 'day' || state.dayPanel)
+  if ((state.openEvent !== null || state.draft) && (state.view === 'day')
       && !e.target.closest('.dedit, .wqa')) {
     state.openEvent = null; state.draft = null; render(); return;
   }
@@ -2870,12 +2897,17 @@ $('#app').addEventListener('click', e => {
   // he escaped the writing and landed in the week. Tapping off it now shuts the
   // line and stops there. Like Escape, it lets the half-written line go: enter
   // is what keeps it.
-  const typing = (state.view === 'day' || state.dayPanel) && document.querySelector('.dayview .wqa');
+  const typing = (state.view === 'day') && document.querySelector('.dayview .wqa');
   if (typing && !e.target.closest('.wqa')) { render(); return; }
   // OFF THE PANEL PUTS IT AWAY (Alan, 14.09), the same gesture that shuts the
   // form inside it — so a day closes in two taps: the form, then the day.
-  if (state.dayPanel && SPREAD.matches && state.view === 'week' && !e.target.closest('.dayover')) {
-    state.dayPanel = false; state.openEvent = null; state.draft = null; render(); return;
+  // OFF THE BOXES CLIMBS A LEVEL, which is the phone's own rule — here the
+  // level above the week is the quarter (Alan, 14.09).
+  if (SPREAD.matches && document.querySelector('.pair')
+      && !e.target.closest('.pw, .pd, header')) {
+    const a = parseDate(state.weekDay || state.weekOf || fmt(new Date()));
+    state.year = a.getFullYear(); state.month = a.getMonth();
+    state.view = 'month'; state.openEvent = null; state.draft = null; render(); return;
   }
   // THE EDGES ARE NAVIGATION, WHATEVER IS UNDER THEM (Alan, 14.09: "the brain
   // just thinks back, it doesn't realize it's tapped on the number 15"). A
@@ -2952,19 +2984,34 @@ $('#app').addEventListener('click', e => {
       // On an event they open it for editing instead. What differs is the
       // single tap: in the week it opens the day you touched — the event with
       // it, if you touched one — and in the month it opens the week.
-      const twice = () => ev ? openDay(date, ev.id) : openDay(date, null, true);
+      const twice = () => {
+        if (SPREAD.matches && (inQuarter || e.target.closest('.pw'))) {
+          // two taps: an event opens for editing, empty paper opens the writing
+          // line — the phone's rule, landing in the day column
+          if (inQuarter) state.weekOf = date;
+          state.weekDay = state.dayOf = date;
+          state.openEvent = ev ? ev.id : null;
+          state.addOnOpen = !ev;
+          state.view = 'week'; render(); return;
+        }
+        return ev ? openDay(date, ev.id) : openDay(date, null, true);
+      };
       // IN THE SPREAD a day in the MONTH column moves the week under it as well
       // as the day beside it — the three columns always describe one place.
-      const inMonthCol = !!e.target.closest('.colmonth');
+      const inQuarter = !!e.target.closest('.quarter3');
       const once = () => {
-        if (SPREAD.matches && state.view === 'week' && inMonthCol) {
-          // A CLICK IS A CLICK (Alan, 14.09): a day opens that day, an event
-          // opens that event. He asked how a week is opened then — it is not.
-          // The week follows the day, always showing the week the open day is
-          // in, so there is nothing left to ask for.
-          state.weekOf = state.weekDay = date;
-          openDay(date, ev ? ev.id : null);
-          return;
+        // IN THE QUARTER a click pops the week open on the day he clicked, with
+        // that day beside it — one click, the phone's own gesture (Alan, 14.09).
+        if (SPREAD.matches && inQuarter) {
+          state.weekOf = state.weekDay = state.dayOf = date;
+          state.openEvent = ev ? ev.id : null;
+          state.view = 'week'; render(); return;
+        }
+        if (SPREAD.matches && e.target.closest('.pw')) {
+          // the week's own rules, unchanged: a day opens that day — which here
+          // means the column beside it, because both are already on screen
+          state.weekDay = state.dayOf = date; state.openEvent = ev ? ev.id : null;
+          render(); return;
         }
         if (state.view === 'week') { openDay(date, ev ? ev.id : null); return; }
         state.weekOf = state.weekDay = date; state.view = 'week'; render();
@@ -3084,9 +3131,10 @@ $('#app').addEventListener('touchend', e => {
   const dy = e.changedTouches[0].clientY - touchY;
   // a diagonal thumb-scroll in the year thumbnails used to step a whole year
   if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-    const col = e.target.closest('.colmonth, .colweek, .colday');
-    if (col) stepPanel(col.classList.contains('colmonth') ? 'month'
-      : col.classList.contains('colday') ? 'day' : 'week', dx < 0 ? 1 : -1);
+// A SWIPE BELONGS TO THE PANEL IT HAPPENED OVER (Alan, 14.09, for the iPad):
+    // over the week it steps the week, over the day it steps the day.
+    const col = e.target.closest('.pw, .pd');
+    if (col) stepPanel(col.classList.contains('pd') ? 'day' : 'week', dx < 0 ? 1 : -1);
     else step(dx < 0 ? 1 : -1);
     touchX = touchY = null; return;
   }
