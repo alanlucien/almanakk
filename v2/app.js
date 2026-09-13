@@ -871,15 +871,15 @@ function tapOrDouble(single, double, key) {
   tapTimer = setTimeout(() => { tapTimer = null; tapKey = null; single(); }, 260);
 }
 
-function openDay(date, eventId) {
+// WRITING IS A GESTURE HE MAKES, NEVER A GUESS I MAKE (Alan, 14.09). It used
+// to open the line by itself whenever the day looked empty; now two taps on
+// empty paper mean "write here" and one tap means "show me this day", so the
+// two gestures stay apart whether or not the day already holds something.
+function openDay(date, eventId, write) {
   state.dayOf = date;
-  state.openEvent = eventId || null;
-  // nothing on the day at all: put the cursor on its line rather than make him
-  // find it (Alan: "if empty day - straight to add event")
-  // "Empty" means nothing of the day's OWN. A project running through it is
-  // context, not an entry, and a week where something is on all month would
-  // otherwise never count as free.
-  state.addOnOpen = !eventId && !state.events.some(x => x.start === date && x.end === date);
+  // an id of 0 is an id: `|| null` threw the first event of a set away
+  state.openEvent = eventId === undefined || eventId === '' ? null : eventId;
+  state.addOnOpen = !!write;
   state.view = 'day';
   render();
 }
@@ -2455,14 +2455,16 @@ $('#app').addEventListener('click', e => {
       // the same, so a second tap is absorbed here rather than landing in the
       // day view and opening something else.
       // IN THE MONTH one tap opens the week and two go straight to the day.
-      if (state.view === 'week') {
-        const go = () => openDay(date, ev ? ev.id : null);
-        tapOrDouble(go, go, ev ? 'e' + ev.id : date);
-        return;
-      }
+      // TWO TAPS ON EMPTY PAPER MEAN "WRITE HERE", in both views (Alan, 14.09).
+      // On an event they open it for editing instead. What differs is the
+      // single tap: in the week it opens the day you touched — the event with
+      // it, if you touched one — and in the month it opens the week.
+      const twice = () => ev ? openDay(date, ev.id) : openDay(date, null, true);
       tapOrDouble(
-        () => { state.weekOf = state.weekDay = date; state.view = 'week'; render(); },
-        () => openDay(date, ev ? ev.id : null),
+        state.view === 'week'
+          ? () => openDay(date, ev ? ev.id : null)
+          : () => { state.weekOf = state.weekDay = date; state.view = 'week'; render(); },
+        twice,
         ev ? 'e' + ev.id : date,
       );
       return;

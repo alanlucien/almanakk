@@ -941,3 +941,20 @@ header #period-year { padding: 5px 8px; }
    document you highlight; what he actually writes in stays selectable. */
 body { -webkit-user-select: none; user-select: none; }
 input, textarea, select, [contenteditable] { -webkit-user-select: text; user-select: text; }
+
+/* THE ONE YOU ARE EDITING READS HEAVIER THAN THE REST OF THE DAY (Alan, 14.09).
+   The open form sat at the same weight as the entries around it, so on a busy
+   day nothing said which line you had hold of. The title takes the weight — it
+   is the event's name, and the name is what the eye looks for. */
+.dayview .dedit [name="title"] { font-weight: 700; font-size: 17px; }
+.dayview .dedit > label:first-of-type { color: var(--ink-soft); }
+
+/* LESS AIR ROUND THE CLOCKS AND THE DATES (Alan, 14.09). Four stacked fields
+   with a full label gap above each one made the shortest part of the form the
+   tallest. The labels sit closer to what they name, and the fields keep the
+   16px that stops iOS zooming the page on focus. */
+.dayview .dedit .drow label { margin-bottom: 2px; line-height: 1.2; }
+.dayview .dedit .drow input { margin-top: 0; padding: 1px 0; }
+@media (max-width: 430px) {
+  .dayview .dedit .drow { gap: 4px 10px; }
+}
