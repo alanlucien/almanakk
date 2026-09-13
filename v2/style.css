@@ -1257,3 +1257,33 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
   #more-list #print, #more-list #lang-chip { padding: 4px 8px; }
   #more-list #print svg, #more-list #lang-chip svg { display: block; }
 }
+
+/* A TABLET IS NOT A BIG PHONE (Alan, 14.09, from his iPad: "month view is too
+   narrow, must be wider and get nice frame around it"). The strip was capped at
+   560px because that is generous on a phone, where the sheet runs edge to edge
+   and side borders would be a frame around the screen itself. On an iPad that
+   cap left two fingers of grey either side and no frame at all — the sheet
+   floated rather than sat on the page. Between the two it gets the width and
+   the four sides of a printed page. */
+@media (min-width: 600px) and (max-width: 999px) {
+  main.strip { padding: 12px 0 18px; }
+  .strip .month {
+    max-width: min(780px, calc(100% - 36px));
+    border-left: 1.5px solid var(--rule-strong);
+    border-right: 1.5px solid var(--rule-strong);
+    min-height: calc(100% - 30px);
+  }
+  /* the week and the day sit on the same page as the month does */
+  #app.weekview, #app.dayviewwrap { padding-left: 18px; padding-right: 18px; }
+  #app.weekview .week, #app.dayviewwrap .dayview { max-width: 780px; margin: 0 auto; }
+}
+
+/* THE RED RULE (Alan's own Almanakkforlaget sheet, 14.09). It runs down the
+   whole month between the dates and the space you write in — the one piece of
+   colour on a black-and-white page, and the thing that makes it read as that
+   calendar and not as a table. It is an inset shadow, not a border, so it costs
+   no layout: a border here would shift every band in the canvas by its own
+   width, which is the mistake that sliced the band labels in August. */
+.day .canvas { box-shadow: inset 1.5px 0 0 var(--red); }
+/* (a day whose line runs full width moves its canvas to another grid column but
+   starts at the same x, so it needs no exception — measured before assuming) */
