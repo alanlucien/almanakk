@@ -2448,21 +2448,20 @@ $('#app').addEventListener('click', e => {
     if (dayEl) {
       const date = dayEl.dataset.date;
       const ev = hit && state.events.find(x => String(x.id) === String(hit.dataset.eid));
-      // TWO TAPS ALWAYS OPEN THE DAY, ONE TAP ALWAYS CLOSES (Alan, 14.09; his
-      // grammar from 13.09, finally the same in both views). Wherever you are
-      // and whatever you hit — an event or empty paper — two taps land in the
-      // day view with that event open for editing, or with the cursor on the
-      // line if the day is empty. One tap steps back out: the month opens the
-      // week you tapped, the week closes to its month.
+      // IN THE WEEK, TAPPING A DAY OPENS THAT DAY (Alan, 14.09). Nothing inside
+      // the sheet closes it any more — you leave a week by tapping off the
+      // paper, which is the rule for every view now. An event opens with it, so
+      // one tap reaches the thing you were looking at. The double branch does
+      // the same, so a second tap is absorbed here rather than landing in the
+      // day view and opening something else.
+      // IN THE MONTH one tap opens the week and two go straight to the day.
+      if (state.view === 'week') {
+        const go = () => openDay(date, ev ? ev.id : null);
+        tapOrDouble(go, go, ev ? 'e' + ev.id : date);
+        return;
+      }
       tapOrDouble(
-        () => {
-          if (state.view === 'week') {
-            const anchor = parseDate(state.weekDay || date);
-            state.year = anchor.getFullYear(); state.month = anchor.getMonth();
-            state.view = 'month'; state.openEvent = null; render(); return;
-          }
-          state.weekOf = state.weekDay = date; state.view = 'week'; render();
-        },
+        () => { state.weekOf = state.weekDay = date; state.view = 'week'; render(); },
         () => openDay(date, ev ? ev.id : null),
         ev ? 'e' + ev.id : date,
       );
@@ -2507,9 +2506,17 @@ $('#app').addEventListener('click', e => {
   // goes back a week, month, year or day; tapping right goes forward. The
   // middle of the margin still climbs a level, and the titles always do.
   if (!e.target.closest('.month, .week, .dayview, .thumb, #popover, header')) {
+    // OFF THE PAPER, ABOVE OR BELOW IT, CLOSES (Alan, 14.09: "tapping outside
+    // the square of the week should bring us back to month"). Beside the sheet
+    // is still the margin you step in — but on a phone the sheet is the whole
+    // width, so the empty ground under it is what the thumb actually reaches,
+    // and that is the way back up.
+    const sheet = document.querySelector('.week, .dayview, .month, .quarter');
+    const box = sheet && sheet.getBoundingClientRect();
+    const beside = box && e.clientY > box.top && e.clientY < box.bottom;
     const w = window.innerWidth;
-    if (e.clientX < w * 0.25) { step(-1); return; }
-    if (e.clientX > w * 0.75) { step(1); return; }
+    if (beside && e.clientX < w * 0.25) { step(-1); return; }
+    if (beside && e.clientX > w * 0.75) { step(1); return; }
     const up = { day: 'week', week: 'month', month: 'year' }[state.view];
     if (up) {
       if (state.view === 'day') { state.weekOf = state.weekDay = state.dayOf; state.openEvent = null; }
