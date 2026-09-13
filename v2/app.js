@@ -2342,8 +2342,17 @@ function renderMonthEl(y, m) {
       const at = (k, span) => `left:${(k * stopPx).toFixed(2)}px;`
         + `width:${(Math.max(1, span) * stopPx).toFixed(2)}px`;
       if (!onGrid) {
-        detail = `<span class="detail${tabbed}" style="left:${lineStartEm}em">`
-          + shown.map(it => evtHtml(it)).join('') + '</span>';
+        // A LETTER IS NOT AN ENTRY (Alan's February: "W" on the 6th, "O:" on
+        // the 20th). On a row whose bands run the width of the sheet there is
+        // genuinely nothing left to write in, and the page was printing the
+        // first character of a title and calling it information. Under four
+        // ems it says how many things are there instead, which is true and
+        // which he can tap.
+        const left = (roomEm || 30) - lineStartEm;
+        detail = left < 4
+          ? `<span class="detail" style="left:${lineStartEm}em"><b class="more">+${shown.length}</b></span>`
+          : `<span class="detail${tabbed}" style="left:${lineStartEm}em">`
+            + shown.map(it => evtHtml(it)).join('') + '</span>';
       } else
       detail = `<span class="detail grid${tabbed}">`
         + fits.map((it, k) => {
@@ -2351,7 +2360,10 @@ function renderMonthEl(y, m) {
             const next = k + 1 < fits.length ? mine + 1 : (counted ? moreAt : STOPS);
             return evtHtml(it, at(mine, next - mine));
           }).join('')
-        + (counted ? `<b class="more" style="${at(moreAt, 1)}">+${over}</b>` : '')
+        // the count is two characters and takes the room they need — a fixed
+        // stop's width could only ever cut it, which is what turned "+1" into
+        // "+" on a narrow row
+        + (counted ? `<b class="more" style="left:${(moreAt * stopPx).toFixed(2)}px">+${over}</b>` : '')
         + '</span>';
     }
     const showDay = todays.some(isShow) || wgTodays.some(isShow)

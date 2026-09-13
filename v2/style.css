@@ -311,7 +311,11 @@ button.active { background: var(--ink); color: var(--card); }
      amount, so they still line up with each other. */
   padding: 0 .9em 0 7px; box-sizing: border-box;
 }
-.v3 .day .detail.grid > .more { padding-right: 0; text-align: right; color: var(--muted); }
+/* the count is two characters and takes the room they need. A fixed stop's
+   width could only ever cut it, which is what turned "+1" into "+". */
+.v3 .day .detail.grid > .more {
+  width: auto; padding-right: 0; text-align: left; color: var(--muted);
+}
 /* THE STEP BELONGS TO THE ENTRY, NOT TO THE ROW (Alan: "the third events on
    the 15th, 14th, 11th and 10th are not aligning"). It was being given to
    whatever entry came first, so a row whose first entry happened to land on the
