@@ -997,6 +997,7 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
    see what kind of thing it is before reading a word, and a long one has the
    whole width to run in. Its dates come off the right margin and follow the
    title, because they belong to that entry and read as a pair with it. */
+.dayview .dev.ad { padding-left: var(--adx, 10px); }
 .dayview .dev.ad .wt { display: none; }
 .dayview .dev.ad .wn { flex: 0 1 auto; }
 .dayview .dev.ad .wr { margin-right: auto; }

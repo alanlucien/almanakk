@@ -1269,6 +1269,21 @@ function alignByTime() {
   });
 }
 
+// AN ALL-DAY ENTRY LINES UP WITH THE DAY'S NAME, not with its number (Alan,
+// 14.09, drawing the line himself). The number is one digit or two, so where
+// TIRSDAG begins moves with the date — the offset is measured from the heading
+// each time rather than guessed at, the same way the day line is measured
+// against the bands.
+function alignAllDay() {
+  const sec = document.querySelector('.dayview');
+  if (!sec) return;
+  const name = sec.querySelector(':scope > h2 .dname');
+  const row = sec.querySelector('.dev.ad');
+  if (!name || !row) return;
+  const off = Math.round(name.getBoundingClientRect().left - row.getBoundingClientRect().left);
+  if (off > 0) sec.style.setProperty('--adx', off + 'px');
+}
+
 function alignLinesToBands() {
   document.querySelectorAll('.day .canvas').forEach(cv => {
     const det = cv.querySelector('.detail');
@@ -2039,6 +2054,7 @@ function render(group) {
     const t = document.querySelector('.dayview .dedit[data-eid="new"] [name="title"]');
     if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
   }
+  alignAllDay();
   alignLinesToBands();
   updateChips();
 }
