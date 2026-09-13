@@ -866,3 +866,19 @@ header #period-year { flex: 1; text-align: center; margin-right: 0; }
 .week .wday .wev { font-size: 13px; }
 .week .wday .wev.wg, .dayview .dev.wg, .week .wspan.wg, .wday > h3 .wspanname.wg { opacity: .82; }
 header h1 { cursor: pointer; }
+
+/* WRITING ON THE LINE, not typing into a box (Alan, 13.09: "this looks a
+   little home made"). Safari draws its own rounded focus ring on a bare input,
+   which is exactly the look a ruled diary should not have. The field is the
+   line: no border, no ring, and indented to where an entry's own words begin
+   so what you type lands where it will sit. */
+.wqa input {
+  -webkit-appearance: none; appearance: none;
+  border: 0; outline: 0; box-shadow: none; background: none;
+  margin: 0; padding: 0 10px 0 calc(10px + 4em);
+  height: 100%; line-height: 1.2;
+}
+.wday .wblank:has(.wqa), .dayview .wblank:has(.wqa) { height: 1.9em; display: flex; align-items: center; }
+.wqa { width: 100%; }
+.wqa input::placeholder { color: var(--muted); opacity: .7; }
+header #period-year { cursor: pointer; }
