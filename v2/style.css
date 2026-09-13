@@ -1042,3 +1042,7 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 .dayview .dev.ad.wg { padding-left: var(--adx2, var(--adx, 10px)); }
 .dayview .dev.ad.wg .wn { font-style: italic; }
 .dayview .dev.ad.wg .wr { font-style: italic; }
+
+/* the tour's entries in the week, told apart the way they are in the day */
+.week .wev.wg .wn, .week .wev.wg .wr,
+.wday > h3 .wspanname.wg, .week .wspan.wg .wn { font-style: italic; }

@@ -1892,7 +1892,10 @@ function renderWeekEl(ds) {
     const evs = state.events
       .filter(e => e.start <= key && e.end >= key && e.end === e.start)
       .sort((a, b) => {
-        const k = e => (effTime(e) ? '2' + effTime(e) : '1');
+        // his own all-day entries before the tour's, the same order the day
+        // view keeps (Alan, 14.09) — the tour's are context, and they were
+        // landing above his. Timed entries keep the clock's order.
+        const k = e => (effTime(e) ? '2' + effTime(e) : '1' + (tour.has(e.calId) ? '1' : '0'));
         return k(a) < k(b) ? -1 : k(a) > k(b) ? 1 : 0;
       });
     // ONLY THE FIRST RIDES THE DAY LINE. Two names beside a date and a weekday
@@ -2572,6 +2575,13 @@ $('#app').addEventListener('click', e => {
       && !e.target.closest('.dedit, .wqa')) {
     state.openEvent = null; state.draft = null; render(); return;
   }
+  // AND THE SAME FOR THE LINE HE IS TYPING ON (Alan, 14.09). It was not an open
+  // form, so nothing caught the tap and it fell through to "one tap leaves" —
+  // he escaped the writing and landed in the week. Tapping off it now shuts the
+  // line and stops there. Like Escape, it lets the half-written line go: enter
+  // is what keeps it.
+  const typing = state.view === 'day' && document.querySelector('.dayview .wqa');
+  if (typing && !e.target.closest('.wqa')) { render(); return; }
   // THE EDGES ARE NAVIGATION, WHATEVER IS UNDER THEM (Alan, 14.09: "the brain
   // just thinks back, it doesn't realize it's tapped on the number 15"). A
   // thumb going to the side of the screen means back or forward, and what
