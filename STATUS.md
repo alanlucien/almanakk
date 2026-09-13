@@ -1,8 +1,8 @@
 # STATUS — where Almanakk stands
 
-Updated 12.09.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
+Updated 17.09.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
 
-A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA, build `20260912`.
+A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260917k`.
 
 ## ⚠️ It writes to the live calendar with no confirmation step
 
@@ -56,6 +56,51 @@ Show pictures of month, year, print and phone strip before any production deploy
 Spec: `Front/NOTES-calendar.md` → "The day row is one dynamic space" and the preview result
 below it; branch `preview-flow-line` shows why a CSS grid cannot do it. Keep it short in chat.
 
+## The year view — BUILT 17.09.2026, live as build `20260917k`
+
+Twelve real month sheets in one row, as in Alan's mock — not thumbnails, not a 4x3 grid.
+Same renderer, same click, same rules. CSS: `#app.year12`, `style.css:1559`.
+Each month has a floor of **132px** and the row scrolls sideways below ~1674px, so it
+scrolls on a 1440 desk and on iPad landscape. Twelve READABLE months do not fit either
+screen — at 1180 they would be 91px each, of which 41 is the date and week-number
+columns. **Open for Alan:** whether to drop the week-number column in the year view,
+which buys 26px a month and would fit all twelve on a 1440 desk.
+
+Five separate lengths were being read against the wrong box, each one enough on its own
+to stack entries on top of each other:
+`--inf` declared on `#app.year12` while `.day` declares it too (so `.month.cities .day`
+won at 12px and "uke 9" took 77px of a 129px row); the count set at 11px on a sheet
+written at 8; `.band` at 12px while its own words were at 8, which drew every band half
+again too wide; `.evt`'s `min-width: 4.5em` overruling a width already measured in px;
+and `display:none` on the weekday letter, which takes it out of the day's GRID and
+shifted every column after it one to the left.
+
+The bands were also sized without asking how wide the paper is — three runs laid lanes
+reaching 168px on an 88px sheet. `app.js:1963` scales them to the sheet, but only when
+they miss the WIDEST row altogether; a month never trips it.
+
+**Measured, twelve months, at 430 / 1180 / 1440:** no entries colliding, no bands
+overlapping, no slivers, nothing written over a band's name. What remains is the
+physics of a 132px column: nine band names cut with a clean ellipsis (all within 2-20px
+of fitting), and one row — 27 September, walled by ANTIGONE Paris — with 11px of paper,
+where the count is clipped.
+
+## The line and a silent band (Alan, 17.09.2026)
+
+"September 14-20 on iPhone, all the all-day events could have been aligned further left,
+same as Møte Pekka on Tuesday the 8th, even if slightly under the grey TdO Ingrid banner
+— then they wouldn't have been clipped on their right side."
+
+The line used to step aside for every band it met. A run writes its name on a handful of
+days and is a plain tint on all the rest, so rows where the banner was silent gave up the
+same paper as the row where the name stands. **A name is a wall; a tint is not**
+(`app.js:2201`, `drawsText` was already there and simply was not being asked). And when
+clearing the walls leaves under 8em to write in, the line moves back left over the tints
+until it has room — never past a band that is saying something.
+Verified on the iPhone and iPad simulators against his own September: the 15th-20th now
+sit on the same stop as Møte Pekka, and "Kåre Gyldendal (?!)", "Maria 50 år Bergen" and
+"Prøve Vildanden" read whole where they were cut.
+
 ## Waiting on Alan
 
 | | |
@@ -64,6 +109,8 @@ below it; branch `preview-flow-line` shows why a CSS grid cannot do it. Keep it 
 | Sharing model | (a) or (b) for the colleagues'/family URLs. |
 | Week separation | Two CSS samples to be shown; Alan picks. |
 | Beijing | The PNR from Lee-Yuan (not code). |
+| Week numbers in the year view | Drop them, to fit twelve months on a 1440 desk without scrolling? Costs the week number, buys 26px a month. |
+| Short forms | The production -> abbreviation list, plus role words (costume, set...), for the wall-calendar titles. |
 
 ## Open
 
