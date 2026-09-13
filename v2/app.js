@@ -1549,7 +1549,7 @@ function renderDayEl(ds) {
       return `<p class="dev ${allday ? 'ad' : ''} ${tour.has(e.calId) ? 'wg' : ''} ${isShow(e) ? 'show' : ''}" data-eid="${e.id}">`
         + `<span class="wt">${esc(e.time || '')}</span>`
         + `<span class="wn" style="color:${evInk(e)}">${esc(deco(e.title))}</span>`
-        + (span ? `<span class="wr">${esc(e.start)} – ${esc(e.end)}</span>` : '')
+        + (span ? `<span class="wr">${esc(shortRange(e.start, e.end))}</span>` : '')
         + '</p>';
     }
     return `<form class="dedit" data-eid="${e.id}">`
@@ -1694,7 +1694,7 @@ function renderWeekEl(ds) {
         + ` data-eid="${e.id}" data-date="${key}">`
         + `<span class="wt">${esc(when)}</span>`
         + `<span class="wn" style="color:${evInk(e)}">${esc(deco(e.title))}</span>`
-        + (span ? `<span class="wr">${esc(e.start)} – ${esc(e.end)}</span>` : '')
+        + (span ? `<span class="wr">${esc(shortRange(e.start, e.end))}</span>` : '')
         + '</p>';
     }).join('');
     // the diary keeps ruled lines whether or not the day is used
@@ -1838,6 +1838,18 @@ function applyLang() {
   $('#print').textContent = L().print;
   $('#signin').textContent = L().signin;
   $('#cal-picker summary').textContent = L().cals;
+}
+
+// A RUN OF DAYS THE WAY YOU WOULD SAY IT (Alan, 14.09): "21–22 apr", not
+// "2026-04-21 – 2026-04-22". The month is named once when both ends share it,
+// and the year only when the run crosses one.
+function shortRange(start, end) {
+  const a = parseDate(start), b = parseDate(end);
+  const mon = d => L().months[d.getMonth()].slice(0, 3).toLowerCase();
+  const yr = a.getFullYear() !== b.getFullYear();
+  if (!yr && a.getMonth() === b.getMonth()) return `${a.getDate()}–${b.getDate()} ${mon(b)}`;
+  const side = d => d.getDate() + ' ' + mon(d) + (yr ? ' ' + d.getFullYear() : '');
+  return side(a) + ' – ' + side(b);
 }
 
 // "8-12 Antigone" on a day in March -> span March 8–12.
@@ -2230,7 +2242,10 @@ $('h1').addEventListener('click', () => {
 // THE HEADER'S OWN TITLE CLIMBS TOO (Alan, 13.09). It names the level you are
 // on, so tapping it should leave that level — the same as the sheet's title,
 // which is easy to miss on a phone.
-$('#period-label').addEventListener('click', () => {
+// The whole middle column answers, not just the glyphs: on a tablet the word
+// is a small target in a wide bar, and a tap a few millimetres off it did
+// nothing at all (Alan, 14.09).
+$('#period-label').closest('nav').addEventListener('click', () => {
   if (state.view === 'day') {
     state.weekOf = state.weekDay = state.dayOf; state.openEvent = null;
     state.view = 'week'; render(); return;
@@ -2336,6 +2351,12 @@ $('#app').addEventListener('click', e => {
         },
         () => {
           if (state.view === 'week') {
+            // TWO TAPS ON AN EVENT EDIT IT, WHEREVER YOU ARE (Alan, 14.09).
+            // In the month they already opened the event in its day; in the
+            // week the same gesture climbed to the month instead, so an event
+            // you were looking at took three moves to reach. Empty paper still
+            // climbs — that is how you leave the week.
+            if (ev) { openDay(date, ev.id); return; }
             const anchor = parseDate(state.weekDay || date);
             state.year = anchor.getFullYear(); state.month = anchor.getMonth();
             state.view = 'month'; render(); return;
@@ -2346,7 +2367,7 @@ $('#app').addEventListener('click', e => {
           // tap does not need to carry that too.
           openDay(date, ev ? ev.id : null);
         },
-        date,
+        ev ? 'e' + ev.id : date,
       );
       return;
     }

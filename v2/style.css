@@ -905,3 +905,22 @@ header #period-year { cursor: pointer; }
   background-position: 10px bottom, 4.0em bottom;
   background-repeat: no-repeat;
 }
+
+/* ROOM TO BREATHE UP THERE (Alan, 14.09: "it feels squished on iPhone, both in
+   month and in week and year"). The header had 4px of air above and below the
+   title on a phone, so the biggest type on the screen sat hard against the
+   status bar and the rule under it. It also makes the two things you tap up
+   here — the title and the year — targets rather than words: the middle column
+   answers across its whole width, which is what was failing on the iPad, where
+   a tap a few millimetres off the letters did nothing. */
+header { padding: 11px 14px; gap: 12px; }
+header nav:first-of-type { align-self: stretch; cursor: pointer; }
+header #period-label { display: block; width: 100%; padding: 6px; }
+header #period-year { padding: 5px 8px; }
+@media (max-width: 720px) {
+  header { padding: 9px 10px; gap: 4px 8px; }
+  #app { padding-top: 4px; }
+}
+
+/* a run of days, said once and short: "21–22 apr" */
+.wday .wev .wr, .dayview .dev .wr { white-space: nowrap; }
