@@ -1235,3 +1235,25 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 .pair .pw .wday:last-child { margin-bottom: 0; }
 .pair .pw .week > h2 { border: 1px solid var(--rule-strong); margin-bottom: 9px; }
 .pair .pw .wday, .pair .pw .wev, .pair .pd .dev { cursor: pointer; }
+
+/* ---------- the desk's own controls ---------- */
+@media (min-width: 1000px) {
+  /* THE THREE VIEWS, BACK AS BUTTONS (Alan, 14.09). Quiet — the titles still
+     climb and the year still opens the year; these are a shortcut, not a
+     replacement, so they sit as a set of small tabs rather than as chrome. */
+  #views { display: inline-flex; margin-left: 14px; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+  #views button {
+    border: 0; border-right: 1px solid var(--rule); background: none;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); padding: 4px 9px; cursor: pointer;
+  }
+  #views button:last-child { border-right: 0; }
+  #views button:hover { color: var(--ink); }
+  #views button.on { background: var(--ink); color: var(--card); }
+
+  /* PRINT AND LANGUAGE ARE SYMBOLS (Alan, 14.09) — the row is for setting
+     things once, and two words of it were saying what a glyph says. */
+  #more-list #print .btxt, #more-list #lang-chip .btxt { display: none; }
+  #more-list #print, #more-list #lang-chip { padding: 4px 8px; }
+  #more-list #print svg, #more-list #lang-chip svg { display: block; }
+}

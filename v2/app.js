@@ -21,7 +21,7 @@ const LANGS = {
     fTitle: 'Tittel', fTime: 'Klokkeslett', fFrom: 'Fra', fTo: 'Til',
     fFromClock: 'Fra kl.', fToClock: 'Til kl.',
     fWhere: 'Sted', fNotes: 'Notat', save: 'Lagre', closeEdit: 'Lukk', atTime: 'Klokken', onMap: 'Kart',
-    year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut',
+    year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut', tour: 'wg | turné',
     signin: 'Logg inn med Google', cals: 'Kalendere',
     needTitle: 'Skriv en tittel først.', movedTo: 'Flyttet til',
     saving: 'Lagrer…', deleting: 'Sletter…', pencil: 'Blyant', trip: 'Reise',
@@ -43,7 +43,7 @@ const LANGS = {
     fTitle: 'Title', fTime: 'Time', fFrom: 'From', fTo: 'To',
     fFromClock: 'From', fToClock: 'To',
     fWhere: 'Location', fNotes: 'Notes', save: 'Save', closeEdit: 'Close', atTime: 'By the clock', onMap: 'Map',
-    year: 'Year', month: 'Month', detail: 'Details', print: 'Print',
+    year: 'Year', month: 'Month', detail: 'Details', print: 'Print', tour: 'wg | touring',
     signin: 'Sign in with Google', cals: 'Calendars',
     needTitle: 'Give it a title first.', movedTo: 'Moved to',
     saving: 'Saving…', deleting: 'Deleting…', pencil: 'Pencilled', trip: 'Trip',
@@ -2326,6 +2326,9 @@ function render(group) {
   keepRidersClear();
   wireDayView();
   $('#period-label').classList.toggle('isyear', state.view === 'year');
+  // the set says which of the three you are in; a day counts as its week
+  $('#views').querySelectorAll('button').forEach(b => b.classList.toggle('on',
+    b.dataset.view === (state.view === 'day' ? 'week' : state.view)));
   // A YEAR HAS A COLOUR, so he never has to read it to know it (Alan, 14.09:
   // green, yellow, red, "you suggest onwards"). Five, then it repeats — long
   // enough that two years on the screen are never the same colour, short enough
@@ -2355,7 +2358,8 @@ function render(group) {
 }
 
 function applyLang() {
-  $('#print').textContent = L().print;
+  $('#print').querySelector('.btxt').textContent = L().print;
+  $('#views').querySelectorAll('button').forEach(b => { b.textContent = L()[b.dataset.view]; });
   $('#signin').textContent = L().signin;
   $('#cal-picker summary').textContent = L().cals;
 }
@@ -2643,6 +2647,19 @@ function toast(msg, action) {
 // tells him he has moved
 function stepYear(dir) {
   state.year += dir;
+  if (state.view === 'week' || state.view === 'day') {
+    // the same week a year away: keep the date, let the weekday fall where it
+    // falls, and put the week on the Monday that holds it
+    const a = parseDate(state.dayOf || state.weekOf || fmt(new Date()));
+    const d = new Date(state.year, a.getMonth(), Math.min(a.getDate(), daysInMonth(state.year, a.getMonth())));
+    state.dayOf = state.weekDay = fmt(d);
+    state.weekOf = fmt(mondayOf(fmt(d)));
+    state.month = d.getMonth();
+    state.openEvent = null;
+    if (state.mode === 'google') window.gcalEnsureYear(state.year);
+    render();
+    return;
+  }
   state.weekOf = state.weekDay = state.dayOf = fmt(new Date(state.year, state.month, 1));
   state.openEvent = null;
   if (state.mode === 'google') window.gcalEnsureYear(state.year);
@@ -2725,6 +2742,7 @@ function step(dir) {
 function updateChips() {
   const tc = $('#tour-chip');
   tc.hidden = false;
+  tc.textContent = L().tour;            // "wg — turnékalendere" was a sentence
   tc.classList.toggle('active', state.wg && tourCalIds().length > 0);
 }
 $('#tour-chip').addEventListener('click', async () => {
@@ -2773,6 +2791,29 @@ $('#period-year').addEventListener('click', () => {
   state.view = 'year'; state.openEvent = null; render();
 });
 
+// A DESK HAS A KEYBOARD (Alan, 14.09: "arrow up and down should advance and go
+// back years"). Sideways is what the arrows do — a quarter, a week, a year in
+// the year view — and up and down is a year. Never while he is typing.
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
+  if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
+  else if (e.key === 'ArrowUp' && state.view !== 'year') { stepYear(1); e.preventDefault(); }
+  else if (e.key === 'ArrowDown' && state.view !== 'year') { stepYear(-1); e.preventDefault(); }
+});
+
+$('#views').addEventListener('click', e => {
+  const b = e.target.closest('button[data-view]');
+  if (!b) return;
+  e.stopPropagation();
+  const v = b.dataset.view;
+  const a = parseDate(state.dayOf || state.weekOf || fmt(new Date()));
+  if (v === 'month') { state.year = a.getFullYear(); state.month = a.getMonth(); }
+  if (v === 'week') { state.weekOf = state.weekDay = state.dayOf = fmt(a); }
+  if (v === 'year') state.year = a.getFullYear();
+  state.view = v; state.openEvent = null; state.draft = null; render();
+});
 $('#prev').addEventListener('click', e => { e.stopPropagation(); step(-1); });
 $('#next').addEventListener('click', e => { e.stopPropagation(); step(1); });
 
@@ -3142,7 +3183,10 @@ $('#app').addEventListener('touchend', e => {
   // Only in the month: it is the one view sized to the screen, so there is no
   // scrolling to take the gesture away from, and the same month a year on is a
   // thing he actually looks for — next season, the same festival.
-  if (state.view === 'month' && Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+  // UP AND DOWN IS A YEAR (Alan, 14.09), in the week as well as the month — the
+  // same week a year on is as real a thing to look for as the same month.
+  if ((state.view === 'month' || state.view === 'week')
+      && Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
     stepYear(dy < 0 ? 1 : -1);
   }
   touchX = touchY = null;
