@@ -1991,7 +1991,17 @@ function renderMonthEl(y, m) {
     // in the preview the tour's day leaves the line: the performances go to
     // the band below, and everything else goes nowhere
     let wgBandShows = [];
-    if (V3) { wgBandShows = wgTodays.filter(isShow); wgTodays = []; }
+    if (V3) {
+      wgBandShows = wgTodays.filter(isShow);
+      // A MOVE IS NEVER "THE TOUR'S ORDINARY DAY" (Alan, 14.09: "a flight on
+      // the 27th of June not appearing even though there is lots of real
+      // estate"). It was the tour's flight to Helsinki, and the rule that
+      // clears get-ins and rehearsal calls off the month took it with them —
+      // while the city column went on saying HELSINKI, because the flight
+      // index still knew. A move is the one tour item that is also HIS day:
+      // it is where he is, and it is why the margin changed.
+      wgTodays = wgTodays.filter(e => !isShow(e) && flightLegs(deco(e.title)).length >= 2);
+    }
     const lineEmpty = !todays.length && !wgTodays.length && !wgBandShows.length;
     // bands grouped left: Alan's solid lanes, then wg's dashed lanes
     const ownEvs = [], wgEvs = [];
