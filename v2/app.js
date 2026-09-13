@@ -334,9 +334,13 @@ function measureLane() {
   if (!el) return;
   const cs = getComputedStyle(el);
   const probe = el.querySelector('i');
+  // the room a day actually has for bands AND the line, so the sheet can
+  // decide between columns and the stair by measurement rather than by taste
+  const canvas = document.querySelector('.day .canvas');
   laneBox = {
     font: probe ? getComputedStyle(probe).font : cs.font,
     px: parseFloat(cs.fontSize) || 12,
+    cw: canvas ? canvas.getBoundingClientRect().width : 0,
   };
   // the first paint has nothing to measure yet, so draw once more now that we do
   if (!measured && laneBox.px > 0) { measured = true; render(); }
@@ -1693,6 +1697,16 @@ function renderMonthEl(y, m) {
   const LANE_STRIPE = 4, LABEL_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0, WG_GAP = 4;
   // read by the lane loop below, so it is declared above it
   const WIDEBAND = window.innerWidth >= 700;
+  // EACH BAND ITS OWN COLUMN WHEN THE MONTH CAN AFFORD IT (Alan, 14.09, from
+  // two of his own sheets). February 2027 holds two bands and a line with one
+  // thing on it, and they overlap for no reason; February 2026 holds five
+  // productions at once and a line four deep, and without the stair his own
+  // week would be gone. Neither model is right for both, and it is not a taste
+  // question — it is arithmetic. Add up the columns the bands need; if they fit
+  // with room left for the day line to say something, give each its own. If
+  // not, the stair, which is what it was invented for.
+  const MIN_LINE = 11;                       // two items and the air between
+  const roomEm = laneBox.cw && laneBox.px ? laneBox.cw / laneBox.px : 0;
   // one width per span for the whole month, so a band never changes width
   // between rows; a title too long to fit takes its widest WORD, because that
   // is what gets written down the band one word per row
@@ -1711,6 +1725,30 @@ function renderMonthEl(y, m) {
     for (const ev of spans) if (ev._lane === i) w = Math.max(w, bandEm[ev.id]);
     natW[i] = w;
   }
+  // what a lane needs to say its titles WHOLE, which is what a column is for.
+  // natW takes the widest word when a title is too long, because that is the
+  // stair's answer — one word per row down the band.
+  const fullW = [];
+  for (let i = 0; i < nOwn + nOvl; i++) {
+    let w = LANE_STRIPE;
+    for (const ev of spans) if (ev._lane === i) {
+      w = Math.max(w, Math.min(emWidth(ev.title) + LANE_PAD, LABEL_MAX));
+    }
+    fullW[i] = w;
+  }
+  // the arithmetic. The tour's lanes are not in it when they have gone to the
+  // right margin — they are no longer competing with his line for the left.
+  const ownLanes = (V3 && nOvl) ? nOwn : nOwn + nOvl;
+  let colTotal = 0;
+  for (let i = 0; i < ownLanes; i++) colTotal += fullW[i] + LANE_GAP;
+  if (nOvl && nOwn && ownLanes > nOwn) colTotal += WG_GAP;
+  // the right margin's width, worked out once here so the decision below and
+  // the lane loop further down cannot disagree about it
+  const wgLaneW = i => (WIDEBAND ? Math.min(fullW[i], 14) : natW[i]);
+  let marginEm = 0;
+  if (V3 && nOvl) for (let i = nOwn; i < nOwn + nOvl; i++) marginEm += wgLaneW(i) + LANE_GAP;
+  const model = (V3 && roomEm && colTotal + marginEm + MIN_LINE <= roomEm)
+    ? 'column' : BANDS;
   // TWO MODELS, SO ALAN CAN JUDGE THEM ON HIS OWN CALENDAR (12.09). STAIR is
   // today's: bands overlap, each starting a strip right of the last, which buys
   // width and costs the clean edge you follow a tour down by. COLUMN is v1's:
@@ -1736,20 +1774,16 @@ function renderMonthEl(y, m) {
       // day started clipping at two items. So the whole name is a desk's
       // reading; a phone keeps a narrow banner and writes the name DOWN it, one
       // word per row, which is the almanac's own answer and costs nothing.
-      let full = LANE_STRIPE;
-      if (WIDEBAND) {
-        for (const ev of spans) if (ev._lane === i) full = Math.max(full, emWidth(ev.title) + LANE_PAD);
-        full = Math.min(full, 14);
-      } else {
-        full = natW[i];
-      }
+      const full = wgLaneW(i);
       laneEm[i] = full + LANE_GAP;
       laneW[i] = full;
       continue;
     }
-    if (BANDS === 'column') {
-      laneEm[i] = natW[i] + LANE_GAP + gap;
-      laneW[i] = natW[i];
+    if (model === 'column') {
+      // a column says the title whole, so it is sized to the title
+      const w = (model === BANDS) ? natW[i] : fullW[i];
+      laneEm[i] = w + LANE_GAP + gap;
+      laneW[i] = w;
     } else {
       laneEm[i] = (laneBox.px ? LANE_STRIPE : 3.5) + LANE_GAP + gap;
       const left = laneEm.slice(0, i).reduce((a, b) => a + b, 0);
@@ -1890,7 +1924,14 @@ function renderMonthEl(y, m) {
     // partly, so each band's colour still shows on the row (Alan: "we still
     // see each band's color").
     let bands = '';
-    let lineStartEm = 0;
+    // ONE LEFT EDGE, WHICH IS WHAT THE OLD ALMANAC DOES (Alan, 14.09, holding
+    // up his October/November 2026 sheet: "it looks very manageable and not
+    // chaotic"). In columns the band area is the same width on all 31 rows, so
+    // his writing begins in the same place on every one of them — that is the
+    // calm he is pointing at, more than the colours or the type. The stair
+    // cannot have it: its lanes borrow width from each other, so the line has
+    // to begin after whatever happens to be said that day.
+    let lineStartEm = model === 'column' ? laneLeft(ownLanes) : 0;
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       const showLabel = labelledAt(ev);
