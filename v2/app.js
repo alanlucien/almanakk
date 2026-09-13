@@ -2314,21 +2314,38 @@ function renderMonthEl(y, m) {
       // did before. A row off the grid is better than a row over a banner.
       const from = Math.max(0, Math.ceil((lineStartEm - 0.01) / stopEm));
       const onGrid = from <= STOPS - 1;
+      // THE COUNT NEEDS A STOP OF ITS OWN, or it is placed on the same stop as
+      // the entry it is counting and the two are written over each other.
       const room = Math.max(1, STOPS - from);
-      const fits = shown.length <= room ? shown : shown.slice(0, Math.max(1, room - 1));
-      const over = shown.length - fits.length;
+      let fits = shown.slice(0, room);
+      let over = shown.length - fits.length;
+      if (over > 0 && fits.length > 1) { fits = shown.slice(0, room - 1); over = shown.length - fits.length; }
+      const moreAt = from + fits.length;
+      const counted = over > 0 && moreAt <= STOPS - 1;
       // EACH STOP IS PLACED, NOT ASKED FOR. A grid column is a request the
       // browser answers with its own auto-placement, and one row in six was
       // coming back in a different place than the column it had been given. A
       // measured left and a measured width cannot be reinterpreted.
-      const at = k => `left:${(k * stopPx).toFixed(2)}px;width:${stopPx.toFixed(2)}px`;
+      // AN ENTRY TAKES THE ROOM THE NEXT ONE DOES NOT WANT (Alan: "obviously no
+      // clipping if only one event on a day, or two events that can easily
+      // fit" — and then, from his own November: "it's a wide open day with one
+      // meeting, and it is clipped"). The START is what the eye follows down
+      // the page, so it stays on its stop; the width runs to wherever the next
+      // entry begins. One event gets the whole row; a crowded day keeps its
+      // columns and clips, which is the trade he chose.
+      const at = (k, span) => `left:${(k * stopPx).toFixed(2)}px;`
+        + `width:${(Math.max(1, span) * stopPx).toFixed(2)}px`;
       if (!onGrid) {
         detail = `<span class="detail${tabbed}" style="left:${lineStartEm}em">`
           + shown.map(it => evtHtml(it)).join('') + '</span>';
       } else
       detail = `<span class="detail grid${tabbed}">`
-        + fits.map((it, k) => evtHtml(it, at(from + k))).join('')
-        + (over > 0 ? `<b class="more" style="${at(STOPS - 1)}">+${over}</b>` : '')
+        + fits.map((it, k) => {
+            const mine = from + k;
+            const next = k + 1 < fits.length ? mine + 1 : (counted ? moreAt : STOPS);
+            return evtHtml(it, at(mine, next - mine));
+          }).join('')
+        + (counted ? `<b class="more" style="${at(moreAt, 1)}">+${over}</b>` : '')
         + '</span>';
     }
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
