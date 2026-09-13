@@ -2172,12 +2172,14 @@ function renderMonthEl(y, m) {
       // and that width was being taken whether or not the lane beside it was
       // occupied — so Telephone, starting the same day, was drawn straight over
       // the end of "SweMa Wup". The name now stops where the next run begins.
-      if (txt || inband) {
-        for (let j = i + 1; j < laneEvs.length; j++) {
-          if (!laneEvs[j]) continue;
-          w = Math.min(w, Math.max(LANE_STRIPE, laneLeft(j) - laneX));
-          break;
-        }
+      // EVERY band stops there, not only one carrying a name. Capping the name
+      // alone left the blocks themselves overlapping on nine rows of his
+      // February — the same thing he saw as "Telephone on top of SweMa", just
+      // without a word in it to make it obvious.
+      for (let j = i + 1; j < laneEvs.length; j++) {
+        if (!laneEvs[j]) continue;
+        w = Math.min(w, Math.max(LANE_STRIPE, laneLeft(j) - laneX));
+        break;
       }
       const onRight = false;
       // the line begins after the last band that actually says something here —
