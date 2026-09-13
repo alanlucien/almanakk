@@ -90,6 +90,16 @@ function visibleEvents() {
   const t = new Set(tourCalIds());
   return state.events.filter(e => !t.has(e.calId));
 }
+// WHAT A VIEW SHOWS. The wg button means "not now", and it has to mean that in
+// every view (Alan, 14.09) — the week and the day were reading every event
+// straight off state and ignoring the button entirely, so unchecking wg muted
+// the month and silently did nothing to the other two. It hides the tour's
+// timed calls as well as its runs: everything of theirs, or nothing.
+function shownEvents() {
+  if (state.wg) return state.events;
+  const t = new Set(tourCalIds());
+  return state.events.filter(e => !t.has(e.calId));
+}
 function overlayEvents() {
   if (!state.wg) return [];
   const t = new Set(tourCalIds());
@@ -1718,7 +1728,7 @@ function renderDayEl(ds) {
   // list: what is true of the whole day, then what happens at an hour, in the
   // order it happens. A run and an all-day entry belong to the first; anything
   // with a time belongs to the second.
-  const here = state.events.filter(e => e.start <= ds && e.end >= ds);
+  const here = shownEvents().filter(e => e.start <= ds && e.end >= ds);
   // HIS FIRST, THE TOUR'S UNDERNEATH (Alan, 14.09). A tour calendar's all-day
   // entries are context rather than his own diary, so they always fall to the
   // bottom of the block — and they are set a step further in, against the
@@ -1855,7 +1865,7 @@ function renderWeekEl(ds) {
   // from the month. A span that began before this week writes its name on the
   // Monday, because that is where it enters the page.
   const keyOf = i => fmt(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i));
-  const runs = state.events
+  const runs = shownEvents()
     .filter(e => e.end > e.start && e.start <= lastKey && e.end >= firstKey)
     .map(e => {
       let from = 0, to = 6;
@@ -1877,7 +1887,7 @@ function renderWeekEl(ds) {
   // then do not give so much space — I almost cannot see the end of Sunday").
   // Blank ruled lines are what a quiet week has instead of entries; a full one
   // does not need them, and seven days of them push Sunday off the screen.
-  const weekLoad = state.events.filter(e => e.end === e.start && e.start >= firstKey && e.start <= lastKey).length;
+  const weekLoad = shownEvents().filter(e => e.end === e.start && e.start >= firstKey && e.start <= lastKey).length;
   const minLines = weekLoad >= 16 ? 1 : weekLoad >= 10 ? 2 : 3;
   let days = '';
   for (let i = 0; i < 7; i++) {
@@ -1889,7 +1899,7 @@ function renderWeekEl(ds) {
     // A RUNNING PROJECT IS NOT NEWS SEVEN TIMES (12.09). What spans the week
     // is said once at the top of it; a day's own lines are the day's own
     // events, which is what you came to the week to read.
-    const evs = state.events
+    const evs = shownEvents()
       .filter(e => e.start <= key && e.end >= key && e.end === e.start)
       .sort((a, b) => {
         // his own all-day entries before the tour's, the same order the day

@@ -1046,8 +1046,13 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 /* the tour's all-day entries: a step further in, against the month's name, and
    in italic — context rather than his own diary (Alan, 14.09) */
 .dayview .dev.ad.wg { padding-left: var(--adx2, var(--adx, 10px)); }
-.dayview .dev.ad.wg .wn { font-style: italic; }
-.dayview .dev.ad.wg .wr { font-style: italic; }
+/* wg reads as wg in both halves of the day: what is true all day and what
+   happens at an hour (Alan, 14.09). A timed one keeps its clock where every
+   other clock is and widens the gutter instead, so its TITLE lands on the same
+   left edge as the all-day ones — one column of the tour's things, whatever
+   time of day they are. */
+.dayview .dev.wg .wn, .dayview .dev.wg .wt, .dayview .dev.wg .wr { font-style: italic; }
+.dayview .dev.wg:not(.ad) .wt { flex: 0 0 calc(var(--adx2, 4em) - 10px - .6em); }
 
 /* the tour's entries in the week, told apart the way they are in the day */
 .week .wev.wg .wn, .week .wev.wg .wr,
