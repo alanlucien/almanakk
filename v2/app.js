@@ -2509,6 +2509,20 @@ $('#app').addEventListener('click', e => {
   const cell = e.target.closest('.info.plan');
   if (cell) { e.stopPropagation(); return openCityEdit(cell); }
   if ($('#popover')) { closePanel(); return; }
+  // A TAP OUTSIDE THE FORM SHUTS IT, AND DOES NOTHING ELSE (Alan, 14.09). Lukk
+  // is still there; this is the way out that needs no aiming. It closes and
+  // stops — it does not also open whatever the finger happened to land on.
+  // IT IS ASKED FIRST, AND IT COVERS THE GREY (14.09, second go): scoped to the
+  // sheet, it missed the obvious gesture — tapping the paper AROUND the box —
+  // which fell through to "off the paper climbs a level" and jumped to the
+  // week. Below the edge strips, tapping the side of the screen stepped a day
+  // instead of closing. An open form outranks both.
+  // The writing line is not "outside": tapping it is what OPENS the form, and
+  // this rule ran on the same click afterwards and threw the draft away again.
+  if ((state.openEvent !== null || state.draft) && state.view === 'day'
+      && !e.target.closest('.dedit, .wqa')) {
+    state.openEvent = null; state.draft = null; render(); return;
+  }
   // THE EDGES ARE NAVIGATION, WHATEVER IS UNDER THEM (Alan, 14.09: "the brain
   // just thinks back, it doesn't realize it's tapped on the number 15"). A
   // thumb going to the side of the screen means back or forward, and what
@@ -2584,12 +2598,6 @@ $('#app').addEventListener('click', e => {
   //   month tap a day    → its week      two taps → the year
   //   week  tap a day    → that day      two taps → the month
   //   day   tap an event → edit it       two taps → its week
-  // A TAP OUTSIDE THE FORM SHUTS IT, AND DOES NOTHING ELSE (Alan, 14.09). Lukk
-  // is still there; this is the way out that needs no aiming. It closes and
-  // stops — it does not also open whatever the finger happened to land on.
-  if (inDay && !e.target.closest('.dedit') && (state.openEvent !== null || state.draft)) {
-    state.openEvent = null; state.draft = null; render(); return;
-  }
   if (e.target.closest('.wqa')) return;   // he is writing; the field has its own rules
   // ONE TAP DOES THE OBVIOUS THING, AND ONE TAP LEAVES (Alan, 14.09). On an
   // entry's words it opens that entry. On the blank paper of a row, or on a
