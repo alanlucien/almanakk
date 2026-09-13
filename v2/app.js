@@ -66,6 +66,17 @@ const L = () => LANGS[state.lang] || LANGS.no;
 // evenings.
 const VIEW_CYCLE = { month: 'week', week: 'month', day: 'month' };
 
+// PREVIEW (?v3=1 — Alan, 14.09: "remove wg day events from month view ... but
+// keep performances, and keep them inside the band, they will never crash with
+// titles"). The tour's ordinary day — a get-in, a rehearsal call — is context
+// he does not act on, and it was competing for the same line as his own
+// commitments. So it leaves the month altogether; the performance stays,
+// written inside its own run's band where nothing of his can ever reach. Off
+// by default until he has looked at it. Declared up here with the other
+// constants, for the reason given above.
+const V3 = /[?&]v3\b/.test(location.search);
+if (V3) document.documentElement.classList.add('v3');
+
 const state = {
   view: window.innerWidth < 700 ? 'month' : 'year',
   year: new Date().getFullYear(),
@@ -1786,8 +1797,12 @@ function renderMonthEl(y, m) {
       cityShown = !!cityTxt && !h; // a holiday keeps the cell, so nothing showed
     }
     const todays = details.filter(e => e.start === ds);
-    const wgTodays = wgDet.filter(e => e.start === ds);
-    const lineEmpty = !todays.length && !wgTodays.length;
+    let wgTodays = wgDet.filter(e => e.start === ds);
+    // in the preview the tour's day leaves the line: the performances go to
+    // the band below, and everything else goes nowhere
+    let wgBandShows = [];
+    if (V3) { wgBandShows = wgTodays.filter(isShow); wgTodays = []; }
+    const lineEmpty = !todays.length && !wgTodays.length && !wgBandShows.length;
     // bands grouped left: Alan's solid lanes, then wg's dashed lanes
     const ownEvs = [], wgEvs = [];
     for (let l = 0; l < nOwn; l++) ownEvs[l] = spans.find(e => !e._wg && e._lane === l && e.start <= ds && e.end >= ds);
@@ -1849,16 +1864,33 @@ function renderMonthEl(y, m) {
       let txt = '';
       if (showLabel) txt = plan ? plan.words[0] : ev.title;
       else if (plan && step > 0 && step < plan.words.length) txt = plan.words[step];
+      // A PERFORMANCE IS WRITTEN IN ITS OWN RUN'S BAND (preview). Only where
+      // the band is otherwise silent today — a band already carrying a word of
+      // its title keeps it, and the show falls back to the day line, so one
+      // can never paint over the other.
+      let inband = '';
+      if (V3 && ev._wg && !txt && wgBandShows.length) {
+        const k = wgBandShows.findIndex(x => x.calId === ev.calId);
+        if (k >= 0) {
+          const sh = wgBandShows[k];
+          inband = showOnLine(sh) || deco(sh.title);
+          wgBandShows.splice(k, 1);
+        }
+      }
       const laneX = laneLeft(i);
       const w = laneW[i] || laneEm[i];   // the lane's width, so a band is a straight column
       // the line begins after the last band that actually says something here
-      if (txt) lineStartEm = Math.max(lineStartEm, laneX + w);
+      if (txt || inband) lineStartEm = Math.max(lineStartEm, laneX + w);
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''} ${isPencil(ev) ? 'pencil' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="left:${laneX}em;width:${w.toFixed(2)}em;`
         + `--w:${w.toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
-        + (txt ? `<b>${esc(deco(txt))}</b>` : '') + '</i>';
+        + (txt ? `<b>${esc(deco(txt))}</b>` : '')
+        + (inband ? `<b class="bshow">${esc(inband)}</b>` : '') + '</i>';
     });
+    // a performance whose band said something else today keeps the day line,
+    // so nothing is ever silently dropped
+    if (V3 && wgBandShows.length) wgTodays = wgBandShows;
     // ONE wide shared day line: Alan's headline first, shows (any calendar)
     // pinned next, then Alan's items, then wg's dimmed items
     const lineItems = todays.map(e => ({ e, wg: false }))
@@ -3370,9 +3402,11 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') return closePanel(true);
-  if (e.target.tagName === 'INPUT') return; // don't navigate while typing
-  if (e.key === 'ArrowLeft') step(-1);
-  if (e.key === 'ArrowRight') step(1);
+  // THE ARROWS USED TO BE STEPPED HERE TOO (Alan, 14.09: "when arrow left and
+  // right in week view it skips two weeks at a time, from 8 to 6"). This
+  // handler predates the desk's keyboard block, which does the same job with
+  // better guards — so one press ran step() twice and every view moved double.
+  // Escape is all that is left here.
 });
 
 // Swipe between months in strip view.

@@ -259,6 +259,20 @@ button.active { background: var(--ink); color: var(--card); }
 .day .detail .evt { font-weight: 400; display: inline; }
 .day .detail .evt + .evt::before { content: ' · '; color: var(--muted); }
 .day .detail .evt.wgd { opacity: .55; } /* wg items: visibly "theirs", clipped first */
+
+/* PREVIEW (?v3=1). A performance written inside its run's band, and every wg
+   thing in italic (Alan, 14.09: "keep all wg italized") — the tour's hand,
+   told apart from his own at a glance and without a second colour. */
+.v3 .day .band b.bshow {
+  background: color-mix(in srgb, var(--c) 22%, var(--card));
+  font-style: italic; font-weight: 600; font-size: 10px;
+  letter-spacing: .02em; color: var(--red);
+  /* the run's band shouts its own name; a performance inside it keeps the
+     Title Case it was given */
+  text-transform: none;
+  justify-content: flex-end;
+}
+.v3 .day .band.wg b, .v3 .day .detail .evt.wgd, .v3 .week .wev.wg { font-style: italic; }
 .day .detail .evt.showevt { opacity: 1; font-weight: 600; } /* shows pop at full red, never dimmed */
 /* No rule down the left of this column. It used to have a dotted one, but the
    cell is centred on its content, so the border was only as tall as whatever
