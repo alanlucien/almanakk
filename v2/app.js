@@ -83,6 +83,56 @@ const V3 = !/[?&]v3=0\b/.test(location.search);
 if (V3) document.documentElement.classList.add('v3');
 // a clock written into a title ("09:00 Befaring DNK"). It must have the colon
 // to count, so a number that is part of a name is never taken for a time.
+// A WALL CALENDAR IS WRITTEN SHORT (Alan, 14.09). His titles are written for a
+// diary, where there is room: "Modellmøte Alle er vi fugler 2027", "kunst
+// teamsmøte Alle er vi fugler". On cardboard he would have written "Modellmøte"
+// and "teamsmøte" in pencil. Three rules, none of which needs anything from him:
+//
+//  1. A PRODUCTION THE DAY IS ALREADY INSIDE does not need naming again — its
+//     band is drawn on that very row, saying it. This is the performance's own
+//     trick run backwards: there a show borrows its run's name, here an entry
+//     gives its run's name back.
+//  2. A YEAR is the calendar's job, not the title's.
+//  3. "møte" and "meeting" as WHOLE WORDS are scaffolding. As a suffix they are
+//     not: a Modellmøte is a particular thing in his week, and stripping it
+//     leaves "Modell", which is worse than what we started with.
+//
+// It never returns nothing: if the rules would empty a title, the title stands.
+const MEET_WORDS = /\b(m\u00f8ter?|meetings?|meet)\b/gi;
+function wallTitle(title, covers) {
+  const original = String(title).replace(/\s+/g, ' ').trim();
+  let t = ' ' + original + ' ';
+  // the scaffolding goes FIRST. Stripping the production first could leave
+  // "møte ANTIGONE" as the word "møte" alone — the scaffolding surviving the
+  // thing it was holding up, which is exactly backwards.
+  const noYear = t.replace(/\b(19|20)\d\d\b/g, ' ');
+  if (noYear.trim()) t = noYear;
+  const noMeet = t.replace(MEET_WORDS, ' ');
+  if (noMeet.trim()) t = noMeet;
+  for (const c of covers) {
+    // A BAND IS OFTEN NAMED LONGER THAN THE MEETING NAMES IT: the run is
+    // "Vildanden OSLO" or "ANTIGONE Paris" and the entry says only "Vildanden".
+    // So the run's leading words count as the run's name too, longest first.
+    const words = String(c).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    for (let k = words.length; k >= 1; k--) {
+      const name = words.slice(0, k).join(' ');
+      if (name.length < 4) continue;
+      const re = new RegExp('\\s' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=\\s|$)', 'i');
+      if (!re.test(t)) continue;
+      const cut = t.replace(re, ' ');
+      // the whole title WAS the production — an event called "Fanny og
+      // Alexander" inside the run of that name. Taking it away leaves nothing,
+      // and falling through to a shorter prefix would leave "Alexander", which
+      // is worse than saying it twice. It stands.
+      if (!cut.trim()) break;
+      t = cut; break;
+    }
+  }
+  t = t.replace(/^[\s\-\u2013\u2014,:\u00b7]+|[\s\-\u2013\u2014,:\u00b7]+$/g, '')
+       .replace(/\s+/g, ' ').trim();
+  return t || original;
+}
+
 function stripClock(t) {
   const out = String(t).replace(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/g, ' ')
     .replace(/^[\s\-\u2013\u2014:\u00b7]+/, '').replace(/\s+/g, ' ').trim();
@@ -1914,6 +1964,8 @@ function renderMonthEl(y, m) {
       cityShown = !!cityTxt && !h; // a holiday keeps the cell, so nothing showed
     }
     const todays = details.filter(e => e.start === ds);
+    // the runs drawn on this very row: their names are already on the page
+    const coverNames = spans.filter(e => e.start <= ds && e.end >= ds).map(e => deco(e.title));
     let wgTodays = wgDet.filter(e => e.start === ds);
     // in the preview the tour's day leaves the line: the performances go to
     // the band below, and everything else goes nowhere
@@ -2053,7 +2105,7 @@ function renderMonthEl(y, m) {
       // between"). At a month's distance the question is what is on that day,
       // not when; the day view still has every clock. The order is still the
       // order of the day, so they read left to right in the order they happen.
-      if (V3 && !state.detailed) txt = stripClock(txt);
+      if (V3 && !state.detailed) txt = wallTitle(stripClock(txt), coverNames);
       const allday = !effTime(e) && !wg && !isShow(e);
       return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''} ${allday ? 'allday' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
         + esc(deco(txt)) + '</b>';
