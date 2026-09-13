@@ -1667,7 +1667,7 @@ function renderMonthEl(y, m) {
       const w = laneW[i] || laneEm[i];   // the lane's width, so a band is a straight column
       // the line begins after the last band that actually says something here
       if (txt) lineStartEm = Math.max(lineStartEm, laneX + w);
-      bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''}`
+      bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''} ${isPencil(ev) ? 'pencil' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="left:${laneX}em;width:${w.toFixed(2)}em;`
         + `--w:${w.toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
@@ -1694,7 +1694,7 @@ function renderMonthEl(y, m) {
       const e = it.e, wg = it.wg;
       const txt = state.detailed ? (e.time ? e.time + ' ' : '') + e.title
         : (it._legs && it._legs.length > 2 ? journeyLabel(it._legs) : compactTitle(e));
-      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
+      return `<b class="evt ${wg ? 'wgd' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'showevt' : ''} ${isPencil(e) ? 'pencil' : ''}" data-eid="${e.id}" data-t="${effTime(e) || ''}" data-wg="${wg ? 1 : 0}" style="color:${evInk(e)}">`
         + esc(deco(txt)) + '</b>';
     };
     // starts where the labels stop — far left on a day with no band label at all
@@ -2050,7 +2050,7 @@ function renderWeekEl(ds) {
     // truncated each other on a phone, which is worse than the row it saved.
     // A second run starting the same day keeps a row of its own.
     const starts = startsOn(i);
-    const nameSpan = r => `<span class="wspanname ${tour.has(r.e.calId) ? 'wg' : ''} ${isTbc(r.e) ? 'tbc' : ''}"`
+    const nameSpan = r => `<span class="wspanname ${tour.has(r.e.calId) ? 'wg' : ''} ${isTbc(r.e) ? 'tbc' : ''} ${isPencil(r.e) ? 'pencil' : ''}"`
       + ` data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane};color:${evInk(r.e)}">`
       + `${esc(deco(r.e.title))}</span>`;
     // AN ALL-DAY ENTRY BELONGS TO THE DAY (Alan: "is Prøve Vildanden an all-day
@@ -2060,12 +2060,12 @@ function renderWeekEl(ds) {
     const allDay = evs.filter(e => !effTime(e));
     const rider = !starts.length && allDay.length ? allDay[0] : null;
     const headNames = starts.length ? nameSpan(starts[0])
-      : rider ? `<span class="wspanname dayrider" data-eid="${rider.id}" data-date="${key}"`
+      : rider ? `<span class="wspanname dayrider ${isPencil(rider) ? 'pencil' : ''}" data-eid="${rider.id}" data-date="${key}"`
         + ` style="--lane:0;color:${evInk(rider)}">${esc(deco(rider.title))}</span>` : '';
     const lines = evs.filter(e => e !== rider).map(e => {
       const span = e.end > e.start;
       const when = e.time ? e.time : (span ? '' : '');
-      return `<p class="wev ${tour.has(e.calId) ? 'wg' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'show' : ''}"`
+      return `<p class="wev ${tour.has(e.calId) ? 'wg' : ''} ${isTbc(e) ? 'tbc' : ''} ${isShow(e) ? 'show' : ''} ${isPencil(e) ? 'pencil' : ''}"`
         + ` data-eid="${e.id}" data-date="${key}">`
         + `<span class="wt">${esc(when)}</span>`
         + `<span class="wn" style="color:${evInk(e)}">${esc(deco(e.title))}</span>`
@@ -2083,7 +2083,7 @@ function renderWeekEl(ds) {
     // "10.9. – 11.9." was the same fact in worse handwriting — and it cost a
     // row. The full dates are still in the day view, where you edit them.
     const heads = starts.slice(1).map(r =>
-      `<p class="wspan own" data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane}">`
+      `<p class="wspan own ${isPencil(r.e) ? 'pencil' : ''}" data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane}">`
       + nameSpan(r) + '</p>').join('');
     days += `<section class="wday ${free ? 'free' : ''} ${red ? 'red' : ''} ${key === todayStr ? 'today' : ''}`
       + `${key === state.weekDay ? ' picked' : ''}" data-idx="${i}" data-date="${key}">`
@@ -2121,7 +2121,7 @@ function renderWeekEl(ds) {
     + `<div class="wdays" style="--wlanes:${nLanes}">${days}`
     // the arrowhead means FINISHED, so only a run that actually ends inside
     // this week gets one; one that carries on simply runs off the bottom edge
-    + runs.map(r => `<i class="wband ${tour.has(r.e.calId) ? 'wg' : ''} ${r.e.end <= lastKey ? 'ends' : ''}"`
+    + runs.map(r => `<i class="wband ${tour.has(r.e.calId) ? 'wg' : ''} ${r.e.end <= lastKey ? 'ends' : ''} ${isPencil(r.e) ? 'pencil' : ''}"`
         + ` data-eid="${r.e.id}" data-from="${r.from}" data-to="${r.to}"`
         + ` style="--c:${r.e.color};--lane:${r.lane}"></i>`).join('')
     + `</div></section>`;

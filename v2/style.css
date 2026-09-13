@@ -14,7 +14,7 @@
      work here now: the paper goes almost white and the frames go near-black. */
   --paper: #f0f0f0;     /* barely there — the frames do the separating */
   --card: #ffffff;      /* the sheet */
-  --tint: rgba(18, 18, 12, .082);   /* the wash on Saturdays, Sundays and holidays */
+  --tint: rgba(18, 18, 12, .058);   /* the wash on Saturdays, Sundays and holidays — chotto lighter, 14.09 */
   --ink: #14140f;
   --rule: #cfcfcf;
   --rule-soft: #dedede;   /* the lines you write on, lighter than the day's own */
@@ -1105,9 +1105,19 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
   margin-left: .45em; vertical-align: .15em; opacity: .8;
 }
 
-/* PENCILLED: what you would have written in pencil, and can rub out */
-.dayview .dev.pencil .wn, .dayview .dev.pencil .wt, .dayview .dev.pencil .wr { color: var(--muted) !important; }
-.dayview .dev.pencil .wn { font-weight: 400; }
+/* PENCILLED, EVERYWHERE (Alan, 14.09). Grey and italic, the way you would have
+   written it in pencil and can rub out. Italic is also the tour's mark, which
+   is fine: grey carries this one, and a pencilled tour entry is honestly both.
+   The month's band goes pale rather than grey — a band has no words to grey. */
+.pencil .wn, .pencil .wt, .pencil .wr,
+.dayview .dev.pencil .wn, .dayview .dev.pencil .wt, .dayview .dev.pencil .wr,
+.wday .wev.pencil .wn, .wday .wev.pencil .wt, .wday .wev.pencil .wr,
+.wday > h3 .wspanname.pencil, .week .wspan.pencil .wn,
+.day .detail .evt.pencil { color: var(--muted) !important; font-style: italic; }
+.dayview .dev.pencil .wn, .wday .wev.pencil .wn, .wday > h3 .wspanname.pencil { font-weight: 400; }
+.day .band.pencil { background: color-mix(in srgb, var(--c) 6%, var(--card)); border-left-style: dotted; }
+.day .band.pencil b { background: color-mix(in srgb, var(--c) 6%, var(--card)); color: var(--muted); font-style: italic; font-weight: 400; }
+.week .wband.pencil { opacity: .4; border-left-style: dotted; }
 .dayview .dedit .dpencil {
   display: flex; align-items: center; gap: .5em; margin: 2px 0 10px;
   font-size: 11px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase;
