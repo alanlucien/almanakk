@@ -453,9 +453,13 @@
   };
 
   window.gcalDeleteEvent = async function (ev) {
-    const url = new URL('https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(ev.calId) + '/events/' + encodeURIComponent(ev.gid));
-    const r = await fetch(url, { method: 'DELETE', headers: { Authorization: 'Bearer ' + accessToken } });
-    if (!r.ok && r.status !== 410) throw new Error('Kunne ikke slette (' + r.status + ')');
+    // THROUGH THE PROXY LIKE EVERY OTHER CALL. This one built a googleapis URL
+    // itself and sent `Bearer null`, because on Cloudflare there is no browser
+    // token at all — so deleting always answered 401 there while working on the
+    // github.io build. The body-read and 204 fixes made earlier tonight were
+    // both correct and both on a path delete never reached (13.09).
+    await api('calendars/' + encodeURIComponent(ev.calId) + '/events/' + encodeURIComponent(ev.gid),
+      {}, { method: 'DELETE' });
     resetCache();
     await window.gcalEnsureYear(state.year);
   };

@@ -763,10 +763,18 @@ function wireDayView() {
     form.dataset.busy = '1';
     try {
       const box = form.querySelector('.swatches');
+      // NEVER WRITE A DATE HE DID NOT TOUCH. The read path shifts a small-hours
+      // flight onto the evening before so it renders on the day he travels, and
+      // a multi-day timed event is read as single-day — so echoing the form's
+      // dates back on every save walked real bookings backwards and collapsed
+      // workshops onto their first day. The schedule is now sent only when it
+      // differs from what was loaded (13.09, found in review).
+      const moved = v('start') !== ev.start || v('end') !== ev.end
+        || v('time') !== (ev.time || '') || v('endtime') !== (ev.endTime || '');
       await saveEvent(ev, {
         colorId: box ? (box.dataset.cid !== undefined ? box.dataset.cid : (ev.colorId || '')) : '',
         title: v('title').trim(), time: v('time').trim(), endTime: v('endtime').trim(),
-        start: v('start'), end: v('end'),
+        start: v('start'), end: v('end'), moved,
         location: v('location').trim(), notes: v('notes').trim(),
       });
       state.openEvent = null;
@@ -790,7 +798,7 @@ async function saveEvent(ev, f) {
     return;
   }
   const patch = {
-    summary: (f.time && !/^\d{1,2}[:.]\d{2}/.test(f.title) ? f.time + ' ' : '') + f.title,
+    summary: f.title,
     location: f.location, description: f.notes,
     colorId: f.colorId || null,          // null = back to the calendar's own colour
   };
@@ -798,7 +806,8 @@ async function saveEvent(ev, f) {
   // needs one shape or the other, never both, so the fields are cleared as
   // well as set — otherwise a timed event keeps a stale date and refuses.
   const tz = ev.tz || 'Europe/Oslo';
-  if (f.start && f.time) {
+  if (!f.moved) { /* he changed words, not when: leave the schedule alone */ }
+  else if (f.start && f.time) {
     const endDay = f.end && f.end >= f.start ? f.end : f.start;
     const endClock = f.endTime || f.time;
     patch.start = { dateTime: `${f.start}T${f.time}:00`, timeZone: tz, date: null };
@@ -808,9 +817,6 @@ async function saveEvent(ev, f) {
     patch.start = { date: f.start, dateTime: null, timeZone: null };
     patch.end = { date: fmt(next), dateTime: null, timeZone: null };
   }
-  // the clock lives in the event's own fields now, so stop repeating it in the
-  // title as the quick-add grammar does
-  patch.summary = f.title;
   await window.gcalUpdateEvent(ev, patch);
 }
 
