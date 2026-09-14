@@ -1022,6 +1022,43 @@ const SLOT_GAP = 10;            // clear air between one slot and the next
 // titles and cut once at the end. Items no longer shrink; what does not fit is
 // dropped, and the row says how many, so a missed thing is visible rather than
 // silently gone.
+// ONE WIDTH FOR THE WHOLE SHEET, MEASURED FROM WHAT IT ACTUALLY HOLDS (Alan,
+// 17.09: "77px for info seems roomy for September and what is written in it that
+// month. Could that grow and shrink? If it's only 'uke 12' it needs less; if it
+// has 'Uzbekistanopel' it needs all 77").
+//
+// He is asking for two things that pull against each other, and both are right.
+// The column must not be given room it never uses — and the WRITING must not
+// change width from row to row, or the stops cannot line up down the page, which
+// is the fault under his September pencil line and his February columns.
+//
+// The answer is one width per SHEET rather than per row: measured against the
+// widest thing this month has to say, and then held on all 31 rows. A month of
+// plain week numbers gets a narrow column; the month that flies to Düsseldorf
+// pays for it, and only that month.
+//
+// The text is measured with a Range, which lays it out as if it were free and so
+// reports what it WANTS rather than what it was given — scrollWidth would report
+// the box back to us on any row that is already wide enough.
+function fitInfo() {
+  const r = document.createRange();
+  document.querySelectorAll('.month, .qmonth').forEach(sheet => {
+    const cells = [...sheet.querySelectorAll('.day .info')];
+    if (!cells.length) return;
+    let need = 0, pad = 0;
+    for (const el of cells) {
+      if (!el.textContent.trim()) continue;
+      const cs = getComputedStyle(el);
+      pad = Math.max(pad, (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0));
+      r.selectNodeContents(el);
+      need = Math.max(need, r.getBoundingClientRect().width);
+    }
+    // a sheet with nothing to say in the column still keeps a hair of it, so the
+    // right-hand rule of the sheet does not move when a month happens to be empty
+    const px = Math.max(6, Math.ceil(need + pad));
+    sheet.querySelectorAll('.day').forEach(d => d.style.setProperty('--inf', px + 'px'));
+  });
+}
 function clipLine() {
   document.querySelectorAll('.day .detail').forEach(det => {
     // THE STOPS DECIDE WHAT FITS, NOT THE WIDTH — asked first, because the two
@@ -2822,7 +2859,14 @@ function renderMonthEl(y, m) {
     // air to the right of it and no city, so that would be okay"). The two
     // overlap in the grid rather than the column being given up, so the cell
     // stays where it is and still takes the tap that plans a move.
-    const airRight = !h && !journeyTxt && !cityTxt && wi !== 0;
+    // A DAY NO LONGER LENDS ITS EMPTY CELL TO THE LINE (Alan, 17.09, superseding
+    // his own 12.09 note). Lending it meant the writing area was 323px on a row
+    // with nothing in the info cell and 246px on a row with a week number — and a
+    // grid cannot line up down the page if the paper changes width every row.
+    // That is what his September pencil line was: not a clip rule, the seam
+    // between the two widths. The column is narrow now because it is measured
+    // (see fitInfo), so what lending it bought is no longer worth the wander.
+    const airRight = false;
     rows += `<div class="day ${red ? 'red' : ''} ${free ? 'free' : ''} ${wi === 6 ? 'sun' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''} ${airRight ? 'airright' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
       // how many things this day MEANT to put on its line. The renderer drops what
@@ -3361,6 +3405,7 @@ function render(group) {
     $('#period-label').textContent = L().months[state.month]; $('#period-year').textContent = state.year;
   }
   measureLane();
+  fitInfo();
   fitJourneys();
   orderByTime();
   fitEvenings();
