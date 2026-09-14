@@ -210,14 +210,22 @@ hypothesis, not a fact.
    rows because the tour lane starts 7px too soon. The lane widths are decided once per
    month against a flat 11em reserve for the writing; on a nearly empty month that reserve
    is fiction.)*
-10. **A run alone on the sheet may spread freely** and must not clip or line-break its
-    name when there is clearly space. (Week 38/39 2027.)
-11. **A run says its name whole on the row it introduces itself**, spilling past its lane
-    if need be — *but always leaving a seam clear of the next run's block*, or two
-    productions read as one title. Spill before you wrap.
-12. A title that will not fit even so is written **down** the band, as many whole words per
-    row as fit, and the last row carries what is left with an ellipsis. Nothing is dropped
-    in silence.
+10. **THE BLOCK IS THE TITLE** (Alan, 17.09, correcting me directly: *"I want to hear if
+    you mean that the title of a multi-day band can be wider than the band. This is not
+    true for me. A block is always one block and it's the width of the title. Sometimes
+    the title has a line break in it so that it's not so wide."*).
+    A run's block and its name are **one thing**, not a name that may reach past a block.
+    The block is as wide as the title it carries; where the title has to break over rows,
+    the block is correspondingly narrower. There is no such thing as a label spilling out
+    of its band. *(I built exactly that in 20260917r and it was wrong.)*
+11. **A run alone spreads.** *"When there are no other events on that day for that whole
+    band — like a year in the future where there's only one long multi-day event — let the
+    title spread full and the block fat and wide as well."* So the width a run takes is
+    decided by what else needs the paper, and on an empty sheet that is nothing: the title
+    goes full, the block goes with it. (Weeks 38/39 and 42/43 of 2027.)
+12. A title that genuinely will not fit is written **down** the band, as many whole words
+    per row as fit, and the last row carries what is left with an ellipsis. Nothing is
+    dropped in silence.
 
 ### C. The banners
 13. **A run is one straight column all the way down.** Its width is asked once per run, not
@@ -232,23 +240,58 @@ pencil lines and marks — each of these is a defect, and none has been verified
 16. **The year view drops his single-day events on days a band covers.** 1, 4 and 12 May
     carry *Meet Ellen*, *OS off (UK bank holiday)* and *indra → o…* in the month and show
     **nothing at all** in the year. His red "?" is on exactly those rows. Silent data loss.
-17. **The year view's day line collides with the info column** — *Oslo → B* over *BE…* on
-    the 8th, *Coronet r* over *BE…* on the 15th. Every one of his red arrows on the right
-    points at this.
+17. **A CLIPPED EVENT MUST NOT COST HIM THE INFO COLUMN** (his correction, 17.09 — I had
+    read the red arrows on the right as a collision; they are not). The city and the week
+    number fail to print because his events run so far right that nothing is left for them.
+    His fix is to move the events **left**, not to move the info: *"start the events on the
+    13th and the 15th one step earlier, and thus we would have had more real estate after
+    its clipping to show the week and the city."* And once the 8th, 13th and 15th move,
+    **1, 4, 5, 8-11, 12, 14, 15, 16, 17, 18, 24 and 25 may all move one step left too, and
+    then we could read the info in the info cells.** Every red arrow on that screenshot is
+    pointing at this one thing.
 18. **A performance written inside the tour's banner must not also stand on the day line.**
     He struck out the left-hand *Antigone 7 / 8 / 9* on 29-31 May in both views. Duplicate.
 19. **A holiday and a week number must not share a cell** — *"2. Pinsedag 22"* on 25 May.
 20. **Holiday names in italic.**
-21. The two views should **line up on the same columns**. Whatever the stops are, they are
+21. **THE TOUR BANNER'S STOP IS FLEXIBLE, decided by how much of the row is already
+    spoken for.** His week 22: the *ANTIGONE Roma* block should move **one stop left**, in
+    the year view AND the month view. So a tour banner is not pinned to a fixed lane; it
+    takes the stop the row can spare.
+22. **The 1st, 4th and 12th should move left to the previous available stop**, and it
+    *"seems random why the 4th and the 11th do not start flush left like all the other
+    private events"*. The complaint is the inconsistency: **wherever a day does not start
+    at the far left, the reason has to be legible.** Read together with A3 ("never the
+    first stop under a block") this resolves as: banded days start at stop 1, unbanded days
+    flush left, and nothing else varies. *To be shown to him both ways before it is fixed
+    — his words here could also mean stop 0 on those days.*
+23. The two views should **line up on the same columns**. Whatever the stops are, they are
     the same idea in both.
+
+### E. The stops themselves — the crux (Alan, 17.09)
+> *"All this comes down to how many of the invisible columns — what I call stops — do we
+> have, and how do the rules know when to run into them and push the next event to the next
+> stop. If we had more stops, like my pencil lines indicate in the year view, we'd have more
+> places to align an event and therefore potentially more real estate to the right of the
+> event to print more of the event info before it's clipped."*
+
+He is right, and this answers the objection that a grid must waste paper. A grid wastes up
+to one stop per row; **make the stops finer and the waste shrinks while the columns still
+line up.** Today the count is 3, 4 or 5 by sheet width (`app.js`, `STOPS`), which was chosen
+so that one stop holds about thirteen characters on his phone. That reasoning was about the
+*minimum readable entry*, and it ignored that a wide entry may simply span several stops.
+
+**This is the first lever to try**, before any new placement rule: raise the stop count,
+let an entry span as many stops as it needs, and measure what it does to clipping and to
+the info column. It is also the cheapest thing to get wrong, so it is measured, not judged.
 
 ### Conflicts, and how they were resolved
 - **8 ("one event: whole name, flush left")** against **3 ("never flush left under a
   band")**. Resolved: 3 wins where a block stands on the first stop, 8 everywhere else. The
   whole name still prints; it starts one stop in.
-- **10/11 (spread freely)** against **13 (one straight column)**. Resolved: the **block**
-  holds one width for the whole run; only the **name**, on its announcement row, may reach
-  past it — and only into paper that is genuinely empty.
+- **11 (a run alone spreads)** against **13 (one straight column)**. Resolved by Alan
+  himself: the block and the title are one thing and the block widens WITH the title, so a
+  run that spreads is still one straight column — just a wider one, for its whole length.
+  What is forbidden is a name wider than its own block on a single row.
 - **2 ("a block is not a wall")** against **14 ("a tour banner never pushes his writing")**.
   Not in conflict: a tour banner's *name* is a wall like any other; its *tint* is not.
 
