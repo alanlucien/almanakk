@@ -302,7 +302,8 @@
     const head = [
       'SWEEP  build ' + (typeof BUILD !== 'undefined' ? BUILD : '?') +
         '   ' + years.join('+') + '   ' + innerWidth + 'x' + innerHeight +
-        '   ' + (window.__sweepEvents || '?') + ' events   ' +
+        '   ' + (window.__sweepEvents || '?') + ' events' +
+        ((location.search.match(/[?&]stops=(\d+)/) || [])[1] ? '   stops=' + RegExp.$1 : '') + '   ' +
         // WHICH DATA DID IT SWEEP? When the Google fetch fails the app falls back
         // to the sample sheet without saying so, and two runs of the same build
         // then disagree because one saw 25 demo events and the other saw a live

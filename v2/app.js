@@ -2048,7 +2048,18 @@ function renderMonthEl(y, m) {
   // how full that day is without reading a word.
   // How many is decided by the sheet, never by the day: three is about thirteen
   // characters on his phone, four would be ten, which is one word.
-  const STOPS = roomEm >= 40 ? 5 : roomEm >= 32 ? 4 : 3;
+  // HOW MANY STOPS IS THE LEVER (Alan, 17.09: "all this comes down to how many of
+  // the invisible columns — what I call stops — do we have... if we had more
+  // stops we'd have more places to align an event and therefore more real estate
+  // to the right of it before it's clipped"). He is right, and it answers the
+  // objection that a grid must waste paper: a grid wastes up to one stop per row,
+  // so finer stops mean less waste with the columns still lining up.
+  // 3/4/5 was chosen so one stop held about thirteen characters on his phone —
+  // reasoning about the smallest READABLE entry, which ignored that a wide entry
+  // can simply span several stops. ?stops=N overrides it so the question can be
+  // measured across his own calendar instead of argued about.
+  const STOPS_ARG = +((location.search.match(/[?&]stops=(\d+)/) || [])[1] || 0);
+  const STOPS = STOPS_ARG || (roomEm >= 40 ? 5 : roomEm >= 32 ? 4 : 3);
   const stopEm = (roomEm || 30) / STOPS;
   // IN PIXELS, NOT EM. An em is read against the font of the box it is written
   // on, and the day line does not carry the same size on every row — so the
