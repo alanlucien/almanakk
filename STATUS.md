@@ -300,6 +300,41 @@ Taste. Whether the answer is one stop or two on a given row is Alan's call. The 
 the spec is that he should only ever have to answer that question about a sheet which is
 already free of the defects above.
 
+## THE LOOP — `?sweep=1`, and the baseline on Alan's own calendar (17.09.2026)
+
+`v2/sweep.js`, loaded only for `?sweep=1`. Walks 24 months in month and year view,
+runs every check, prints the findings **on the page** as plain text — read from a
+simulator screenshot. It runs on his device, behind his own sign-in; nothing fetches,
+writes, or leaves the page. **Preview only:** `https://preview.almanakk-v2.pages.dev/v2/?sweep=1`.
+
+Why it exists: the checks always ran against data I invented, and my invented February is
+not as dense as his. The harness came up green and he opened the app and found a fault in
+ten seconds. That loop cost him hours and me nothing, which is backwards.
+
+**Baseline, build `20260917m2` (what he is using), iPad 1180, 2026+2027:**
+
+| | count | |
+|---|---|---|
+| `dropped` | **24** | his events written nowhere and not counted — SILENT LOSS |
+| `infoLost` | 258 | the city/week cell cannot print what it holds |
+| `wasted` | 44 | whole stops of empty paper left of his first entry |
+| `offSheet` | 16 | drawn outside the canvas, so no ellipsis warns him |
+| `namesTouch` | 9 | two productions reading as one title |
+| `nameCut` | 9 | a name cut that wrapping could have saved |
+| `overName` | 1 | his writing over a run's name |
+| `collide` / `bandsOverlap` | 0 | |
+| | **361** | |
+
+`dropped` is the one to fix first and it is worse than the number looks: 6 July 2026 in the
+year view **meant 9, wrote 1, counted none**. 10 February 2026 in the MONTH view has four
+timed events, writes one, shows no count — *Kino*, *Tannlege* and *Innspilling* simply are
+not there. This is the class of fault Alan found by eye in his May side-by-side; it is not
+confined to the year view, and no invented fixture had ever produced it.
+
+Order of work from here: `dropped`, then `infoLost` (his 17.09 correction — the clipped
+events must move LEFT so the info cell has room), then the stop count (spec section E),
+then re-apply the alignment work from the `alignment-work` branch one rule at a time.
+
 ## Waiting on Alan
 
 | | |
