@@ -154,6 +154,16 @@ function stripClock(t) {
 // a view in the URL is how a build gets checked on both devices without Alan.
 // Same family as ?v3=0, ?split, ?demo and ?band=column.
 const VIEW_ARG = (location.search.match(/[?&]view=(month|quarter|year|week|day)\b/) || [])[1];
+// ?sweep=1 — the almanakk checks itself against Alan's own calendar and prints
+// the findings on the page (v2/sweep.js). Loaded on demand so the daily app never
+// carries it. See the file for why it reports to the screen rather than a console.
+if (/[?&]sweep=1\b/.test(location.search)) {
+  addEventListener('load', () => {
+    const t = document.createElement('script');
+    t.src = 'sweep.js?v=' + (typeof BUILD !== 'undefined' ? BUILD : Date.now());
+    document.head.appendChild(t);
+  });
+}
 // ?month=11 (1-based, as he would say it) and ?year=2027, same reason as ?view=
 const MONTH_ARG = (location.search.match(/[?&]month=(\d{1,2})\b/) || [])[1];
 const YEAR_ARG = (location.search.match(/[?&]year=(\d{4})\b/) || [])[1];
@@ -2685,7 +2695,12 @@ function renderMonthEl(y, m) {
     const airRight = !h && !journeyTxt && !cityTxt && wi !== 0;
     rows += `<div class="day ${red ? 'red' : ''} ${free ? 'free' : ''} ${wi === 6 ? 'sun' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''} ${airRight ? 'airright' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
-      + `<span class="canvas">` + bands + detail + '</span>'
+      // how many things this day MEANT to put on its line. The renderer drops what
+      // will not fit and says how many it dropped; a check can only tell a fair
+      // clip from silent loss by comparing what was intended with what stands.
+      // One attribute, no cost, and it is the only way the sweep can catch the
+      // class of bug Alan found in the year view by eye.
+      + `<span class="canvas" data-line="${shown.length}">` + bands + detail + '</span>'
       + info + `</div>`;
   }
   return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}"`
