@@ -2673,8 +2673,17 @@ function renderMonthEl(y, m) {
       const countRoomAt = (bandEdgePx !== Infinity && edgeRightPx >= (laneBox.cw || 1e9) - 2)
         ? bandEdgePx - needPx : null;
       const countPos = () => {
-        const want = Math.max(moreAt * stopPx, lastRight);
-        if (countRoomAt !== null) return `left:${countRoomAt.toFixed(2)}px`;
+        // ...AND NEVER PAST THE EDGE OF THE PAPER (sweep on Alan's own calendar,
+        // 17.09: fifteen counts drawn outside the sheet, twelve of them in the
+        // year). `want` is the greater of the count's own stop and the end of the
+        // last entry, and on a crowded row both can land beyond the sheet — so
+        // the one mark whose whole job is to say "there is more here" was the one
+        // thing the reader could not see. The stops are cut to the NARROWEST row,
+        // so a wide row's own width is the honest right edge to clamp against.
+        const sheetPx = laneBox.cwMax || laneBox.cw || 0;
+        const cap = sheetPx ? sheetPx - needPx : Infinity;
+        const want = Math.min(Math.max(moreAt * stopPx, lastRight), cap);
+        if (countRoomAt !== null) return `left:${Math.min(countRoomAt, cap).toFixed(2)}px`;
         if (moreAt >= lastStop - 1 && lastStop >= STOPS) return 'right:0';
         if (bandEdgePx !== Infinity && bandEdgePx - want < needPx) return 'right:0';
         return `left:${want.toFixed(2)}px`;

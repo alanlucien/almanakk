@@ -13,6 +13,23 @@
  * Nothing here writes, fetches, or leaves the page.
  */
 (function () {
+  // FRESH ASSETS, OR THE REPORT IS ABOUT A BUILD THAT IS NO LONGER THERE. The
+  // service worker caches the app by version, and Safari kept handing the sweep
+  // the previous build's app.js after a deploy — so a run would carry the new
+  // build's name in its header and the old build's behaviour in its numbers,
+  // which is worse than no measurement at all. The sweep page drops the worker
+  // and its caches, once, and reloads into the real thing.
+  if (!sessionStorage.getItem('sweep-fresh')) {
+    sessionStorage.setItem('sweep-fresh', '1');
+    Promise.resolve()
+      .then(() => navigator.serviceWorker
+        ? navigator.serviceWorker.getRegistrations().then(rs => Promise.all(rs.map(r => r.unregister())))
+        : null)
+      .then(() => (window.caches ? caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))) : null))
+      .catch(() => {})
+      .then(() => location.reload());
+    return;
+  }
   const $ = s => document.querySelector(s);
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const num = n => String(n).padStart(3, ' ');
@@ -150,8 +167,22 @@
     new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))),
     wait(80),
   ]);
+  // AND THE SHEET IS ONLY READY WHEN IT STOPS CHANGING. Alan's calendars are
+  // fetched for the range in view, so moving to a new month starts new requests
+  // and the first paint of that month can be of a half-empty sheet — which is why
+  // one run said 28 and the next 99. Rather than guess a delay, render until two
+  // consecutive paints produce the same markup, then scan.
   async function paint(n) {
-    for (let i = 0; i < (n || 2); i++) { render(); await frame(); await wait(110); }
+    let prev = '';
+    for (let i = 0; i < Math.max(n || 2, 14); i++) {
+      render();
+      await frame();
+      await wait(110);
+      const app = $('#app');
+      const now = app ? app.innerHTML.length + ':' + (state.events || []).length : '';
+      if (i >= (n || 2) - 1 && now === prev) return;
+      prev = now;
+    }
   }
   async function settled() {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -188,12 +219,53 @@
     });
   }
 
+  // ---- the probe -------------------------------------------------------------
+  // ?sweep=1&probe=2026-10-08 — one day, every measurement, in both views. The
+  // sweep says WHICH day is wrong; on live data, where there is no console to
+  // reach, this is the only way to find out WHY. Same reason the report prints to
+  // the page: the answer has to survive a screenshot.
+  async function probe(ds) {
+    const y = +ds.slice(0, 4), m = +ds.slice(5, 7) - 1;
+    const out = [];
+    for (const view of ['month', 'year']) {
+      state.view = view; state.year = y; state.month = m;
+      await paint(3);
+      document.querySelectorAll(`.day[data-date="${ds}"]`).forEach(d => {
+        const cv = d.querySelector('.canvas');
+        if (!cv) return;
+        const cr = cv.getBoundingClientRect();
+        const at = r => Math.round(r.left - cr.left) + '\u2192' + Math.round(r.right - cr.left);
+        out.push(view.toUpperCase() + '  canvas ' + Math.round(cr.width) +
+          '   stops ' + (laneBox.stops || '?') + ' x ' + Math.round((laneBox.cw || 0) / (laneBox.stops || 3)) +
+          '   cw ' + Math.round(laneBox.cw || 0) + '/' + Math.round(laneBox.cwMax || 0) +
+          '   meant ' + (cv.dataset.line || 0));
+        const det = d.querySelector('.detail');
+        out.push('    detail  [' + (det ? det.className : '-') + ']  ' + (det ? det.getAttribute('style') || '' : ''));
+        d.querySelectorAll('.band').forEach(b => {
+          const lab = b.querySelector('b');
+          out.push('    band  ' + at(b.getBoundingClientRect()) +
+            (lab && lab.textContent.trim() ? '  "' + lab.textContent + '" ink ' + at(ink(lab)) : '  (silent)'));
+        });
+        (det ? [...det.children] : []).forEach(x => {
+          out.push('    ' + (x.hidden ? 'HID ' : '') + x.className.trim() + '  ' + at(x.getBoundingClientRect()) +
+            '  "' + x.textContent.trim().slice(0, 22) + '"  ' + (x.getAttribute('style') || ''));
+        });
+      });
+    }
+    document.body.innerHTML = '<pre style="font:13px/1.45 ui-monospace,Menlo,monospace;padding:14px;' +
+      'white-space:pre;color:#111;background:#fff;margin:0">' +
+      ('PROBE ' + ds + '   build ' + (typeof BUILD !== 'undefined' ? BUILD : '?') +
+        '   ' + (state.mode === 'google' ? 'LIVE' : 'DEMO') + '\n\n' + out.join('\n'))
+        .replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) + '</pre>';
+  }
+
   async function run() {
-    const nEvents = await settled();
-    window.__sweepEvents = nEvents;
+    await settled();
     // measureLane samples the type off a real band, so it has to be re-taken once
     // the real font is in — otherwise every em in the app is a fallback's em
     render(); await frame(); measureLane(); await paint(2);
+    const one = (location.search.match(/[?&]probe=(\d{4}-\d{2}-\d{2})/) || [])[1];
+    if (one) return probe(one);
     const tally = {}, rows = [], seen = new Set();
     const y0 = state.year;
     const years = [y0, y0 + 1];
@@ -212,6 +284,9 @@
       scan($('#app'), 'Y', tally, rows, seen);
     }
     state.view = 'month'; state.year = y0; state.month = new Date().getMonth();
+    // counted at the END: the app fetches as it goes, so the number at the start
+    // is the number it happened to have then
+    window.__sweepEvents = (state.events || []).length;
     report(tally, rows, years);
   }
 
@@ -227,7 +302,12 @@
     const head = [
       'SWEEP  build ' + (typeof BUILD !== 'undefined' ? BUILD : '?') +
         '   ' + years.join('+') + '   ' + innerWidth + 'x' + innerHeight +
-        '   ' + (window.__sweepEvents || '?') + ' events',
+        '   ' + (window.__sweepEvents || '?') + ' events   ' +
+        // WHICH DATA DID IT SWEEP? When the Google fetch fails the app falls back
+        // to the sample sheet without saying so, and two runs of the same build
+        // then disagree because one saw 25 demo events and the other saw a live
+        // year. A measurement that cannot name its input is not one.
+        (state.mode === 'google' ? 'LIVE' : '*** DEMO DATA, NOT LIVE ***'),
       '',
     ];
     // split by view: a fault only in the year is a different job from one in the
