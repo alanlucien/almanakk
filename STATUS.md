@@ -313,6 +313,14 @@ than patch:
     run instead of per day, which is what made the edge step in and out). Not yet carried
     across to this line of work.
 
+28. **HIS OWN EVENTS INSIDE A TOUR ARE NOT THE TOUR'S** (June 2026). *Travel*, *Set up*,
+    *Dress*, *Day off*, *Workshop / Chorus* sit inside the STILL LIFE run wearing the same
+    small indent as *Still Life 15/16/17* — and that indent means "this belongs to the
+    run". His do not. They should sit **a stop further out, before the tour band**, and
+    only the tour's own performances keep the tab in. (`.v3 .day .band b.bshow` has
+    `padding-left: 12px` for exactly that reason; the indent is leaking to entries it was
+    never meant for.)
+
 ### Conflicts, and how they were resolved
 - **8 ("one event: whole name, flush left")** against **3 ("never flush left under a
   band")**. Resolved: 3 wins where a block stands on the first stop, 8 everywhere else. The
