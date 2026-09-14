@@ -2,7 +2,7 @@
 
 Updated 17.09.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
 
-A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260917k`.
+A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260917n`.
 
 ## ⚠️ It writes to the live calendar with no confirmation step
 
@@ -56,15 +56,15 @@ Show pictures of month, year, print and phone strip before any production deploy
 Spec: `Front/NOTES-calendar.md` → "The day row is one dynamic space" and the preview result
 below it; branch `preview-flow-line` shows why a CSS grid cannot do it. Keep it short in chat.
 
-## The year view — BUILT 17.09.2026, live as build `20260917k`
+## The year view — BUILT 17.09.2026, live as build `20260917n`
 
 Twelve real month sheets in one row, as in Alan's mock — not thumbnails, not a 4x3 grid.
 Same renderer, same click, same rules. CSS: `#app.year12`, `style.css:1559`.
-Each month has a floor of **132px** and the row scrolls sideways below ~1674px, so it
-scrolls on a 1440 desk and on iPad landscape. Twelve READABLE months do not fit either
-screen — at 1180 they would be 91px each, of which 41 is the date and week-number
-columns. **Open for Alan:** whether to drop the week-number column in the year view,
-which buys 26px a month and would fit all twelve on a 1440 desk.
+**SIX OVER SIX** (Alan, 17.09: "make sure the year view stacks six months on top of six
+other months and does not scroll a strip of twelve"). A strip needed a 1674px window and
+scrolled sideways on every screen he owns while half the page's height went unused. Two
+rows of six fit a desk in both directions and give each sheet 231px instead of 132 —
+nearly twice the paper, which was most of what was being clipped. Year faults 10 -> 2.
 
 Five separate lengths were being read against the wrong box, each one enough on its own
 to stack entries on top of each other:
@@ -84,6 +84,52 @@ overlapping, no slivers, nothing written over a band's name. What remains is the
 physics of a 132px column: nine band names cut with a clean ellipsis (all within 2-20px
 of fitting), and one row — 27 September, walled by ANTIGONE Paris — with 11px of paper,
 where the count is clipped.
+
+## THE ALIGNMENT RULE — there is one, and this is it (17.09.2026)
+
+Alan: *"I'm confused on behalf of the computer who's going to make these choices as to
+when what aligns where. I don't need an explanation. I just need consistency across the
+board."*
+
+> **His line starts at the first stop clear of every word a band writes today.
+> A word is a wall. A tint is not.**
+
+That is the whole rule. Four used to stand in its place — start after his own lanes; then
+past a banner if you land on one; then not past a *silent* banner; then come back left if
+that leaves under 8em — each added to answer one screenshot. They agreed often enough to
+look deliberate and disagreed often enough that he could not predict any of it.
+
+They all measured the wrong thing. A **lane** is as wide as the longest name a run carries
+all month; the **word** standing on today's row may be a third of that. So the line waited
+for "rehearsals" on the day the band only said "DNK", and waited for the whole SweMA lane
+on days it said nothing at all. `app.js:2250`.
+
+Note *first* stop, not the stop after the last word: his 1 March has 152px of blank paper
+**in front of** the banner, and "after the last word" put the entry 45px off the page.
+
+Three companions, from the same message:
+- **A run is one straight column all the way down.** The width was recomputed each day
+  against whichever neighbour happened to be occupied, so the right edge stepped in and
+  out — 72px of wander on ANTIGONE Paris — and the name was cut on the narrow days. Asked
+  once per run now (`runCap`, `app.js:1943`).
+- **A title packs as many whole words per row as fit** ("DNK rehearsals" / "NADIA", not
+  three rows of one word), and the last row carries what is left and clips with an
+  ellipsis rather than dropping it in silence.
+- **`--w` was written on the band in the BAND's em and read by the label in the LABEL's**,
+  so every label box in the app was 15% narrower than its own band. That, not the lanes,
+  was what cut "«NINA» Nanterre". Same trap as the stops, the info column and `--inf`.
+
+### The harness (`v2/_sweep.js`, gitignored)
+Alan asked whether this can be machine-tested. It is. `__sweep()` walks twelve months and
+`__yearSweep()` the year sheet, reporting `entriesCollide`, `overBandName`, `bandsOverlap`,
+`slivers`, `countClipped`, `bandNameCut`, and — new, and the two that caught all of this —
+**`wastedStep`** (whole stops of paper standing empty to the left of his first entry) and
+**`raggedBand`** (a run whose right edge wanders). Fixtures reproduce his November 27-29,
+September week 38 and June 10-17. A cut name is now sorted into `bandNameCut` (avoidable),
+`oneWordCut` (a single word longer than its lane) and `tailCut` (the deliberate ellipsis).
+
+**Measured at 430 / 1180 / 1440, month and year: all zero** except `oneWordCut` and
+`tailCut`. Verified on both simulators against his own November, June and September.
 
 ## The line and a silent band (Alan, 17.09.2026)
 
