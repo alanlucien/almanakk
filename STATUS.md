@@ -2,7 +2,7 @@
 
 Updated 17.09.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
 
-A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260917n`.
+A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260917r`.
 
 ## ⚠️ It writes to the live calendar with no confirmation step
 
@@ -56,7 +56,7 @@ Show pictures of month, year, print and phone strip before any production deploy
 Spec: `Front/NOTES-calendar.md` → "The day row is one dynamic space" and the preview result
 below it; branch `preview-flow-line` shows why a CSS grid cannot do it. Keep it short in chat.
 
-## The year view — BUILT 17.09.2026, live as build `20260917n`
+## The year view — BUILT 17.09.2026, live as build `20260917r`
 
 Twelve real month sheets in one row, as in Alan's mock — not thumbnails, not a 4x3 grid.
 Same renderer, same click, same rules. CSS: `#app.year12`, `style.css:1559`.
@@ -91,8 +91,23 @@ Alan: *"I'm confused on behalf of the computer who's going to make these choices
 when what aligns where. I don't need an explanation. I just need consistency across the
 board."*
 
-> **His line starts at the first stop clear of every word a band writes today.
-> A word is a wall. A tint is not.**
+> **His line starts at the first stop clear of every word a band writes today —
+> and never at the very first stop on a day a band's block stands there.
+> A word is a wall. A block is not a wall, but it owns the first stop.**
+>
+> And a run says its name **whole** on the row it introduces itself: the name may
+> reach past its lane, as far as the next lane occupied *that day*. It only writes
+> itself down the band when the room is not there. **Spill before you wrap.**
+
+**Vocabulary, fixed with Alan 17.09** — *"one stop in"* means stop 1 counted from the
+LEFT EDGE, an absolute position. *"one more stop"* means one further than the build in
+front of him, a relative one. He is happy for his events to sit **inside** a band; the
+indent is not about room, it is what says the band is there. A line flush against the
+edge reads as part of the run.
+
+Note "a band's block **stands there**", not "a band exists somewhere on the row": on his
+1 March the banner sits at 150px of a 246px row, and the coarse reading sent "Underdog
+Mainz" 38px off the page to sit after a banner it could be written in front of.
 
 That is the whole rule. Four used to stand in its place — start after his own lanes; then
 past a banner if you land on one; then not past a *silent* banner; then come back left if
@@ -128,8 +143,20 @@ Alan asked whether this can be machine-tested. It is. `__sweep()` walks twelve m
 September week 38 and June 10-17. A cut name is now sorted into `bandNameCut` (avoidable),
 `oneWordCut` (a single word longer than its lane) and `tailCut` (the deliberate ellipsis).
 
-**Measured at 430 / 1180 / 1440, month and year: all zero** except `oneWordCut` and
-`tailCut`. Verified on both simulators against his own November, June and September.
+Three more checks, each from something his eye caught that the harness had not:
+**`flushUnderBand`** (writing flush against the edge under a band — it found 54 days on
+the build he complained about), **`offSheet`** (an entry drawn outside its own canvas,
+where `text-overflow` never fires so the cut carries no ellipsis), and the sweep now scans
+**every column of a quarter**, not one per render — the narrow far-right column is the one
+he actually reads, and it was hiding two collisions from twelve months of sweeping.
+
+**Month view measured at 430 / 1024 / 1180 / 1280 / 1440: zero faults of every kind.**
+Year: one single word 2px too long for its lane. Verified on both simulators against his
+own November, June and September.
+
+**Known rough edge:** 27 September — "Jury duty" and "ANTIGONE Paris" leave 30px of paper,
+so his one event reads "Mod…". It no longer overflows or collides, but it says almost
+nothing. Open question for Alan: on a row that full, is a clipped word better than "+1"?
 
 ## The line and a silent band (Alan, 17.09.2026)
 
