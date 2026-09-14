@@ -230,6 +230,18 @@
     for (const view of ['month', 'year']) {
       state.view = view; state.year = y; state.month = m;
       await paint(3);
+      // AND WAIT FOR THAT DAY'S OWN DATA. Alan's calendars are fetched for the
+      // range in view, so the first paint of a month can be of an empty sheet —
+      // and an empty sheet settles instantly, so "two identical paints" is
+      // satisfied by a day that has not arrived yet. The probe then reports no
+      // bands and no entries, which reads exactly like a day with none. Wait for
+      // the events themselves, then paint again.
+      for (let k = 0; k < 20; k++) {
+        const has = (state.events || []).some(e => e.start <= ds && e.end >= ds);
+        if (has) break;
+        await wait(300);
+      }
+      await paint(3);
       document.querySelectorAll(`.day[data-date="${ds}"]`).forEach(d => {
         const cv = d.querySelector('.canvas');
         if (!cv) return;
@@ -255,7 +267,10 @@
     document.body.innerHTML = '<pre style="font:13px/1.45 ui-monospace,Menlo,monospace;padding:14px;' +
       'white-space:pre;color:#111;background:#fff;margin:0">' +
       ('PROBE ' + ds + '   build ' + (typeof BUILD !== 'undefined' ? BUILD : '?') +
-        '   ' + (state.mode === 'google' ? 'LIVE' : 'DEMO') + '\n\n' + out.join('\n'))
+        '   ' + (state.mode === 'google' ? 'LIVE' : 'DEMO') +
+        '   ' + (state.events || []).length + ' events   ' +
+        (state.events || []).filter(e => e.start <= ds && e.end >= ds).length + ' on this day' +
+        '\n\n' + out.join('\n'))
         .replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) + '</pre>';
   }
 
