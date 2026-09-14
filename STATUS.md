@@ -284,6 +284,35 @@ so that one stop holds about thirteen characters on his phone. That reasoning wa
 let an entry span as many stops as it needs, and measure what it does to clipping and to
 the info column. It is also the cheapest thing to get wrong, so it is measured, not judged.
 
+### F. February 2026, and the six-stop build (Alan, 17.09 — the last of the day)
+He **likes six stops** ("I like six"). Three things left standing, to think about rather
+than patch:
+
+24. **THE WRITING AREA CHANGES WIDTH FROM ROW TO ROW.** His pencil line down the September
+    sheet is not a clip rule, it is the edge of the info column — and the canvas *grows
+    into* that column on any day it has nothing to say. Measured: **246px on a row carrying
+    a week number or a city, 323px on a row carrying neither.** So 14/20/21 stop at his
+    line (they hold `uke 38`, `OSLO?`, `uke 39`) and 10/11 run past it (they hold nothing).
+    **This is the inconsistency underneath most of the others**: a grid cannot line up down
+    the page if the paper changes width every row. It also collides with his 17.09
+    correction — on the rows where the info cell DOES have content, it has already taken
+    its 77px before his writing begins.
+25. **ENTRIES ON NEIGHBOURING ROWS DO NOT SHARE A COLUMN.** February: *Harness tests* (21)
+    sits a stop right of *Look through/Selection of…* (19) and he wants them level;
+    *SweMa Dress* (10) and *Prøve Indra* (13) sit a stop LEFT of *NNB-Y* (9) and *SweMa*
+    (11) and he wants those level too. His arrows point both ways, so this is not "always
+    left" — it is that the column should be the same down the page, and today it follows
+    whatever the band happened to say on that row.
+26. **A CLOSING RULE UNDER A BLOCK THAT VISIBLY STOPS.** *"I don't like lines underneath
+    blocks when they are not needed, when you can clearly see that the colour is stopping."*
+    Refines the older "a run must close visibly": the rule earns its place only where the
+    tint alone does not say the run has ended — at a month's last row, or where the next
+    run's tint continues in the same lane.
+27. **BANDS STILL FRAY ON THE RIGHT** — «NINA» Nanterre, 6 February. Already diagnosed and
+    fixed on the `alignment-work` branch (`runCap`: a run's width asked once for the whole
+    run instead of per day, which is what made the edge step in and out). Not yet carried
+    across to this line of work.
+
 ### Conflicts, and how they were resolved
 - **8 ("one event: whole name, flush left")** against **3 ("never flush left under a
   band")**. Resolved: 3 wins where a block stands on the first stop, 8 everywhere else. The
