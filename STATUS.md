@@ -311,7 +311,27 @@ Why it exists: the checks always ran against data I invented, and my invented Fe
 not as dense as his. The harness came up green and he opened the app and found a fault in
 ten seconds. That loop cost him hours and me nothing, which is backwards.
 
-**Baseline, build `20260917m2` (what he is using), iPad 1180, 2026+2027:**
+**⚠ The first baseline below was taken with a harness that did not wait for the web font,
+did not wait for his calendars to arrive, and could not tell live data from the demo sheet.
+It reported 361, then 28, then 99 for the same build. Treat it as a list of KINDS of fault,
+never as a number.** What made it trustworthy (17.09, all in `sweep.js`):
+`document.fonts.ready` before the first measurement; each month re-rendered until two
+consecutive paints match; every frame wait raced with a timer, because
+`requestAnimationFrame` never fires in a hidden tab; the service worker and its caches
+dropped once at load, or the report describes a build that is no longer running; and the
+header prints **LIVE** or ***DEMO DATA, NOT LIVE*** with the event count, because the app
+falls back to the sample sheet in silence when the Google fetch fails.
+
+**`?sweep=1&probe=YYYY-MM-DD`** prints one day's full geometry in both views — canvas,
+stops, every band with its ink, every entry with its computed style. On live data there is
+no console to reach, so it is the only way to learn WHY a day is wrong rather than THAT it is.
+
+**TRUSTWORTHY LIVE BASELINE — 510 events, iPad 1180, 2026+2027: 144 findings.**
+`dropped` 0 · `infoLost` 0 · `overName` 0 · `bandsOverlap` 0.
+Remaining: **92 wasted**, 18 `namesTouch`, 17 `nameCut`, 15 `offSheet`, 2 `collide`.
+`wasted` is the alignment work and belongs to the spec above, not to bug-fixing.
+
+**First (unreliable) baseline, build `20260917m2`, iPad 1180, 2026+2027:**
 
 | | count | |
 |---|---|---|
