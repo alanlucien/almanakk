@@ -137,7 +137,34 @@
   };
 
   // ---- the walk -------------------------------------------------------------
-  async function paint(n) { for (let i = 0; i < (n || 2); i++) { render(); await wait(90); } }
+  // A MEASUREMENT THAT DISAGREES WITH ITSELF IS NOT A MEASUREMENT. The same build
+  // reported 28 findings and then 99 (17.09). Two causes, both about not waiting:
+  // the web font had not finished loading, so every width in the app was measured
+  // against a fallback face; and Alan's calendars arrive one HTTP response at a
+  // time, so an early run swept a half-empty year. Both are settled before the
+  // first scan, and each sheet is given two frames and a beat to lay out.
+  // ...raced against a timer, because requestAnimationFrame never fires in a
+  // hidden tab and the walk simply stopped at January when the pane was not on
+  // screen. A frame if there is one, a beat if there is not.
+  const frame = () => Promise.race([
+    new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))),
+    wait(80),
+  ]);
+  async function paint(n) {
+    for (let i = 0; i < (n || 2); i++) { render(); await frame(); await wait(110); }
+  }
+  async function settled() {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    let last = -1, still = 0;
+    for (let i = 0; i < 150; i++) {           // up to 30s
+      const n = (state.events || []).length;
+      still = (n === last && n > 0) ? still + 1 : 0;
+      if (still >= 5) return n;               // unchanged for a second
+      last = n;
+      await wait(200);
+    }
+    return last;
+  }
 
   // One finding per (fault, day, sheet width). A quarter shows the same month in
   // three renders and the sweep looks at all three columns, so the raw list has
@@ -162,7 +189,11 @@
   }
 
   async function run() {
-    for (let i = 0; i < 100 && !(state.events && state.events.length); i++) await wait(200);
+    const nEvents = await settled();
+    window.__sweepEvents = nEvents;
+    // measureLane samples the type off a real band, so it has to be re-taken once
+    // the real font is in — otherwise every em in the app is a fallback's em
+    render(); await frame(); measureLane(); await paint(2);
     const tally = {}, rows = [], seen = new Set();
     const y0 = state.year;
     const years = [y0, y0 + 1];
@@ -195,7 +226,8 @@
     const total = rows.length;
     const head = [
       'SWEEP  build ' + (typeof BUILD !== 'undefined' ? BUILD : '?') +
-        '   ' + years.join('+') + '   ' + innerWidth + 'x' + innerHeight,
+        '   ' + years.join('+') + '   ' + innerWidth + 'x' + innerHeight +
+        '   ' + (window.__sweepEvents || '?') + ' events',
       '',
     ];
     // split by view: a fault only in the year is a different job from one in the
