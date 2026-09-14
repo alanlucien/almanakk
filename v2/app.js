@@ -2467,6 +2467,19 @@ function renderMonthEl(y, m) {
         return ka < kb ? -1 : ka > kb ? 1 : 0;
       });
     // compact views show WHAT (no clock prefix); Detaljer view and the day box show WHEN
+    // WHAT AN ENTRY WILL SAY, worked out on its own so the layout can ASK BEFORE IT
+    // PLACES. Until now the text was only known inside evtHtml, which runs after
+    // the column has already been decided — so every entry was given exactly one
+    // stop whatever it had to say. That is the half of Alan's stop idea that was
+    // missing: "more places to align an event, and therefore more real estate to
+    // the right of it" only helps if an entry may SPAN as many of them as it needs.
+    const evtText = it => {
+      const e = it.e;
+      let txt = state.detailed ? (e.time ? e.time + ' ' : '') + e.title
+        : (it._legs && it._legs.length > 2 ? journeyLabel(it._legs) : compactTitle(e));
+      if (V3 && !state.detailed) txt = wallTitle(stripClock(txt), coverNames);
+      return deco(txt);
+    };
     const evtHtml = (it, col) => {
       const e = it.e, wg = it.wg;
       let txt = state.detailed ? (e.time ? e.time + ' ' : '') + e.title
@@ -2627,11 +2640,40 @@ function renderMonthEl(y, m) {
       const onGrid = from <= lastStop - 1;
       // THE COUNT NEEDS A STOP OF ITS OWN, or it is placed on the same stop as
       // the entry it is counting and the two are written over each other.
-      const room = Math.max(1, lastStop - from);
-      let fits = shown.slice(0, room);
-      let over = shown.length - fits.length;
-      if (over > 0 && fits.length > 1) { fits = shown.slice(0, room - 1); over = shown.length - fits.length; }
-      const moreAt = from + fits.length;
+      // AN ENTRY TAKES AS MANY STOPS AS IT NEEDS (Alan, 17.09). One stop each was
+      // why raising the stop count traded wasted paper for collisions: a narrower
+      // stop eventually falls below what a title needs, and the entry spills into
+      // its neighbour. Asked for its own width instead, a long title spans three
+      // stops and a short one takes one, the columns still line up down the page,
+      // and the stop count becomes a dial that can be turned without breaking
+      // anything. (Measured with the label font, which is bold and so a shade
+      // wide — it errs towards giving an entry one stop too many, never too few.)
+      const entryPadPx = 7 + 0.9 * (laneBox.px || 12);
+      const stopsFor = it => {
+        if (!stopPx) return 1;
+        const w = emWidth(evtText(it)) * (laneBox.px || 12) + entryPadPx;
+        return Math.max(1, Math.min(STOPS, Math.ceil(w / stopPx)));
+      };
+      const alloc = [];
+      let cursor = from;
+      for (const it of shown) {
+        if (cursor >= lastStop) break;
+        alloc.push({ it, at: cursor, span: Math.min(stopsFor(it), lastStop - cursor) });
+        cursor += alloc[alloc.length - 1].span;
+      }
+      let over = shown.length - alloc.length;
+      // ...and where something is left over, the count needs a stop of its own
+      if (over > 0 && alloc.length > 1 && cursor >= lastStop) {
+        cursor -= alloc.pop().span;
+        over = shown.length - alloc.length;
+      }
+      // the last entry takes the white paper after it, as it always has
+      if (alloc.length && over === 0) {
+        const tail = alloc[alloc.length - 1];
+        tail.span = Math.max(tail.span, lastStop - tail.at);
+      }
+      const fits = alloc.map(a => a.it);
+      const moreAt = over > 0 ? cursor : lastStop;
       // IF SOMETHING IS LEFT OVER, IT IS COUNTED. ALWAYS. (Sweep of Alan's own
       // calendar, 17.09 — 24 days of silent loss, worst of them 6 July in the
       // year view: nine things on the day, one written, no count.) This used to
@@ -2740,9 +2782,10 @@ function renderMonthEl(y, m) {
           + shown.map(it => evtHtml(it)).join('') + '</span>';
       } else
       detail = `<span class="detail grid${tabbed}">`
-        + fits.map((it, k) => {
-            const mine = from + k;
-            const last = k + 1 >= fits.length;
+        + alloc.map((a, k) => {
+            const it = a.it;
+            const mine = a.at;
+            const last = k + 1 >= alloc.length;
             // THE LAST ENTRY TAKES THE WHITE PAPER AFTER IT (Alan, on his
             // 10 February: "why is SweMa Dress clipped when there is white
             // real estate after it?"). The count hangs at the right edge of the
@@ -2750,9 +2793,9 @@ function renderMonthEl(y, m) {
             // entry was keeping to one stop's width anyway and clipping inside
             // it. It runs to the count now, less the room the count needs.
             const atEdge = counted && moreAt >= lastStop - 1;
-            const next = last ? (counted && !atEdge ? moreAt : lastStop) : mine + 1;
+            const next = last ? (counted && !atEdge ? moreAt : lastStop) : mine + a.span;
             const trim = last && atEdge ? 2.6 : 0;
-            return evtHtml(it, at(mine, next - mine, trim));
+            return evtHtml(it, at(mine, Math.max(a.span, next - mine), trim));
           }).join('')
         // the count is two characters and takes the room they need — a fixed
         // stop's width could only ever cut it, which is what turned "+1" into
