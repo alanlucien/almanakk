@@ -1079,6 +1079,23 @@ function clipLine() {
       const last = evts.filter(e => !e.hidden).pop();
       if (last) last.style.minWidth = '0';
     }
+    // AND IF EVEN ONE CANNOT BE READ, SAY HOW MANY THERE ARE (17.09). Lifting the
+    // floor above lets a title clip instead of pushing the count off the paper —
+    // but on a row with 32px left, "Modellmøte Nationaltheatret" came out 5px
+    // wide, which is not a short reading of the title, it is a smear that claims
+    // to be one. The rule this restores ("under four ems, say how many instead")
+    // was right; what was wrong about it before was that it printed NOTHING. It
+    // prints "+3" now — true, legible, and a tap away from the whole day.
+    {
+      const last = evts.filter(e => !e.hidden).pop();
+      if (last) {
+        const fs = parseFloat(getComputedStyle(last).fontSize) || 11;
+        if (last.getBoundingClientRect().width < 2.5 * fs) {
+          last.hidden = true; dropped++;
+          more.textContent = '+' + dropped;
+        }
+      }
+    }
   });
 }
 
@@ -2305,6 +2322,7 @@ function renderMonthEl(y, m) {
     // nothing else needs to be known first.
     let lineStartEm = 0;
     const wordSpans = [];   // [leftEm, rightEm] of every word written in a band today
+    const bandSpans = [];   // [leftEm, rightEm] of every band BLOCK standing today
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
       // THE WIDTH FIRST, THEN WHAT TO WRITE IN IT (17.09). The run cap used to be
@@ -2328,6 +2346,20 @@ function renderMonthEl(y, m) {
       if (capLane !== undefined) {
         w = Math.min(w, Math.max(LANE_STRIPE * laneScale, laneLeft(capLane) - laneX));
       }
+      // ...THE BLOCK does. The NAME may reach past it on the one row where the
+      // run introduces itself (Alan, 17.09: "September 14 could have had the full
+      // banner title on its first line, like it did in the previous build"). That
+      // row is an announcement, not wander: it happens once per run and it is the
+      // row the eye goes to. It may reach as far as the next lane occupied THAT
+      // DAY, and no further, so it can never be written over another run.
+      let spillFits = false;
+      let spillEm = (laneBox.cw && laneBox.px) ? laneBox.cw / laneBox.px - laneX : w;
+      for (let j = i + 1; j < laneEvs.length; j++) {
+        if (!laneEvs[j]) continue;
+        spillEm = Math.min(spillEm, laneLeft(j) - laneX);
+        break;
+      }
+      spillEm = Math.max(spillEm, w);
       const showLabel = labelledAt(ev);
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
       const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));
@@ -2360,7 +2392,13 @@ function renderMonthEl(y, m) {
         // "ANTIGONE Hong Kong" read "ANTIGONE Hon" instead of wrapping — which
         // is the very thing Alan asked for ("I should be able to read Hong
         // Kong"). One rule, and the width decides.
-        if (words.length > 1 && endInMonth > day && emWidth(ev.title) > fits) {
+        // SPILL BEFORE YOU WRAP. A name reaching into the empty paper beside its
+        // run costs nothing and reads at a glance; the same name broken over
+        // three rows costs three rows and has to be assembled by the reader. So
+        // the question is not "does it fit the lane" but "does it fit the room",
+        // and only when the room is not there does it write itself down the band.
+        spillFits = emWidth(ev.title) <= spillEm - (6 + 4) / (laneBox.px || 12);
+        if (!spillFits && words.length > 1 && endInMonth > day && emWidth(ev.title) > fits) {
           // AS MANY WORDS AS THE ROW HOLDS, NOT ONE (Alan, 17.09: "the banner
           // could have been wider so that only NADIA would be line-broken to the
           // next line" — and on his June, "the line breaking on SweMa Wupp is
@@ -2423,13 +2461,19 @@ function renderMonthEl(y, m) {
       // nothing today presents no wall at all; a band saying "DNK" presents the
       // width of "DNK". The text is clipped to the band's own box, so the wall
       // can never be claimed beyond it.
+      // the label's own box. Normally the band's width; on an announcement row
+      // whose name spills, as wide as the name needs (never past spillEm).
+      const labelEm = (showLabel && spillFits)
+        ? Math.min(spillEm, Math.max(w, emWidth(ev.title) + (6 + 4) / (laneBox.px || 12)))
+        : w;
+      bandSpans.push([laneX, laneX + Math.max(w, labelEm)]);
       const said = txt ? deco(txt) : inband;
       if (said) {
         const indent = (!txt && inband) ? BSHOW_INDENT_PX / (laneBox.px || 12) : 0;
         // the word is clipped to its box; the air after it is NOT — folding the
         // gap inside the clamp meant a name that filled its band got no gap at
         // all, and his 27 September entry was written 3px into "ANTIGONE Paris"
-        const textEnd = Math.min(laneX + w, laneX + indent + emWidth(said));
+        const textEnd = Math.min(laneX + labelEm, laneX + indent + emWidth(said));
         wordSpans.push([laneX, textEnd + WORD_GAP]);
       }
       const onRight = false;
@@ -2455,7 +2499,7 @@ function renderMonthEl(y, m) {
         // rehearsals NADIA" and "«NINA» Nanterre" while the layout, measuring the
         // BAND, could see nothing wrong. Same trap as the stops, the info column
         // and the year's --inf: an em belongs to the box it is written on.
-        + `--w:${(w * (laneBox.px || 12)).toFixed(2)}px;--c:${ev.color};--ci:${inkColor(ev.color)}">`
+        + `--w:${(labelEm * (laneBox.px || 12)).toFixed(2)}px;--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (txt ? `<b${plan && plan.tail >= 0 && step === plan.tail ? ' data-tail="1"' : ''}>${esc(deco(txt))}</b>` : '')
         + (inband ? `<b class="bshow">${esc(inband)}</b>` : '') + '</i>';
     });
@@ -2467,7 +2511,24 @@ function renderMonthEl(y, m) {
     // Walking the stops from the left finds that paper, and the entry is capped
     // at the banner by the edge measurement below, as it always was.
     const clashes = (a, b) => wordSpans.some(([l, r]) => l < b - 0.01 && r > a + 0.01);
-    for (let k = 0; k < STOPS; k++) {
+    // ...AND NEVER THE VERY FIRST STOP ON A DAY A BAND COVERS (Alan, 17.09: "I am
+    // OK with events sitting inside a multi-day band. But not flush left. One
+    // stop in"). The first cut of this rule let his writing start at stop 0 under
+    // a silent tint, which is further left than he asked for and reads wrong: a
+    // line flush against the edge looks like part of the run rather than
+    // something of his own standing beside it. The indent is not about room, it
+    // is what says the band is there. The BLOCK is not a wall — he is happy to
+    // write inside it — it just does not get the first stop.
+    // ...and "a day a band covers" means a band standing ON THE FIRST STOP, not
+    // merely somewhere on the row. On his 1 March the tour's banner sits at 150px
+    // of a 246px row: stops 1 and 2 are inside it and stop 0 is plain paper, and
+    // reading the floor as "any band anywhere" sent "Underdog Mainz" 38px off the
+    // page to sit after a banner it could simply have been written in front of.
+    // The indent exists to show that he is writing INSIDE a run. Where the run is
+    // not, there is nothing to be inside, and flush left is right.
+    const underBand = bandSpans.some(([l, r]) => l < stopEm - 0.01 && r > 0.01);
+    const fromStop = underBand ? Math.min(1, STOPS - 1) : 0;
+    for (let k = fromStop; k < STOPS; k++) {
       if (!clashes(k * stopEm, (k + 1) * stopEm)) { lineStartEm = k * stopEm; break; }
       // no stop on the row is free: the line gives up the grid and flows after
       // the last word, which is the case this already handled
