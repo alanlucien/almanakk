@@ -20,11 +20,18 @@
   // ---- measuring helpers ----------------------------------------------------
   // A label box is full width and its text is left-aligned, so the element's rect
   // says where the BAND ends, not where the WORD does. Every check asks for ink.
+  // ...and CLIPPED to the box that holds it. A Range measures the text as if it
+  // were laid out freely and knows nothing about overflow:hidden, so a name cut
+  // to 34px reported 53px of ink — and namesTouch called a perfectly good seam a
+  // collision. What is drawn is the intersection of the two.
   function ink(el) {
+    const box = el.getBoundingClientRect();
     const r = document.createRange();
     r.selectNodeContents(el);
     const b = r.getBoundingClientRect();
-    return b.width ? b : el.getBoundingClientRect();
+    if (!b.width) return box;
+    const left = Math.max(b.left, box.left), right = Math.min(b.right, box.right);
+    return { left, right, width: Math.max(0, right - left) };
   }
   const vis = els => [...els].filter(e => !e.hidden);
 

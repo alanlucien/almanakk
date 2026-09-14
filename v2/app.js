@@ -1039,9 +1039,33 @@ function clipLine() {
     det.querySelectorAll(':scope > .evt').forEach(e => { e.hidden = false; e.style.minWidth = ''; });
     if (state.detailed) return;
     const evts = [...det.querySelectorAll(':scope > .evt')];
-    if (evts.length < 2) return;
     const pad = parseFloat(getComputedStyle(det).paddingRight) || 0;
     const edge = () => det.getBoundingClientRect().right - pad;
+    // A LONE ENTRY MUST STILL FIT THE SHEET. There is nothing to clip against on
+    // a one-event day, so this returned straight away — and on a row whose bands
+    // leave 30px, the entry's 4.5em floor made it WIDER than the paper it sits
+    // on. An element overflowing its own box never fires text-overflow, so
+    // "Oslo → Bangkok" was cut mid-word with no ellipsis and nothing told him a
+    // word was missing. Alone, it has no neighbour to be squeezed by.
+    // And where even that leaves it unreadable the count says so instead — Alan,
+    // 17.09, asked which he preferred on his 27 September: "let's go with +1".
+    // Three letters of a title is not a short version of it, it is a smudge.
+    const tooThin = el => {
+      const fs = parseFloat(getComputedStyle(el).fontSize) || 11;
+      return el.getBoundingClientRect().width < 2.5 * fs;
+    };
+    if (evts.length < 2) {
+      const one = evts[0];
+      if (!one) return;
+      if (one.getBoundingClientRect().right > edge() + 0.5) one.style.minWidth = '0';
+      if (tooThin(one)) {
+        one.hidden = true;
+        const m = document.createElement('b');
+        m.className = 'more'; m.textContent = '+1';
+        det.appendChild(m);
+      }
+      return;
+    }
     const overflows = () => {
       const vis = evts.filter(e => !e.hidden);
       return vis.length && vis[vis.length - 1].getBoundingClientRect().right > edge() + 0.5;
