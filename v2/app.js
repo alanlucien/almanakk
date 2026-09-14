@@ -1046,9 +1046,25 @@ function clipLine() {
     // "Modellmøte Nationaltheatret" was cut mid-word with no ellipsis and read as
     // nothing at all. Alone, it has no neighbour to be squeezed by: it may take
     // what there is and say, with three dots, that there is more.
+    // A COUNT SAYS MORE THAN THREE LETTERS (Alan, 17.09, asked which he preferred
+    // on his 27 September: "let's go with +1"). Where a row's bands leave 30px,
+    // "Modellmøte Nationaltheatret" reads "Mod…", which is not a short version of
+    // the title, it is a smudge. "+1" is true, legible, and says plainly that
+    // there is something here to tap.
+    const tooThin = el => {
+      const fs = parseFloat(getComputedStyle(el).fontSize) || 11;
+      return el.getBoundingClientRect().width < 2.5 * fs;
+    };
     if (evts.length < 2) {
       const one = evts[0];
-      if (one && one.getBoundingClientRect().right > edge() + 0.5) one.style.minWidth = '0';
+      if (!one) return;
+      if (one.getBoundingClientRect().right > edge() + 0.5) one.style.minWidth = '0';
+      if (tooThin(one)) {
+        one.hidden = true;
+        const m = document.createElement('b');
+        m.className = 'more'; m.textContent = '+1';
+        det.appendChild(m);
+      }
       return;
     }
     const overflows = () => {
@@ -1099,13 +1115,7 @@ function clipLine() {
     // prints "+3" now — true, legible, and a tap away from the whole day.
     {
       const last = evts.filter(e => !e.hidden).pop();
-      if (last) {
-        const fs = parseFloat(getComputedStyle(last).fontSize) || 11;
-        if (last.getBoundingClientRect().width < 2.5 * fs) {
-          last.hidden = true; dropped++;
-          more.textContent = '+' + dropped;
-        }
-      }
+      if (last && tooThin(last)) { last.hidden = true; dropped++; more.textContent = '+' + dropped; }
     }
   });
 }
@@ -1905,6 +1915,8 @@ function renderMonthEl(y, m) {
   // `.v3 .day .band b.bshow { padding-left: 12px }` — the two must agree or the
   // line is measured against a position the page does not draw)
   const WORD_GAP = 0.6, BSHOW_INDENT_PX = 12;
+  // the paper that must stay between one run's name and the next run's block
+  const LANE_SEAM = 1.2;
   // EACH BAND ITS OWN COLUMN WHEN THE MONTH CAN AFFORD IT (Alan, 14.09, from
   // two of his own sheets). February 2027 holds two bands and a line with one
   // thing on it, and they overlap for no reason; February 2026 holds five
@@ -2367,7 +2379,14 @@ function renderMonthEl(y, m) {
       let spillEm = (laneBox.cw && laneBox.px) ? laneBox.cw / laneBox.px - laneX : w;
       for (let j = i + 1; j < laneEvs.length; j++) {
         if (!laneEvs[j]) continue;
-        spillEm = Math.min(spillEm, laneLeft(j) - laneX);
+        // A SEAM, OR TWO RUNS READ AS ONE (Alan, 17.09, on February 2026 in the
+        // build that first allowed the spill: "multi-day events are collapsing
+        // and clashing"). A label reaching to the exact left edge of the next
+        // lane leaves nothing between them, so "SweMa" and "Telephone" — two
+        // separate productions — printed as "SweMa Telephone" and read as one
+        // title. The spill is for paper that is EMPTY; the seam is what says
+        // where one run stops and the next begins.
+        spillEm = Math.min(spillEm, laneLeft(j) - laneX - LANE_SEAM);
         break;
       }
       spillEm = Math.max(spillEm, w);
