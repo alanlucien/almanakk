@@ -427,7 +427,16 @@ function measureLane() {
   const el = document.querySelector('.day .band');
   if (!el) return;
   const cs = getComputedStyle(el);
-  const probe = el.querySelector('i');
+  // MEASURE THE INK, AND IN ONE FONT. `.band` is regular weight and its label is
+  // bold, so every name came out ~7% narrow; and a tour's label is italic while
+  // his own is upright, so sampling a tour band measured HIS names narrower still.
+  // A name judged to fit by a hair is then clipped by two pixels — which is how
+  // "NNB-Y Show" came out "NNB-Y S" instead of wrapping onto the row below it.
+  // Upright is the wider of the two, so measuring everything upright can only
+  // wrap a tour's name a shade early, never clip one.
+  const probe = document.querySelector('.day .band:not(.wg) b:not(.bshow)')
+    || document.querySelector('.day .band b:not(.bshow)')
+    || el.querySelector('i');
   // the room a day actually has for bands AND the line, so the sheet can
   // decide between columns and the stair by measurement rather than by taste
   // THE NARROWEST ROW, NOT THE FIRST (Alan, 14.09: "why don't these three
@@ -453,7 +462,7 @@ function measureLane() {
   const keep = ws.filter(w => w >= widest * 0.66);
   const cw = keep.length ? Math.min(...keep) : widest;
   laneBox = {
-    font: probe ? getComputedStyle(probe).font : cs.font,
+    font: (probe ? getComputedStyle(probe).font : cs.font).replace(/\bitalic\s+/, ''),
     px: parseFloat(cs.fontSize) || 12,
     cw,
     // the WIDEST row as well as the narrowest. The stops are cut to the narrowest
@@ -1044,6 +1053,20 @@ function placeCounts() {
     }
     more.style.right = Math.round(detRight - (limit - 6)) + 'px';
   });
+}
+// The width of one character of the day line, in the size this sheet sets it.
+// Cached per render pass; the whole family of bugs in this file comes from
+// assuming one font size where the page has five.
+let lineCharPx = 0;
+function measureLineChar() {
+  if (lineCharPx) return lineCharPx;
+  const el = document.querySelector('.day .detail .evt');
+  if (!el) return 5.5;
+  const cs = getComputedStyle(el);
+  measureCtx = measureCtx || document.createElement('canvas').getContext('2d');
+  measureCtx.font = cs.font;
+  lineCharPx = measureCtx.measureText('n').width || 5.5;
+  return lineCharPx;
 }
 function clipLine() {
   document.querySelectorAll('.day .detail').forEach(det => {
@@ -2230,12 +2253,16 @@ function renderMonthEl(y, m) {
     // opening seam were drawn a pixel apart and read as one thick grey bar. The
     // new run's own seam already says where the old one stopped; the rule is
     // for a run closing into empty paper.
-    const closesHere = (ev, d) => {
-      if (ev.end !== dayStr(d)) return false;
-      const next = dayStr(d + 1);
-      return d >= n || !spans.some(x => x !== ev && x._lane === ev._lane
-        && x.start <= next && x.end >= next);
-    };
+    // A LINE ONLY WHERE THE COLOUR DOES NOT ALREADY SAY IT (Alan, 17.09: "we still
+    // have bottom lines on banners that don't need it, like SweMa London 17-18
+    // February — I don't like lines underneath blocks when you can clearly see
+    // that the colour is stopping").
+    //
+    // The rule was added so a run could not bleed into the bottom edge of a phone
+    // screen, where there is no next row to show the tint ending. Everywhere else
+    // the tint ending IS the ending, and the line is just another mark to read.
+    // Kept for the last row of the sheet, which is the case it was written for.
+    const closesHere = (ev, d) => ev.end === dayStr(d) && d >= n;
     let bands = '';
     // ONE LEFT EDGE, WHICH IS WHAT THE OLD ALMANAC DOES (Alan, 14.09, holding
     // up his October/November 2026 sheet: "it looks very manageable and not
@@ -2353,7 +2380,13 @@ function renderMonthEl(y, m) {
         // Asked against its own lane, it writes itself down the band instead,
         // one word per row: ANTIGONE / Hong / Kong, all of it readable, none of
         // it outside the banner. Which is what he asked for hours ago.
-        const fits = (laneW[ev._lane] || LABEL_MAX) - 0.4;
+        // the room the WORDS get, not the room the box gets: `.day .band b` carries
+        // padding 0 3px, and a guess of 0.4em was most of it. Less a guard,
+        // because measuring a string on a canvas and laying it out in a box do not
+        // agree to the pixel, and every disagreement lands the same way — a name
+        // judged to fit and then clipped. Wrapping costs a row; clipping costs the
+        // word.
+        const fits = (laneW[ev._lane] || LABEL_MAX) - (6 + 4) / (laneBox.px || 12);
         // a tour banner has its own column now and says its name in one line
         // ...unless the sheet has taken that column away again. A tour banner is
         // exempt from writing itself down the band because it HAS a column wide
@@ -2604,10 +2637,39 @@ function renderMonthEl(y, m) {
       const onGrid = from <= lastStop - 1;
       // THE COUNT NEEDS A STOP OF ITS OWN, or it is placed on the same stop as
       // the entry it is counting and the two are written over each other.
+      // AN ENTRY HAS TO EARN ITS STOP (Alan's "W" and "O:" in February, and the
+      // "stag… / Tele… / SW…" that appeared the moment the count stopped taking a
+      // column). A stop near a banner can be a sliver, and three letters of a
+      // title is not a short reading of it — it is a smear that costs a column
+      // and says nothing. Where the room left cannot hold a reading, the entry
+      // goes to the count instead, which is at least true and can be tapped.
+      // The FIRST entry is always placed, so a day never falls silent.
+      // MEASURED, NOT ASSUMED. This read `laneBox.linePx`, which is never assigned
+      // anywhere — so "too narrow to read" has been the constant 41.5px on every
+      // sheet: about four characters in a month and nine in the year, where the
+      // type is 8px. Six characters of whatever this sheet is actually set in.
+      const readPx = 6 * measureLineChar() + 14;
+      const roomAt = k => {
+        const l = k * stopPx;
+        // edgePx, not bandEdgePx: the latter is declared further down and this
+        // file has lost three evenings to exactly that.
+        return Math.min(stopPx, (edgePx > l ? edgePx : Infinity) - l);
+      };
       const room = Math.max(1, lastStop - from);
-      let fits = shown.slice(0, room);
+      let fits = [];
+      for (let k = 0; k < room && k < shown.length; k++) {
+        if (k > 0 && roomAt(from + k) < readPx) break;
+        fits.push(shown[k]);
+      }
       let over = shown.length - fits.length;
-      if (over > 0 && fits.length > 1) { fits = shown.slice(0, room - 1); over = shown.length - fits.length; }
+      // THE COUNT NO LONGER NEEDS A STOP OF ITS OWN (Alan, 17.09, on his 10
+      // February: "we could have fitted the beginning of Telephone oslo, with all
+      // that big room for the +2"). It used to give up a whole entry so the count
+      // had a column to stand in — which was right when the count sat on a stop.
+      // It does not any more: it is two small characters pinned against the info
+      // word, about twelve pixels. Paying an entire event for twelve pixels is a
+      // bad trade, and it is the reason a day with room to show three things
+      // showed two and a number.
       const moreAt = from + fits.length;
       // IF SOMETHING IS LEFT OVER, IT IS COUNTED. ALWAYS. (Sweep of Alan's own
       // calendar, 17.09 — 24 days of silent loss, worst of them 6 July in the year
@@ -2658,12 +2720,27 @@ function renderMonthEl(y, m) {
       // over a production's name is not.
       // two characters and the air before them, measured rather than guessed —
       // "+2" came out 2.7em wide at year sizes and leaned on the banner anyway
-      const needPx = Math.max(2.4 * (laneBox.px || 12), emWidth('+99') * (laneBox.px || 12));
+      // THE COUNT'S OWN WIDTH, which is now two small characters at the far right
+      // of the row — not 2.4em of the day's type set between an entry and a
+      // banner, which is where it used to sit. It is set at 8.5px and "+99" is
+      // about twenty of them, plus the air before it.
+      const needPx = 26;
       // "no free paper" means the band reaches the RIGHT EDGE of the sheet, not
       // that it begins near it — on 1 March the banner starts at 152 of a
       // 246-wide row and runs past 246, so the right edge is inside it.
-      const countRoomAt = (bandEdgePx !== Infinity && edgeRightPx >= (laneBox.cw || 1e9) - 2)
-        ? bandEdgePx - needPx : null;
+      // AND THE ROOM IT NEEDS IS AT THE END OF THE ROW, NOT IN FRONT OF THE BANNER
+      // (Alan, 17.09: "the number pushes ANTIGONE HK left, which means Underdog is
+      // clipped on 1 March"). This used to carve the count's space out of the gap
+      // before a banner, because that is where the count stood. It stands in the
+      // margin now, so the only entry that has to make way for it is one that runs
+      // all the way to the end of the writing — and it gives up the count's real
+      // width, not a stop.
+      // ...but an entry that actually REACHES the margin still has to stop short of
+      // the count, or the two are written over each other. This is a cap on one
+      // entry's right edge, not a stop taken out of the row and not a charge on
+      // whichever entry happens to be last: nothing is reserved anywhere the count
+      // does not stand.
+      const countRoomAt = counted && laneBox.cw ? laneBox.cw - needPx : null;
       // THE COUNT IS ALWAYS IN THE SAME PLACE (Alan, 17.09: "the +2 arrives in a
       // different place every time and it should always be in the same place —
       // if not, you don't know if it's there. I almost didn't see the one on the
@@ -2680,7 +2757,10 @@ function renderMonthEl(y, m) {
         const l = k * stopPx;
         let w = Math.max(1, span) * stopPx - (trimEm || 0) * (laneBox.px || 12);
         if (bandEdgePx > l) w = Math.min(w, bandEdgePx - l);
-        w = Math.max(stopPx * 0.6, w);
+        // (no floor here. A minimum width applied AFTER the banner cap above can
+        //  only undo it — it grew an entry back across the name the cap had just
+        //  protected. An entry too narrow to read is counted instead, which is a
+        //  decision made before placing, not a width nudged after.)
         // and the entry stops short of the count when the count has nowhere else
         // and the count's room WINS over the entry's minimum width: keeping the
         // 0.6-stop floor here handed the entry back the very pixels just reserved,
@@ -2726,9 +2806,15 @@ function renderMonthEl(y, m) {
             // row, not on a stop, so everything up to it is free — and the
             // entry was keeping to one stop's width anyway and clipping inside
             // it. It runs to the count now, less the room the count needs.
-            const atEdge = counted;   // the count is always at the edge now
-            const next = last ? (counted && !atEdge ? moreAt : lastStop) : mine + 1;
-            const trim = last && atEdge ? 2.6 : 0;
+            // NOTHING PAYS RENT FOR THE COUNT ANY MORE (Alan's 1 March, and his
+            // 9-12 February: "Underdog is clipped", "the third events are clipped
+            // when they don't need to be"). The last printed entry used to give up
+            // 2.6em — about 31px — so the "+N" had somewhere to stand. It has not
+            // stood there since placeCounts pinned it out in the margin against the
+            // week number; the charge stayed behind and was levied on whichever
+            // entry happened to be last, wherever on the row that entry ended.
+            const next = last ? lastStop : mine + 1;
+            const trim = 0;
             return evtHtml(it, at(mine, next - mine, trim));
           }).join('')
         // the count is two characters and takes the room they need — a fixed
@@ -3282,6 +3368,7 @@ function render(group) {
     $('#period-label').textContent = L().months[state.month]; $('#period-year').textContent = state.year;
   }
   measureLane();
+  lineCharPx = 0;       // the type can change with the view; measure it again
   fitJourneys();
   orderByTime();
   fitEvenings();

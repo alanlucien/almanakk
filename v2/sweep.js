@@ -135,6 +135,47 @@
         return '"' + l.textContent.slice(0, 12) + '"';
       }
     },
+    // AN ENTRY CLIPPED WHILE PAPER STANDS EMPTY BESIDE IT. This is the fault Alan
+    // has had to find by eye all day — "the third events Feb 9-12 are clipped when
+    // they don't need to be", "look at Underdog on March 1" — and not one of the
+    // checks above can see it, because nothing collides, nothing is lost and
+    // nothing leaves the sheet. It is simply meaner than it needs to be.
+    //
+    // For each entry that ends in an ellipsis, measure the gap between its right
+    // edge and the next thing that is actually in its way: the next entry, the
+    // next word a band writes, the count, or the info column. Free paper there is
+    // width the entry could have had.
+    shortOfRoom(d, cv) {
+      const det = d.querySelector('.detail');
+      if (!det) return;
+      const cr = cv.getBoundingClientRect();
+      const kids = vis(det.children);
+      const walls = [];
+      d.querySelectorAll('.band b').forEach(b => {
+        if (b.textContent.trim()) walls.push(ink(b).left);
+      });
+      const inf = d.querySelector('.info');
+      if (inf && inf.textContent.trim()) walls.push(ink(inf).left);
+      else walls.push(d.getBoundingClientRect().right);
+      // the count is a wall too. Without this the check calls the space the "+N"
+      // stands in "free paper" and reports the layout for respecting it.
+      const cnt = det.querySelector('.more');
+      if (cnt && !cnt.hidden) walls.push(cnt.getBoundingClientRect().left);
+      for (let i = 0; i < kids.length; i++) {
+        const el = kids[i];
+        if (el.classList.contains('more')) continue;
+        if (el.scrollWidth <= el.clientWidth + 1) continue;      // not clipped
+        const r = el.getBoundingClientRect();
+        let next = Infinity;
+        for (let j = i + 1; j < kids.length; j++) {
+          const nr = kids[j].getBoundingClientRect();
+          if (nr.left >= r.right - 1) { next = Math.min(next, nr.left); break; }
+        }
+        for (const w of walls) if (w >= r.right - 1) next = Math.min(next, w);
+        const spare = Math.round(next - r.right);
+        if (spare > 20) return '"' + el.textContent.trim().slice(0, 12) + '" +' + spare + 'px free';
+      }
+    },
     // whole stops of paper standing empty to the left of his first entry
     wasted(d, cv) {
       const det = d.querySelector('.detail');
