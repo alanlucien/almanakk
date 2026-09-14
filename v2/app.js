@@ -3404,8 +3404,12 @@ function render(group) {
     app.innerHTML = renderMonthEl(state.year, state.month);
     $('#period-label').textContent = L().months[state.month]; $('#period-year').textContent = state.year;
   }
-  measureLane();
+  // fitInfo FIRST: it changes how wide the writing area is, and measureLane reads
+  // that width to size every lane. Measured the other way round, the lanes were
+  // built for the sheet as it stood BEFORE the info column was fitted -- which is
+  // how "Hellas m Lisa" came to be written one word per row down its band.
   fitInfo();
+  measureLane();
   fitJourneys();
   orderByTime();
   fitEvenings();
