@@ -174,6 +174,89 @@ Verified on the iPhone and iPad simulators against his own September: the 15th-2
 sit on the same stop as Møte Pekka, and "Kåre Gyldendal (?!)", "Maria 50 år Bergen" and
 "Prøve Vildanden" read whole where they were cut.
 
+## THE ALIGNMENT SPEC — Alan's rules, 17.09.2026
+
+Written from a day of his feedback, to be worked against **by machine** rather than
+re-derived from screenshots. Where two of his statements pull against each other it says
+so, and says which way it was resolved. **Where the code and this disagree, this is the
+brief and the code is wrong** — but a rule here that has never been measured is a
+hypothesis, not a fact.
+
+### Vocabulary (fixed with Alan, 17.09 — use these words and no others)
+- **stop** — one of the equal columns the writing area is divided into, the same on all 31
+  rows of a sheet.
+- **"one stop in"** — stop 1, counted from the **left edge**. Absolute.
+- **"one more stop"** — one further right than the build in front of him. Relative.
+- **band / block** — the tinted rectangle a run draws on a day.
+- **name / word** — the text a run writes on a day. A run is silent on most of its days.
+
+### A. Where his writing starts
+1. His line starts at the **first stop clear of every word a band writes today**.
+2. **A word is a wall. A block is not** — he is content to write inside a run's tint.
+3. **But never the very first stop on a day a band's block stands there.** The indent is
+   not about room; it is what says the band is there. Flush against the edge reads as
+   part of the run.
+4. "A band's block stands there" means **on the first stop**, not merely somewhere on the
+   row. Where the run is further right, stop 0 is plain paper and flush left is correct.
+5. **A day with no band at all starts flush left.** (1 May, *Møte Mari Alle er vi fulger*.)
+6. **Never break the grid** (14.09, asked directly). An entry starts on a stop, always.
+7. Where no stop on the row is free, the line gives up the grid and flows after the last
+   word — and must still end on the sheet.
+
+### B. Using the room that is there
+8. **One event on a day: print the whole name.** Do not clip what there is room for.
+9. **Two runs side by side: they share the real estate.** Neither should clip while the
+   other has slack. *(UNBUILT — his week 42/43 2027: "Fanny og Alexander" breaks over two
+   rows because the tour lane starts 7px too soon. The lane widths are decided once per
+   month against a flat 11em reserve for the writing; on a nearly empty month that reserve
+   is fiction.)*
+10. **A run alone on the sheet may spread freely** and must not clip or line-break its
+    name when there is clearly space. (Week 38/39 2027.)
+11. **A run says its name whole on the row it introduces itself**, spilling past its lane
+    if need be — *but always leaving a seam clear of the next run's block*, or two
+    productions read as one title. Spill before you wrap.
+12. A title that will not fit even so is written **down** the band, as many whole words per
+    row as fit, and the last row carries what is left with an ellipsis. Nothing is dropped
+    in silence.
+
+### C. The banners
+13. **A run is one straight column all the way down.** Its width is asked once per run, not
+    per day.
+14. **A tour banner never pushes his own writing**, and never appears to the left and right
+    of it.
+15. A run must **close visibly**. Bands must not overlap.
+
+### D. What the year view shows about the month view (his side-by-side, 17.09)
+He says he **loves the year view** and that the two should be consistent. Read off his
+pencil lines and marks — each of these is a defect, and none has been verified yet:
+16. **The year view drops his single-day events on days a band covers.** 1, 4 and 12 May
+    carry *Meet Ellen*, *OS off (UK bank holiday)* and *indra → o…* in the month and show
+    **nothing at all** in the year. His red "?" is on exactly those rows. Silent data loss.
+17. **The year view's day line collides with the info column** — *Oslo → B* over *BE…* on
+    the 8th, *Coronet r* over *BE…* on the 15th. Every one of his red arrows on the right
+    points at this.
+18. **A performance written inside the tour's banner must not also stand on the day line.**
+    He struck out the left-hand *Antigone 7 / 8 / 9* on 29-31 May in both views. Duplicate.
+19. **A holiday and a week number must not share a cell** — *"2. Pinsedag 22"* on 25 May.
+20. **Holiday names in italic.**
+21. The two views should **line up on the same columns**. Whatever the stops are, they are
+    the same idea in both.
+
+### Conflicts, and how they were resolved
+- **8 ("one event: whole name, flush left")** against **3 ("never flush left under a
+  band")**. Resolved: 3 wins where a block stands on the first stop, 8 everywhere else. The
+  whole name still prints; it starts one stop in.
+- **10/11 (spread freely)** against **13 (one straight column)**. Resolved: the **block**
+  holds one width for the whole run; only the **name**, on its announcement row, may reach
+  past it — and only into paper that is genuinely empty.
+- **2 ("a block is not a wall")** against **14 ("a tour banner never pushes his writing")**.
+  Not in conflict: a tour banner's *name* is a wall like any other; its *tint* is not.
+
+### What this spec cannot decide
+Taste. Whether the answer is one stop or two on a given row is Alan's call. The purpose of
+the spec is that he should only ever have to answer that question about a sheet which is
+already free of the defects above.
+
 ## Waiting on Alan
 
 | | |
