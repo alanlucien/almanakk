@@ -1935,6 +1935,8 @@ function renderMonthEl(y, m) {
   // project instead of a full title width per project, and the label can stay
   // where it belongs — at its own band's left edge, never packed onto a row.
   const LANE_STRIPE = 4, LABEL_MAX = 11, LANE_PAD = 1.4, LANE_GAP = 0, WG_GAP = 4;
+  // the paper that must stay between one run's block and the next run's
+  const LANE_SEAM = 0.6;
   // EACH BAND ITS OWN COLUMN WHEN THE MONTH CAN AFFORD IT (Alan, 14.09, from
   // two of his own sheets). February 2027 holds two bands and a line with one
   // thing on it, and they overlap for no reason; February 2026 holds five
@@ -2035,6 +2037,24 @@ function renderMonthEl(y, m) {
     }
   }
   const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
+  // Asked ONCE PER RUN, not once per day: the nearest lane to its right that is
+  // occupied on any day the run covers. Alan, 17.09, on «NINA» Nanterre and the
+  // touring banners: "the width of the highlighted colour of the row is different,
+  // so it doesn't get a straight line on the right side of the banner, and
+  // sometimes the title of the tour is clipped". Asking "which lane is occupied
+  // TODAY" gives a different answer on different days of the same run, so the edge
+  // stepped in and out down the band — 72px of wander on ANTIGONE Paris — and the
+  // name was cut on whichever days happened to be narrow.
+  const runCap = {};
+  for (const ev of spans) {
+    let best;
+    for (const o of spans) {
+      if (o === ev || o._lane <= ev._lane) continue;
+      if (o.start > ev.end || o.end < ev.start) continue;   // never share a day
+      if (best === undefined || o._lane < best) best = o._lane;
+    }
+    if (best !== undefined) runCap[ev.id] = best;
+  }
   // WHERE THE RULE GOES IN THE SPLIT READING. It has to clear every band —
   // a banner landing on the timed side is the one thing the split is for
   // preventing — so it sits just past the furthest band of the month, and never
@@ -2390,6 +2410,39 @@ function renderMonthEl(y, m) {
     }
     laneEvs.forEach((ev, i) => {
       if (!ev) return;
+      // THE WIDTH FIRST, THEN WHAT TO WRITE IN IT. The run cap used to be applied
+      // after the title had already decided how to break, so a title was measured
+      // against a lane the band never gets and then clipped in the box it does.
+      const laneX = laneLeft(i);
+      let w = laneW[i] || laneEm[i];     // the lane's width, so a band is a straight column
+      // A LABEL ONLY SPREADS INTO LANES THAT ARE EMPTY TODAY (Alan, on his
+      // iPad: "the Telephone two-day event was on top of this SweMa event").
+      // A stair lane is deliberately wider than its strip so a name has room,
+      // and that width was being taken whether or not the lane beside it was
+      // occupied — so Telephone, starting the same day, was drawn straight over
+      // the end of "SweMa Wup". The name now stops where the next run begins.
+      // EVERY band stops there, not only one carrying a name. Capping the name
+      // alone left the blocks themselves overlapping on nine rows of his
+      // February — the same thing he saw as "Telephone on top of SweMa", just
+      // without a word in it to make it obvious.
+      // ONE ANSWER FOR THE WHOLE RUN (see runCap above). Asked per day, this gave a
+      // different width on different days of the same band, which is the fraying
+      // right edge Alan pointed at on «NINA» Nanterre, 6 February.
+      const capLane = runCap[ev.id];
+      if (capLane !== undefined) {
+        // ...LESS A SEAM, or two productions read as one title (Alan on his
+        // February: "SweMa" and "Telephone" are two separate runs and printed as
+        // "SweMa Telephone"). A band ended exactly where the next one began, and
+        // since a label fills its band there was nothing between the two names
+        // but a hairline border. Paper is what says where one run stops.
+        // ...and the seam WINS over the minimum stripe. The floor is there so a band
+        // never thins to nothing, but where the two fought the floor took the seam
+        // back and the bands abutted again — 0→24 and 24→48 on his 2 February.
+        // A thin band still reads as a band; two names with no paper between them
+        // read as one title, which is the fault being fixed.
+        const room = laneLeft(capLane) - laneX - LANE_SEAM;
+        w = Math.min(w, Math.max(1, room));
+      }
       const showLabel = labelledAt(ev);
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
       const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));
@@ -2402,7 +2455,13 @@ function renderMonthEl(y, m) {
         // Asked against its own lane, it writes itself down the band instead,
         // one word per row: ANTIGONE / Hong / Kong, all of it readable, none of
         // it outside the banner. Which is what he asked for hours ago.
-        const fits = (laneW[ev._lane] || LABEL_MAX) - 0.4;
+        // the room the WORDS get, not the room the box gets: `.day .band b` is
+        // padding 0 3px, and a guess in em was most of it. Less a guard, because
+        // measuring a string on a canvas and laying it out in a box do not agree
+        // to the pixel — and every disagreement lands the same way, as a name
+        // judged to fit by a hair and then clipped by two. Wrapping a name that
+        // would just have fitted costs a row; clipping one costs the word.
+        const fits = w - (6 + 4) / (laneBox.px || 12);
         // a tour banner has its own column now and says its name in one line
         // ...unless the sheet has taken that column away again. A tour banner is
         // exempt from writing itself down the band because it HAS a column wide
@@ -2435,23 +2494,6 @@ function renderMonthEl(y, m) {
           wgBandShows.splice(k, 1);
         }
       }
-      const laneX = laneLeft(i);
-      let w = laneW[i] || laneEm[i];     // the lane's width, so a band is a straight column
-      // A LABEL ONLY SPREADS INTO LANES THAT ARE EMPTY TODAY (Alan, on his
-      // iPad: "the Telephone two-day event was on top of this SweMa event").
-      // A stair lane is deliberately wider than its strip so a name has room,
-      // and that width was being taken whether or not the lane beside it was
-      // occupied — so Telephone, starting the same day, was drawn straight over
-      // the end of "SweMa Wup". The name now stops where the next run begins.
-      // EVERY band stops there, not only one carrying a name. Capping the name
-      // alone left the blocks themselves overlapping on nine rows of his
-      // February — the same thing he saw as "Telephone on top of SweMa", just
-      // without a word in it to make it obvious.
-      for (let j = i + 1; j < laneEvs.length; j++) {
-        if (!laneEvs[j]) continue;
-        w = Math.min(w, Math.max(LANE_STRIPE * laneScale, laneLeft(j) - laneX));
-        break;
-      }
       const onRight = false;
       // the line begins after the last band that actually says something here —
       // a band in the right margin is not in its way at all
@@ -2467,7 +2509,14 @@ function renderMonthEl(y, m) {
       bands += `<i class="band ${ev._wg ? 'wg' : ''} ${isShow(ev) ? 'showband' : ''} ${isPencil(ev) ? 'pencil' : ''}`
         + ` ${ev.start === ds ? 'bstart' : ''} ${closesHere(ev, day) ? 'bend' : ''} ${isTbc(ev) ? 'tbc' : ''}"`
         + ` data-eid="${ev.id}" style="${onRight ? `right:${wgRight(i).toFixed(2)}em` : `left:${laneX}em`};width:${w.toFixed(2)}em;`
-        + `--w:${w.toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
+        // --w IN PIXELS. It is written on the band and READ by the label inside it,
+        // and those two boxes do not carry the same font — the band is 12px, its
+        // label 11 — so an em meant one thing where it was written and another
+        // where it was used, and every label box in the app has been 15% narrower
+        // than the band it fills. That, not the lanes, is what cut "«NINA»
+        // Nanterre". Same trap as the stops, the info column and the year's --inf:
+        // an em belongs to the box it is written on.
+        + `--w:${(w * (laneBox.px || 12)).toFixed(2)}px;--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (txt ? `<b>${esc(deco(txt))}</b>` : '')
         + (inband ? `<b class="bshow">${esc(inband)}</b>` : '') + '</i>';
     });
