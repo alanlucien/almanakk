@@ -2317,6 +2317,7 @@ function renderMonthEl(y, m) {
       return d >= n || !spans.some(x => x !== ev && x._lane === ev._lane
         && x.start <= next && x.end >= next);
     };
+    const bandTook = [];   // performances a banner has written today
     let bands = '';
     // ONE LEFT EDGE, WHICH IS WHAT THE OLD ALMANAC DOES (Alan, 14.09, holding
     // up his October/November 2026 sheet: "it looks very manageable and not
@@ -2504,6 +2505,7 @@ function renderMonthEl(y, m) {
           const sh = wgBandShows[k];
           inband = showOnLine(sh) || deco(sh.title);
           wgBandShows.splice(k, 1);
+          bandTook.push(sh);          // and it must not be written again on the line
         }
       }
       const onRight = false;
@@ -2532,9 +2534,21 @@ function renderMonthEl(y, m) {
         + (txt ? `<b>${esc(deco(txt))}</b>` : '')
         + (inband ? `<b class="bshow">${esc(inband)}</b>` : '') + '</i>';
     });
-    // a performance whose band said something else today keeps the day line,
-    // so nothing is ever silently dropped
-    if (V3 && wgBandShows.length) wgTodays = wgBandShows;
+    // A PERFORMANCE WRITTEN IN ITS BANNER IS NOT WRITTEN AGAIN ON THE LINE (Alan,
+    // 17.09 on his July, and in May before that, where he struck out the
+    // left-hand "Antigone 7 / 8 / 9" in red: "Antigone 10 is printed twice").
+    //
+    // The old line said `if (wgBandShows.length) wgTodays = wgBandShows` — it
+    // handed the day line whatever the bands had NOT taken. That works right up
+    // until the bands take them ALL: the array is then empty, the guard is false,
+    // the assignment never happens, and wgTodays still holds every show it started
+    // with. So the page printed each performance twice on exactly the days the
+    // banner had room for it — which is most days, which is why it was so visible.
+    //
+    // Say what is meant instead: remove the ones the bands took, and leave every
+    // other tour item where it was. The old form also quietly dropped the tour's
+    // NON-show items, since wgBandShows only ever held shows.
+    if (V3 && bandTook.length) wgTodays = wgTodays.filter(e => !bandTook.includes(e));
     // ONE wide shared day line: Alan's headline first, shows (any calendar)
     // pinned next, then Alan's items, then wg's dimmed items
     const lineItems = todays.map(e => ({ e, wg: false }))
