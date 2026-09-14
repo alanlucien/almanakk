@@ -2049,6 +2049,16 @@ function renderMonthEl(y, m) {
     }
   }
   const laneLeft = i => laneEm.slice(0, i).reduce((a, b) => a + b, 0);
+  // What the lanes were decided to be, kept where the probe can read it. Three
+  // guesses at the July wrap failed because the numbers had to be deduced from a
+  // screenshot; deducing is what keeps being wrong.
+  window.__lanes = {
+    model, roomEm: +roomEm.toFixed(2), MIN_LINE, nOwn, nOvl,
+    lanes: laneEm.map((_, i) => ({
+      i, left: +laneLeft(i).toFixed(2), em: +laneEm[i].toFixed(2),
+      w: +(laneW[i] || 0).toFixed(2), nat: +(natW[i] || 0).toFixed(2), full: +(fullW[i] || 0).toFixed(2),
+    })),
+  };
   // Asked ONCE PER RUN, not once per day: the nearest lane to its right that is
   // occupied on any day the run covers. Alan, 17.09, on «NINA» Nanterre and the
   // touring banners: "the width of the highlighted colour of the row is different,
@@ -2092,6 +2102,26 @@ function renderMonthEl(y, m) {
   // only where the geometry is impossible: the bands reach past the sheet's own
   // edge. A month never trips it; the year always did.
   const sheetEm = laneBox.cwMax && laneBox.px ? laneBox.cwMax / laneBox.px : roomEm;
+  // NO SINGLE BAND REACHES PAST THE SHEET (Alan's July: "Lea fri" broken over two
+  // rows with paper standing empty). The clamp below scales EVERY lane by the same
+  // fraction when the bands overrun — and what overruns is usually one lane, the
+  // last, whose name happens to be long. Squeezing all of them by 18% to pay for
+  // that took "Lea fri" from the 46px it needed to 40, so a two-word title broke
+  // for the want of six pixels it had been holding. Trim the lane that is actually
+  // over the edge, and the general squeeze mostly never has to happen.
+  if (sheetEm) {
+    for (let i = 0; i < laneEm.length; i++) {
+      if (!laneW[i]) continue;
+      // to the sheet's edge, not inside it: at 0.95 the tour's banner lost enough
+      // width to cut "Antigone 10" down to "Antigone 1", which is not a shortened
+      // reading of the performance, it is the wrong one.
+      laneW[i] = Math.max(LANE_STRIPE, Math.min(laneW[i], sheetEm - laneLeft(i)));
+    }
+    bandAreaEm = 0;
+    for (let i = 0; i < nOwn + nOvl; i++) {
+      bandAreaEm = Math.max(bandAreaEm, laneLeft(i) + (laneW[i] || laneEm[i]));
+    }
+  }
   if (sheetEm && bandAreaEm > sheetEm) {
     const k = (sheetEm * 0.9) / bandAreaEm;
     laneScale = k;
@@ -2456,6 +2486,10 @@ function renderMonthEl(y, m) {
         const room = laneLeft(capLane) - laneX - LANE_SEAM;
         w = Math.min(w, Math.max(1, room));
       }
+      // what this band actually got today, and why — read by ?probe=
+      (window.__bandWhy = window.__bandWhy || {})[ds + '#' + i] =
+        'lane ' + (laneW[i] || laneEm[i]).toFixed(2) + '->w ' + w.toFixed(2) +
+        ' cap ' + (capLane === undefined ? '-' : capLane) + ' scale ' + laneScale.toFixed(2);
       const showLabel = labelledAt(ev);
       const endInMonth = ev.end.slice(0, 7) === ds.slice(0, 7) ? Number(ev.end.slice(8, 10)) : n;
       const words = ev.title.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w));

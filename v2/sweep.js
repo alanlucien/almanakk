@@ -253,10 +253,19 @@
           '   meant ' + (cv.dataset.line || 0));
         const det = d.querySelector('.detail');
         out.push('    detail  [' + (det ? det.className : '-') + ']  ' + (det ? det.getAttribute('style') || '' : ''));
-        d.querySelectorAll('.band').forEach(b => {
+        const L = window.__lanes;
+        if (L) {
+          out.push('    lanes   model=' + L.model + '  room=' + L.roomEm + '  MIN_LINE=' + L.MIN_LINE +
+            '  own=' + L.nOwn + ' ovl=' + L.nOvl);
+          L.lanes.forEach(l => out.push('      #' + l.i + ' left ' + l.left + '  em ' + l.em +
+            '  w ' + l.w + '  nat ' + l.nat + '  full ' + l.full));
+        }
+        d.querySelectorAll('.band').forEach((b, i) => {
           const lab = b.querySelector('b');
+          const why = (window.__bandWhy || {})[ds + '#' + i];
           out.push('    band  ' + at(b.getBoundingClientRect()) +
-            (lab && lab.textContent.trim() ? '  "' + lab.textContent + '" ink ' + at(ink(lab)) : '  (silent)'));
+            (lab && lab.textContent.trim() ? '  "' + lab.textContent + '" ink ' + at(ink(lab)) : '  (silent)') +
+            (why ? '   ' + why : ''));
         });
         (det ? [...det.children] : []).forEach(x => {
           out.push('    ' + (x.hidden ? 'HID ' : '') + x.className.trim() + '  ' + at(x.getBoundingClientRect()) +
