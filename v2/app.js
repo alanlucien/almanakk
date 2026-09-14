@@ -154,6 +154,16 @@ function stripClock(t) {
 // a view in the URL is how a build gets checked on both devices without Alan.
 // Same family as ?v3=0, ?split, ?demo and ?band=column.
 const VIEW_ARG = (location.search.match(/[?&]view=(month|quarter|year|week|day)\b/) || [])[1];
+// ?sweep=1 — the almanakk checks itself against Alan's own calendar and prints
+// the findings on the page (v2/sweep.js). Loaded on demand so the daily app never
+// carries it. ?sweep=1&probe=YYYY-MM-DD prints one day's full geometry.
+if (/[?&]sweep=1\b/.test(location.search)) {
+  addEventListener('load', () => {
+    const t = document.createElement('script');
+    t.src = 'sweep.js?v=' + (typeof BUILD !== 'undefined' ? BUILD : Date.now());
+    document.head.appendChild(t);
+  });
+}
 // ?month=11 (1-based, as he would say it) and ?year=2027, same reason as ?view=
 const MONTH_ARG = (location.search.match(/[?&]month=(\d{1,2})\b/) || [])[1];
 const YEAR_ARG = (location.search.match(/[?&]year=(\d{4})\b/) || [])[1];
@@ -2570,7 +2580,23 @@ function renderMonthEl(y, m) {
       let over = shown.length - fits.length;
       if (over > 0 && fits.length > 1) { fits = shown.slice(0, room - 1); over = shown.length - fits.length; }
       const moreAt = from + fits.length;
-      const counted = over > 0 && moreAt <= lastStop - 1;
+      // IF SOMETHING IS LEFT OVER, IT IS COUNTED. ALWAYS. (Sweep of Alan's own
+      // calendar, 17.09 — 24 days of silent loss, worst of them 6 July in the year
+      // view: nine things on the day, one written, no count. And 10 February in
+      // the month view: four timed events, one written, no count — Kino, Tannlege
+      // and Innspilling simply absent from the page.)
+      //
+      // This also required a free stop for the count. Where the row had none, the
+      // count was abandoned — and the entries it was counting had ALREADY been
+      // dropped from `fits`. So the fuller the day, the likelier the page was to
+      // say nothing at all about it. Exactly backwards, and invisible: he had no
+      // way of knowing anything was missing.
+      //
+      // There is always somewhere for two characters. Where no stop is free the
+      // count hangs at the right edge and the last entry gives up 2.6em for it —
+      // the `atEdge`/`trim` path below already did that and was simply never
+      // reached.
+      const counted = over > 0;
       // EACH STOP IS PLACED, NOT ASKED FOR. A grid column is a request the
       // browser answers with its own auto-placement, and one row in six was
       // coming back in a different place than the column it had been given. A
@@ -2609,20 +2635,29 @@ function renderMonthEl(y, m) {
       // 246-wide row and runs past 246, so the right edge is inside it.
       const countRoomAt = (bandEdgePx !== Infinity && edgeRightPx >= (laneBox.cw || 1e9) - 2)
         ? bandEdgePx - needPx : null;
-      const countPos = () => {
-        const want = Math.max(moreAt * stopPx, lastRight);
-        if (countRoomAt !== null) return `left:${countRoomAt.toFixed(2)}px`;
-        if (moreAt >= lastStop - 1 && lastStop >= STOPS) return 'right:0';
-        if (bandEdgePx !== Infinity && bandEdgePx - want < needPx) return 'right:0';
-        return `left:${want.toFixed(2)}px`;
-      };
+      // THE COUNT IS ALWAYS IN THE SAME PLACE (Alan, 17.09: "the +2 arrives in a
+      // different place every time and it should always be in the same place —
+      // if not, you don't know if it's there. I almost didn't see the one on the
+      // 10th"). It used to sit wherever the row happened to end: after the last
+      // entry, on its own stop, or at the edge. Three positions for one mark, and
+      // a mark you have to hunt for is not telling you anything. The right edge,
+      // every row, so the eye can run down the margin and find them.
+      // No inline position at all: an inline style beats the stylesheet, and that
+      // is why the "keep it out of the info column" rule silently did nothing on
+      // exactly the rows that needed it. The class says "at the edge" and the CSS
+      // decides which edge, because only the CSS knows how wide the info column is.
+      const countPos = () => '';
       const at = (k, span, trimEm) => {
         const l = k * stopPx;
         let w = Math.max(1, span) * stopPx - (trimEm || 0) * (laneBox.px || 12);
         if (bandEdgePx > l) w = Math.min(w, bandEdgePx - l);
         w = Math.max(stopPx * 0.6, w);
         // and the entry stops short of the count when the count has nowhere else
-        if (counted && countRoomAt !== null && l + w > countRoomAt) w = Math.max(stopPx * 0.6, countRoomAt - l);
+        // and the count's room WINS over the entry's minimum width: keeping the
+        // 0.6-stop floor here handed the entry back the very pixels just reserved,
+        // so "+2" was written onto the end of its own title. An entry may clip; a
+        // count has nowhere else to go.
+        if (counted && countRoomAt !== null && l + w > countRoomAt) w = Math.max(1, countRoomAt - l);
         lastRight = Math.max(lastRight, l + w);
         return `left:${l.toFixed(2)}px;width:${w.toFixed(2)}px`;
       };
@@ -2662,7 +2697,7 @@ function renderMonthEl(y, m) {
             // row, not on a stop, so everything up to it is free — and the
             // entry was keeping to one stop's width anyway and clipping inside
             // it. It runs to the count now, less the room the count needs.
-            const atEdge = counted && moreAt >= lastStop - 1;
+            const atEdge = counted;   // the count is always at the edge now
             const next = last ? (counted && !atEdge ? moreAt : lastStop) : mine + 1;
             const trim = last && atEdge ? 2.6 : 0;
             return evtHtml(it, at(mine, next - mine, trim));
@@ -2673,7 +2708,7 @@ function renderMonthEl(y, m) {
         // the last stop can end at the very edge of a narrow sheet, and a count
         // placed there is clipped to "+". At the last stop it hangs off the
         // right edge instead, where there is always room for two characters.
-        + (counted ? `<b class="more" style="${countPos()}">+${over}</b>` : '')
+        + (counted ? `<b class="more atedge" style="right:0">+${over}</b>` : '')
         + '</span>';
     }
     const showDay = todays.some(isShow) || wgTodays.some(isShow)
@@ -2685,7 +2720,9 @@ function renderMonthEl(y, m) {
     const airRight = !h && !journeyTxt && !cityTxt && wi !== 0;
     rows += `<div class="day ${red ? 'red' : ''} ${free ? 'free' : ''} ${wi === 6 ? 'sun' : ''} ${ds === todayStr ? 'today' : ''} ${showDay ? 'showday' : ''} ${airRight ? 'airright' : ''}" data-date="${ds}">`
       + `<span class="num">${day}</span><span class="wd">${L().wd[wi]}</span>`
-      + `<span class="canvas">` + bands + detail + '</span>'
+      // how many things this day MEANT to put on its line, so a check can tell a
+      // fair clip from silent loss
+      + `<span class="canvas" data-line="${shown.length}">` + bands + detail + '</span>'
       + info + `</div>`;
   }
   return `<section class="month ${state.cities ? 'cities' : ''} ${nOvl ? 'haswg' : ''}"`

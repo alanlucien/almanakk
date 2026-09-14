@@ -332,6 +332,24 @@ button.active { background: var(--ink); color: var(--card); }
      stop and collided with the next. */
   min-width: 0;
 }
+/* THE COUNT STANDS IN ONE PLACE, AND THAT PLACE IS NOT THE INFO COLUMN (Alan,
+   17.09). The right edge is the same edge on every row — except on a day whose
+   info cell is empty, where the canvas borrows that column and "right: 0" would
+   put the count out among the week numbers and cities. Held back by the width of
+   the column it borrowed, so the margin reads straight down the page. */
+.v3 .day .detail > .more.atedge { right: 0; left: auto; }
+/* ...and on a day that borrowed the info column, held back by its width, so the
+   count never lands among the week numbers and the margin reads straight down. */
+/* ...and the offset is applied to the LINE, not to the count. --inf is written in
+   em, and an em belongs to the box it is read on: the count is set smaller than
+   the day, so "6.4em" came out 61px instead of 77 and the mark landed 13px adrift
+   — visible, and exactly the drift Alan could see. The day line carries the day's
+   own type, so the same em means the same thing there.
+   It also makes every row the same width, which is the other half of what he was
+   pointing at: a grid cannot line up down the page if the paper keeps changing. */
+.v3 .day.airright .detail { right: var(--inf); }
+/* and quieter than the writing it is counting: a footnote, not an entry */
+.v3 .day .detail .more { font-size: 9.5px; }
 /* THE FLOWING LINE STILL ENDS ON THE SHEET (17.09). A row whose bands have
    eaten every stop gives up the grid and flows after them — and on a year sheet
    what was left to flow into was 20px, so the entry's 4.5em floor pushed the
@@ -345,6 +363,11 @@ button.active { background: var(--ink); color: var(--card); }
    worth more spent on the count than on air. */
 .v3 .day .detail.flow { right: 0; padding-right: 0; }
 .v3 .day .detail.flow > .more { margin-left: auto; }
+/* ...AND NEVER INSIDE THE INFO COLUMN (Alan, 17.09). A day with nothing in its
+   city cell lends that space to the day line, so on those rows the line's right
+   edge IS the info column — and a count pinned to that edge lands in the cell
+   that holds the week number. Held clear on exactly those days. */
+/* (superseded: the offset is on the line now, see .airright .detail above) */
 /* the count is two characters and takes the room they need. A fixed stop's
    width could only ever cut it, which is what turned "+1" into "+". */
 .v3 .day .detail.grid > .more {
@@ -352,6 +375,9 @@ button.active { background: var(--ink); color: var(--card); }
      two characters, and a left padding it was never told about is what put "+2"
      on the banner on 1 March. The entry before it already carries the gap. */
   width: auto; padding: 0; text-align: left; color: var(--muted);
+  /* a shade smaller than the writing: it is a mark ABOUT the day, not part of
+     what the day says (Alan, 17.09) */
+  font-size: 10px;
 }
 /* THE STEP IS GONE (Alan, on his 20 September: "why is Prøve Vildanden not
    aligning with the event on the 15th and the 16th?"). Because it was an
