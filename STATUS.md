@@ -326,6 +326,20 @@ falls back to the sample sheet in silence when the Google fetch fails.
 stops, every band with its ink, every entry with its computed style. On live data there is
 no console to reach, so it is the only way to learn WHY a day is wrong rather than THAT it is.
 
+**THE STOP COUNT IS NOW A DIAL (17.09).** Live, 509 events, iPad 1180:
+
+| | total | wasted | collide | offSheet |
+|---|---|---|---|---|
+| one stop per entry, 3/4/5 | 144 | 92 | 2 | 15 |
+| entry spans what it needs, 3/4/5 | 142 | 92 | **0** | 15 |
+| entry spans what it needs, `?stops=6` | **130** | 83 | 0 | 12 |
+
+Letting an entry take as many stops as its text needs removed the collisions that
+raising the count used to cause, so a finer grid is now strictly better instead of a
+trade — which is exactly what Alan predicted in section E. **The default is deliberately
+NOT changed:** how fine the grid should be is his eye, not a number, and it wants looking
+at rather than winning on points. `?stops=N` on the preview shows any value.
+
 **TRUSTWORTHY LIVE BASELINE — 510 events, iPad 1180, 2026+2027: 144 findings.**
 `dropped` 0 · `infoLost` 0 · `overName` 0 · `bandsOverlap` 0.
 Remaining: **92 wasted**, 18 `namesTouch`, 17 `nameCut`, 15 `offSheet`, 2 `collide`.
