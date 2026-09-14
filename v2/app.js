@@ -1016,6 +1016,35 @@ const SLOT_GAP = 10;            // clear air between one slot and the next
 // titles and cut once at the end. Items no longer shrink; what does not fit is
 // dropped, and the row says how many, so a missed thing is visible rather than
 // silently gone.
+// THE COUNT SITS AGAINST THE WORD, NOT AGAINST A FIXED COLUMN (Alan, 17.09:
+// "closer to London — we don't always have such long words as Düsseldorf, so it
+// could move in when it has to move over for the info col").
+//
+// The info cell is a fixed column with its text set flush RIGHT, so how far left
+// that text reaches depends on the word: "uke 7" leaves 50px of empty cell,
+// "DÜSSELDORF" leaves none. Pinning the count to the column's edge therefore left
+// it stranded in the middle of that gap on most rows. It is placed against the
+// ink instead: as far out as it can go, stopping a few pixels short of whatever
+// the row has to say, and on a row with nothing to say, at the sheet's own edge.
+function placeCounts() {
+  const r = document.createRange();
+  document.querySelectorAll('.day').forEach(d => {
+    const more = d.querySelector('.detail > .more.atedge');
+    if (!more) return;
+    more.style.right = '';
+    const detRight = more.parentElement.getBoundingClientRect().right;
+    const inf = d.querySelector('.info');
+    let limit;
+    if (inf && inf.textContent.trim()) {
+      r.selectNodeContents(inf);
+      const ink = r.getBoundingClientRect();
+      limit = ink.width ? ink.left : inf.getBoundingClientRect().left;
+    } else {
+      limit = d.getBoundingClientRect().right;
+    }
+    more.style.right = Math.round(detRight - (limit - 6)) + 'px';
+  });
+}
 function clipLine() {
   document.querySelectorAll('.day .detail').forEach(det => {
     // THE STOPS DECIDE WHAT FITS, NOT THE WIDTH — asked first, because the two
@@ -3259,6 +3288,7 @@ function render(group) {
   alignByTime();
   alignTourItems();
   clipLine();
+  placeCounts();        // after clipLine: it is what decides a count exists
   layoutWeekBands();
   keepRidersClear();
   wireDayView();

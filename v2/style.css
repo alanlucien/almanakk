@@ -337,7 +337,10 @@ button.active { background: var(--ink); color: var(--card); }
    info cell is empty, where the canvas borrows that column and "right: 0" would
    put the count out among the week numbers and cities. Held back by the width of
    the column it borrowed, so the margin reads straight down the page. */
-.v3 .day .detail > .more.atedge { right: 0; left: auto; }
+/* ...and out past the line's own right padding, so it sits snug against the
+   column rather than four pixels inside the writing (Alan: "could it sit further
+   out?"). It still stops where the info column begins. */
+.v3 .day .detail > .more.atedge { right: -4px; left: auto; }
 /* ...and on a day that borrowed the info column, held back by its width, so the
    count never lands among the week numbers and the margin reads straight down. */
 /* ...and the offset is applied to the LINE, not to the count. --inf is written in
@@ -349,7 +352,7 @@ button.active { background: var(--ink); color: var(--card); }
    pointing at: a grid cannot line up down the page if the paper keeps changing. */
 .v3 .day.airright .detail { right: var(--inf); }
 /* and quieter than the writing it is counting: a footnote, not an entry */
-.v3 .day .detail .more { font-size: 9.5px; }
+.v3 .day .detail .more { font-size: 8.5px; }
 /* THE FLOWING LINE STILL ENDS ON THE SHEET (17.09). A row whose bands have
    eaten every stop gives up the grid and flows after them — and on a year sheet
    what was left to flow into was 20px, so the entry's 4.5em floor pushed the
