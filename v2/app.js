@@ -2654,12 +2654,22 @@ function renderMonthEl(y, m) {
         const w = emWidth(evtText(it)) * (laneBox.px || 12) + entryPadPx;
         return Math.max(1, Math.min(STOPS, Math.ceil(w / stopPx)));
       };
+      // ...and a stop too narrow to read is not an entry (Alan's "W" and "O:" in
+      // February, and his "+1" ruling on 27 September). A finer grid lets MORE
+      // entries onto a row, each of them narrower — and past a point that stops
+      // being generosity and starts being "A…" and "D…", which say nothing and
+      // cost a column. Where the room left cannot hold a reading, the entry goes
+      // to the count instead. The FIRST entry is always placed whatever happens,
+      // so a day never falls silent.
+      const readPx = 2.5 * (laneBox.px || 12) + entryPadPx;
       const alloc = [];
       let cursor = from;
       for (const it of shown) {
         if (cursor >= lastStop) break;
-        alloc.push({ it, at: cursor, span: Math.min(stopsFor(it), lastStop - cursor) });
-        cursor += alloc[alloc.length - 1].span;
+        const span = Math.min(stopsFor(it), lastStop - cursor);
+        if (cursor > from && span * stopPx < readPx) break;
+        alloc.push({ it, at: cursor, span });
+        cursor += span;
       }
       let over = shown.length - alloc.length;
       // ...and where something is left over, the count needs a stop of its own
