@@ -1037,9 +1037,20 @@ function clipLine() {
     det.querySelectorAll(':scope > .evt').forEach(e => { e.hidden = false; e.style.minWidth = ''; });
     if (state.detailed) return;
     const evts = [...det.querySelectorAll(':scope > .evt')];
-    if (evts.length < 2) return;
     const pad = parseFloat(getComputedStyle(det).paddingRight) || 0;
     const edge = () => det.getBoundingClientRect().right - pad;
+    // A LONE ENTRY MUST STILL FIT THE SHEET (17.09). There is nothing to clip
+    // against on a one-event day, so this returned straight away — and on a row
+    // whose bands leave 30px, the 4.5em floor made the entry WIDER than the paper
+    // it sits on. Overflowing its own box means text-overflow never fires, so
+    // "Modellmøte Nationaltheatret" was cut mid-word with no ellipsis and read as
+    // nothing at all. Alone, it has no neighbour to be squeezed by: it may take
+    // what there is and say, with three dots, that there is more.
+    if (evts.length < 2) {
+      const one = evts[0];
+      if (one && one.getBoundingClientRect().right > edge() + 0.5) one.style.minWidth = '0';
+      return;
+    }
     const overflows = () => {
       const vis = evts.filter(e => !e.hidden);
       return vis.length && vis[vis.length - 1].getBoundingClientRect().right > edge() + 0.5;
