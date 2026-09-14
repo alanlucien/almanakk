@@ -377,10 +377,28 @@ trade — which is exactly what Alan predicted in section E. **The default is de
 NOT changed:** how fine the grid should be is his eye, not a number, and it wants looking
 at rather than winning on points. `?stops=N` on the preview shows any value.
 
-**TRUSTWORTHY LIVE BASELINE — 510 events, iPad 1180, 2026+2027: 144 findings.**
-`dropped` 0 · `infoLost` 0 · `overName` 0 · `bandsOverlap` 0.
-Remaining: **92 wasted**, 18 `namesTouch`, 17 `nameCut`, 15 `offSheet`, 2 `collide`.
-`wasted` is the alignment work and belongs to the spec above, not to bug-fixing.
+**WHERE IT STANDS — live, 510 events, iPad 1180, `?stops=6`: 144 → 69 findings.**
+
+| | at 144 | now |
+|---|---|---|
+| `dropped` (silent loss) | 24 | **0** |
+| `infoLost` | 258 | **0** |
+| `collide` · `overName` · `bandsOverlap` | 2 · 1 · 0 | **0 · 0 · 0** |
+| `wasted` | 92 | 41 |
+| `namesTouch` | 18 | 15 — **none in the month view** |
+| `nameCut` | 17 | 10 |
+| `offSheet` | 15 | 3 |
+
+What did it, in order of size: the count is always printed; the year's info column
+fits its own contents; **one writing width per sheet** (Alan's growing/shrinking idea,
+built per SHEET rather than per row, which then let `airright` go); an entry spans as
+many stops as its text needs, which made a finer grid safe; and a run is one straight
+column with a seam before the next.
+
+**Still open from the spec:** the same column down the page (25), his own events wearing
+the tour's indent (28), closing rules under blocks that visibly stop (26), and the
+remaining 41 wasted steps — all of which are the line-start rule, i.e. taste, and want
+his eye rather than another number.
 
 **First (unreliable) baseline, build `20260917m2`, iPad 1180, 2026+2027:**
 
