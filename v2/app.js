@@ -857,7 +857,13 @@ function cityCode(place) {
   return CODE_BY_NAME[place] || place;           // no code known: the name stands
 }
 // How a place reads right now — full name, or airport code (the Byer button).
+// A YEAR SHEET READS THE CODE (sweep, 17.09: BANGKOK needs 45px of a 36px cell,
+// so the column that says where he is was printing a fragment or nothing at all).
+// Alan chose names for the month and that stands; the year is a third of the
+// width and a code is the same fact in three letters. Where no code is known the
+// name still stands, as it always has.
 function cityLabel(place) {
+  if (state.view === 'year') return cityCode(place);
   return state.cityCodes ? cityCode(place) : cityName(place);
 }
 
@@ -2502,10 +2508,21 @@ function renderMonthEl(y, m) {
     // "uke" — but a holiday took the whole cell, so a week with a bank holiday
     // on its Monday went unnumbered. 2. Påskedag 15, and the week is never
     // given away. The name steps down a size sooner when it is sharing.
-    const shareWk = wi === 0 ? ` <span class="wknum">${isoWeek(d)}</span>` : '';
+    // A HOLIDAY AND A WEEK NUMBER DO NOT SHARE A CELL ON A YEAR SHEET (Alan,
+    // 17.09, circling "2. Pinsedag 22" on his side-by-side). On a month sheet
+    // there is room for both and they have shared since C1. On a year sheet the
+    // cell is 36px and the pair is 14 characters, so sharing meant BOTH were
+    // clipped — and of the two, the holiday is the more specific fact about that
+    // day. The number is dropped there, and only there.
+    const shareWk = (wi === 0 && !(h && state.view === 'year'))
+      ? ` <span class="wknum">${isoWeek(d)}</span>` : '';
     const hlen = h ? h.name.length + (shareWk ? 3 : 0) : 0;
     const info = h
-      ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="${h.red ? 'red' : ''} ${hlen > 11 ? 'long' : ''} ${hlen > 15 ? 'xlong' : ''}">${esc(h.name)}${shareWk}</span></span>`
+      // THE THRESHOLDS BELONG TO THE SHEET, NOT THE NAME (sweep, 17.09). 11 and 15
+      // characters were measured against a month sheet's info column; a year's is
+      // a third of it, so "Palmesøndag" never triggered a step-down and simply
+      // clipped, on every one of the twenty-eight holidays in the year.
+      ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="${h.red ? 'red' : ''} ${hlen > (state.view === 'year' ? 7 : 11) ? 'long' : ''} ${hlen > (state.view === 'year' ? 10 : 15) ? 'xlong' : ''}">${esc(h.name)}${shareWk}</span></span>`
       : journeyTxt
         ? `<span class="info plan" data-day="${ds}" title="${esc(L().cityHint)}"><span class="cty journey ${journeyAlone ? 'wide' : ''} ${jTbc ? 'tbc' : ''}" data-short="${esc(journeyShort)}" data-tiny="${esc(journeyTiny)}">${journeyTxt}</span></span>`
       : cityTxt
@@ -2580,7 +2597,19 @@ function renderMonthEl(y, m) {
       let over = shown.length - fits.length;
       if (over > 0 && fits.length > 1) { fits = shown.slice(0, room - 1); over = shown.length - fits.length; }
       const moreAt = from + fits.length;
-      const counted = over > 0 && moreAt <= lastStop - 1;
+      // IF SOMETHING IS LEFT OVER, IT IS COUNTED. ALWAYS. (Sweep of Alan's own
+      // calendar, 17.09 — 24 days of silent loss, worst of them 6 July in the
+      // year view: nine things on the day, one written, no count.) This used to
+      // read `over > 0 && moreAt <= lastStop - 1`: where the row had no stop left
+      // to put the count on, the count was abandoned — and the entries it was
+      // counting had ALREADY been dropped from `fits`. So the fuller the day, the
+      // likelier the page was to say nothing about it. Exactly backwards, and
+      // invisible: he had no way of knowing anything was missing.
+      //
+      // There is always somewhere for two characters. Where no stop is free the
+      // count hangs at the right edge and the last entry gives up 2.6em for it —
+      // `atEdge`/`trim` below already did that and were simply never reached.
+      const counted = over > 0;
       // EACH STOP IS PLACED, NOT ASKED FOR. A grid column is a request the
       // browser answers with its own auto-placement, and one row in six was
       // coming back in a different place than the column it had been given. A
@@ -2632,7 +2661,11 @@ function renderMonthEl(y, m) {
         if (bandEdgePx > l) w = Math.min(w, bandEdgePx - l);
         w = Math.max(stopPx * 0.6, w);
         // and the entry stops short of the count when the count has nowhere else
-        if (counted && countRoomAt !== null && l + w > countRoomAt) w = Math.max(stopPx * 0.6, countRoomAt - l);
+        // and the count's room WINS over the entry's minimum width. Keeping the
+        // 0.6-stop floor here handed the entry back the very pixels that had just
+        // been reserved, so "+2" was written onto the end of its own title (year
+        // view, 10 February). An entry may clip; a count has nowhere else to go.
+        if (counted && countRoomAt !== null && l + w > countRoomAt) w = Math.max(1, countRoomAt - l);
         lastRight = Math.max(lastRight, l + w);
         return `left:${l.toFixed(2)}px;width:${w.toFixed(2)}px`;
       };

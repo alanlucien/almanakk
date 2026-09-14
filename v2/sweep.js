@@ -191,7 +191,18 @@
         '   ' + years.join('+') + '   ' + innerWidth + 'x' + innerHeight,
       '',
     ];
-    for (const k of order) head.push('  ' + num(tally[k] || 0) + '  ' + k);
+    // split by view: a fault only in the year is a different job from one in the
+    // month, and the summary is the only part of the report that always fits
+    const byView = {};
+    rows.forEach(r => {
+      const v = r[2][0];
+      (byView[r[0]] = byView[r[0]] || {})[v] = (byView[r[0]][v] || 0) + 1;
+    });
+    for (const k of order) {
+      const b = byView[k] || {};
+      const split = (b.M || b.Y) ? '   month ' + num(b.M || 0) + '   year ' + num(b.Y || 0) : '';
+      head.push('  ' + num(tally[k] || 0) + '  ' + k.padEnd(14) + split);
+    }
     head.push('', '  ' + num(total) + '  TOTAL' + (total ? '' : '   — clean'), '');
     const slice = rows.slice((page - 1) * PER, page * PER);
     const body = slice.map(r => '  ' + r[1] + ' ' + r[2].padEnd(5) + r[0].padEnd(13) + r[3]);

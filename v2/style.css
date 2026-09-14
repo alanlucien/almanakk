@@ -1614,7 +1614,17 @@ header nav > #print svg, header nav > #lang-chip svg { display: block; }
    And 3.6em on #app resolves against #app's 14px, not the sheet's. Both faults
    are the same fault: a length written in em belongs to the box it is written
    on. Pixels, on .day, and neither can happen again. */
-#app.year12 .day, #app.year12 .month.cities .day { --inf: 26px; }
+/* WIDE ENOUGH FOR WHAT IT IS GIVEN (sweep of Alan's calendar, 17.09: 230 info
+   cells clipped, every one of them in the year). 26px could not hold "uke 52",
+   let alone BANGKOK — so the column that tells him which week it is and where he
+   is was printing neither. 36px holds the week number and all but the longest
+   city; a holiday name still steps down twice and then clips, which is the same
+   trade print-6 and print-12 already make at 5pt. */
+#app.year12 .day, #app.year12 .month.cities .day { --inf: 36px; }
+/* and the step-downs bite harder here, because the paper is a third of a month
+   sheet's and the type is already at 7px */
+#app.year12 .day .info > span.long, #app.year12 .day .info .cty.long { font-size: .8em; letter-spacing: 0; }
+#app.year12 .day .info > span.xlong { font-size: .66em; letter-spacing: -.02em; }
 /* the date column is narrower here: a year has no room for a weekday letter
    beside every number, and the number alone still finds the day */
 #app.year12 .day { --pre: 15px 0px; }
