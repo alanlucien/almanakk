@@ -452,6 +452,15 @@ function measureLane() {
   const widest = ws.length ? Math.max(...ws) : 0;
   const keep = ws.filter(w => w >= widest * 0.66);
   const cw = keep.length ? Math.min(...keep) : widest;
+  // AND THE TYPE THE DAY LINE IS ACTUALLY SET IN, which is not the band's. The
+  // band box is 12px and an entry 11 — and on a year sheet the band box is still
+  // 12 while an entry is 8. Every threshold about whether an entry can be READ
+  // was measured against the band's em, so on a year sheet "too thin to read" was
+  // 40% too generous and entries that would have fitted were counted away
+  // instead (Alan's 13 May: "could have fit two more, instead it outputs an empty
+  // row and +2 behind it").
+  const line = document.querySelector('.day .detail .evt');
+  const ls = line ? getComputedStyle(line) : null;
   laneBox = {
     font: probe ? getComputedStyle(probe).font : cs.font,
     px: parseFloat(cs.fontSize) || 12,
@@ -460,6 +469,9 @@ function measureLane() {
     // so every row can hold them; whether the bands fit the sheet at all is a
     // question about the widest, since that is the paper they are drawn on.
     cwMax: widest,
+    // the day line's own size and the air each entry carries, measured not guessed
+    linePx: ls ? (parseFloat(ls.fontSize) || 11) : 11,
+    linePad: ls ? (parseFloat(ls.paddingLeft) || 0) + (parseFloat(ls.paddingRight) || 0) : 14,
   };
   // the first paint has nothing to measure yet, so draw once more now that we do
   if (!measured && laneBox.px > 0) { measured = true; render(); }
@@ -2734,7 +2746,7 @@ function renderMonthEl(y, m) {
       // and the stop count becomes a dial that can be turned without breaking
       // anything. (Measured with the label font, which is bold and so a shade
       // wide — it errs towards giving an entry one stop too many, never too few.)
-      const entryPadPx = 7 + 0.9 * (laneBox.px || 12);
+      const entryPadPx = laneBox.linePad != null ? laneBox.linePad : 7 + 0.9 * (laneBox.px || 12);
       const stopsFor = it => {
         if (!stopPx) return 1;
         const w = emWidth(evtText(it)) * (laneBox.px || 12) + entryPadPx;
@@ -2747,7 +2759,7 @@ function renderMonthEl(y, m) {
       // cost a column. Where the room left cannot hold a reading, the entry goes
       // to the count instead. The FIRST entry is always placed whatever happens,
       // so a day never falls silent.
-      const readPx = 2.5 * (laneBox.px || 12) + entryPadPx;
+      const readPx = 2.5 * (laneBox.linePx || laneBox.px || 12) + entryPadPx;
       const alloc = [];
       let cursor = from;
       for (const it of shown) {
