@@ -158,6 +158,10 @@ const VIEW_ARG = (location.search.match(/[?&]view=(month|quarter|year|week|day)\
 const MONTH_ARG = (location.search.match(/[?&]month=(\d{1,2})\b/) || [])[1];
 const YEAR_ARG = (location.search.match(/[?&]year=(\d{4})\b/) || [])[1];
 const state = {
+  // A DESK OPENS ON THE YEAR, WITH TODAY IN IT (Alan, 21.09). A phone still opens
+  // on the month, which is the sheet it can actually hold. The year is scrolled
+  // to today on the first paint — see `showToday` — because a year that opens on
+  // January is a year you have to travel through before it tells you anything.
   view: VIEW_ARG || (window.innerWidth < 700 ? 'month' : 'year'),
   year: YEAR_ARG ? +YEAR_ARG : new Date().getFullYear(),
   month: MONTH_ARG ? Math.min(11, Math.max(0, +MONTH_ARG - 1)) : new Date().getMonth(), // 0-based, for month view
@@ -170,6 +174,7 @@ const state = {
                     // mode only repeated the title back
   lang: localStorage.getItem('almanakk2-lang') || 'no',
   detailed: false, // month view with every event on its own row
+  cameFrom: null,  // the sheet a day was opened from, so closing it reverses
 };
 
 function allCalendars() {
@@ -1006,6 +1011,19 @@ const SLOT_GAP = 10;            // clear air between one slot and the next
 // titles and cut once at the end. Items no longer shrink; what does not fit is
 // dropped, and the row says how many, so a missed thing is visible rather than
 // silently gone.
+// BRING TODAY INTO VIEW, ONCE, ON THE FIRST PAINT (Alan, 21.09: "go to year view
+// with today selected"). Only on load and only if today is off screen: after that
+// the scroll position is his, and nothing should pull it about while he reads.
+let broughtToday = false;
+function showToday() {
+  if (broughtToday) return;
+  broughtToday = true;
+  const el = document.querySelector('.day.today');
+  if (!el || !el.scrollIntoView) return;
+  const r = el.getBoundingClientRect();
+  if (r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth) return;
+  el.scrollIntoView({ block: 'center', inline: 'center' });
+}
 function clipLine() {
   document.querySelectorAll('.day .detail').forEach(det => {
     // THE STOPS DECIDE WHAT FITS, NOT THE WIDTH — asked first, because the two
@@ -1340,6 +1358,12 @@ function openDay(date, eventId, write) {
   // an id of 0 is an id: `|| null` threw the first event of a set away
   state.openEvent = eventId === undefined || eventId === '' ? null : eventId;
   state.addOnOpen = !!write;
+  // WHERE HE CAME FROM (Alan, 21.09: "when I double click to add an event from
+  // either MONTH or WEEK, I want to go back to either MONTH or WEEK when I click
+  // close or tap out"). Leaving a day used to climb one fixed level — always to
+  // the week — so opening a day from the month put him somewhere he had not been.
+  // A gesture should reverse itself.
+  if (!inSpread && state.view !== 'day') state.cameFrom = state.view;
   if (!inSpread) state.view = 'day';
   render();
 }
@@ -1690,17 +1714,54 @@ function seenBottom() {
   const app = document.querySelector('#app').getBoundingClientRect().bottom;
   return vv ? Math.min(app, vv.offsetTop + vv.height) : app;
 }
+// AND THERE HAS TO BE SOMEWHERE TO SCROLL TO (22.09). The band under the form
+// was a fixed 96px, which clears Safari's toolbar and nothing else. A keyboard
+// is ~300px: with the form at the foot of the sheet the buttons sat below the
+// last scrollable pixel, so no amount of scrolling could bring them up and
+// Lagre was simply gone. The band now grows by however much of the page the
+// keyboard is covering, which is the room the scroll then uses.
+function keyboardGap() {
+  const vv = window.visualViewport;
+  if (!vv) return 0;
+  return Math.max(0, Math.round(window.innerHeight - (vv.offsetTop + vv.height)));
+}
+function markKeyboard() {
+  document.documentElement.style.setProperty('--kb', keyboardGap() + 'px');
+}
 function showSaveRow() {
+  markKeyboard();
   const btns = document.querySelector('.dayviewwrap .dedit .dbtns');
   if (!btns) return;
-  if (btns.getBoundingClientRect().bottom > seenBottom()) {
-    btns.scrollIntoView({ block: 'nearest' });
+  let over = btns.getBoundingClientRect().bottom + 12 - seenBottom();
+  if (over <= 1) return;
+  // scrollIntoView aligns the row with the edge of the LAYOUT viewport, and iOS
+  // does not shrink that for the keyboard — so the browser puts the row under
+  // the keyboard and calls it visible. Scroll by the measured overlap instead;
+  // visualViewport is the only thing that knows where the paper stops showing.
+  const boxes = [];
+  for (let n = btns.parentElement; n; n = n.parentElement) {
+    const o = getComputedStyle(n).overflowY;
+    if (o === 'auto' || o === 'scroll') boxes.push(n);
+  }
+  boxes.push(document.scrollingElement || document.documentElement);
+  for (const n of boxes) {
+    const by = Math.min(over, Math.max(0, n.scrollHeight - n.clientHeight - n.scrollTop));
+    if (by > 0) { n.scrollTop += by; over -= by; }
+    if (over <= 1) return;
   }
 }
 // the keyboard coming up is the moment the buttons go under it
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', () => setTimeout(showSaveRow, 60));
+  window.visualViewport.addEventListener('scroll', markKeyboard);
 }
+// moving from the title down into the notes does not resize anything — the
+// keyboard is already up — but it is the field furthest down the form, and it
+// is the one Alan reported ("entering a new event with details"). Any field
+// taking the cursor re-asks the question.
+document.addEventListener('focusin', e => {
+  if (e.target.closest('.dedit')) setTimeout(showSaveRow, 60);
+});
 
 function centreYear() {
   const yr = $('#period-year');
@@ -3222,6 +3283,7 @@ function render(group) {
   alignByTime();
   alignTourItems();
   clipLine();
+  showToday();
   layoutWeekBands();
   keepRidersClear();
   wireDayView();
@@ -3916,7 +3978,11 @@ $('#app').addEventListener('click', e => {
   // own title was being read as "a tap in the day" and did nothing.
   if (state.view === 'day' && e.target.closest('.dayview > h2')) {
     state.weekOf = state.weekDay = state.dayOf;
-    state.view = 'week'; state.openEvent = null; render(); return;
+    const back = state.cameFrom || 'week';
+    const a = parseDate(state.dayOf || fmt(new Date()));
+    state.year = a.getFullYear(); state.month = a.getMonth();
+    state.cameFrom = null;
+    state.view = back; state.openEvent = null; render(); return;
   }
   // THE WEEK'S TITLE TAKES YOU BACK UP (Alan, 12.09: "if i click the square at
   // the top of the week again, it collapses back to month view"). The same
@@ -3944,8 +4010,28 @@ $('#app').addEventListener('click', e => {
     const ds = cell && (cell.dataset.date || cell.querySelector('.day[data-date]')?.dataset.date);
     if (ds) {
       const d = parseDate(ds);
-      state.year = d.getFullYear(); state.month = d.getMonth();
-      state.view = 'month'; state.openEvent = null; render();
+      // AND TWO TAPS OPEN THE WEEK UNDER HIS THUMB (Alan, 21.09: "the week that
+      // opens on the double tap should correspond to the week underneath my
+      // thumb"). It did not, and the reason is that there was no double tap here
+      // at all: the first tap switched to the month at once, and the second
+      // landed on a sheet that had just been redrawn — same place on the glass,
+      // a different day underneath it. So the week he got was whichever week the
+      // month sheet happened to put beneath his finger.
+      //
+      // Both gestures are decided from the SAME date now, the one he touched in
+      // the year, and the month is not drawn until the second tap has been ruled
+      // out. One tap still opens the month, which is his 1-2-3 down the levels.
+      tapOrDouble(
+        () => {
+          state.year = d.getFullYear(); state.month = d.getMonth();
+          state.view = 'month'; state.openEvent = null; render();
+        },
+        () => {
+          state.weekOf = state.weekDay = ds;
+          state.view = 'week'; state.openEvent = null; render();
+        },
+        'y' + ds,
+      );
       return;
     }
   }
@@ -4062,9 +4148,18 @@ $('#app').addEventListener('click', e => {
     const w = window.innerWidth;
     if (beside && e.clientX < w * 0.25) { step(-1); return; }
     if (beside && e.clientX > w * 0.75) { step(1); return; }
-    const up = { day: 'week', week: 'month', month: 'year' }[state.view];
+    // a day goes back to whichever sheet opened it; everything else climbs its
+    // own level as before
+    const up = state.view === 'day'
+      ? (state.cameFrom || 'week')
+      : { week: 'month', month: 'year' }[state.view];
     if (up) {
-      if (state.view === 'day') { state.weekOf = state.weekDay = state.dayOf; state.openEvent = null; }
+      if (state.view === 'day') {
+        state.weekOf = state.weekDay = state.dayOf; state.openEvent = null;
+        const a = parseDate(state.dayOf || fmt(new Date()));
+        state.year = a.getFullYear(); state.month = a.getMonth();
+        state.cameFrom = null;
+      }
       if (state.view === 'week') {
         const anchor = parseDate(state.weekDay || state.weekOf || fmt(new Date()));
         state.year = anchor.getFullYear(); state.month = anchor.getMonth();
@@ -4135,6 +4230,23 @@ $('#app').addEventListener('touchstart', e => {
 // A SWIPE IS NOT ALSO A TAP. iOS sends a click after the touch, and in the year
 // view that click landed on the month under his finger — so one swipe stepped
 // the year AND opened something, which is what "skips two" feels like.
+// Could this drag have been a scroll? Walks up from whatever he touched to the
+// page itself, asking each box whether it has any room left to move in that
+// direction. `dy < 0` is a drag upward, which scrolls content DOWN.
+function canScroll(el, dy) {
+  const down = dy < 0;
+  for (let n = el; n; n = n.parentElement) {
+    const over = getComputedStyle(n).overflowY;
+    if (over !== 'auto' && over !== 'scroll' && n !== document.body) continue;
+    const room = n.scrollHeight - n.clientHeight;
+    if (room < 4) continue;
+    if (down ? n.scrollTop < room - 2 : n.scrollTop > 2) return true;
+  }
+  const doc = document.scrollingElement || document.documentElement;
+  const room = doc.scrollHeight - doc.clientHeight;
+  if (room < 4) return false;
+  return down ? doc.scrollTop < room - 2 : doc.scrollTop > 2;
+}
 let swipedAt = 0;
 $('#app').addEventListener('touchend', e => {
   if (touchMulti) { if (!e.touches.length) touchMulti = false; touchX = touchY = null; return; }
@@ -4166,8 +4278,24 @@ $('#app').addEventListener('touchend', e => {
   // thing he actually looks for — next season, the same festival.
   // UP AND DOWN IS A YEAR (Alan, 14.09), in the week as well as the month — the
   // same week a year on is as real a thing to look for as the same month.
+  // ...BUT ONLY WHERE THERE IS NOTHING TO SCROLL (Alan, 21.09: "the slide up and
+  // down to swap between years is too sensitive and provides more trouble than
+  // help — I want to scroll up and down on a very dense week that goes below the
+  // screen without moving years").
+  //
+  // The rule was written for a sheet sized to the screen, where a vertical drag
+  // can only mean one thing. A dense week is taller than the glass, so the same
+  // drag means two things and the app was choosing the rarer one. It now asks
+  // first whether that drag had anywhere to go: if the page or the thing under
+  // his thumb could still scroll in that direction, the gesture was a scroll and
+  // is left alone. Only at the very end of the paper does it change the year —
+  // which is also how a phone tells you it has run out of list.
+  //
+  // The travel is longer too (90px, was 60) and has to be more clearly vertical,
+  // because the gesture is now rarer and should cost more to trigger.
   if ((state.view === 'month' || state.view === 'week')
-      && Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+      && Math.abs(dy) > 90 && Math.abs(dy) > Math.abs(dx) * 2
+      && !canScroll(e.target, dy)) {
     stepYear(dy < 0 ? 1 : -1);
     swipedAt = Date.now();
   }

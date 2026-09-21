@@ -815,7 +815,7 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
    the gesture for closing needs. A margin, not padding: padding at the foot of
    a scrolling box is the thing browsers have historically dropped. */
 #app.dayviewwrap:has(.dedit) .dayview {
-  margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px + var(--kb, 0px));
 }
 .dayview > h2 {
   margin: 0; padding: 6px 10px; display: flex; align-items: baseline; gap: .5em;
