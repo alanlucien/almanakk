@@ -56,6 +56,29 @@
     return !!(cached && cached.length);
   }
 
+  // AND IT SHOULD NOT LOOK SLOW WHILE IT FETCHES (Alan, 22.09: "perhaps page can
+  // buffer in browser for offline, so it does not seem to take so long to load").
+  // The FILES were already cached by the service worker; the wait he sees is
+  // Google. The last sync is sitting on the device, and every event carries its
+  // own colour, so the whole sheet can be drawn from it in the frame the page
+  // appears and replaced when Google answers a second later — his calendar,
+  // very slightly out of date, instead of empty paper. It survives the fetch:
+  // resetCache() empties the array the loader builds in, never state.events,
+  // and a write always refetches rather than pushing into it.
+  // NO BANNER. showCached stays what it is — the failure path, where stale data
+  // is all there is ever going to be and he has to be told. This one is the
+  // ordinary path, where saying anything would cry wolf every single load.
+  // The guard is the MODE, not whether state.events is empty: app.js paints the
+  // sample sheet on the way past, so "already has events" is true on every load
+  // and would have made this whole function do nothing.
+  function paintLastSync() {
+    if (!PROXY && !ALMANAKK_CONFIG.clientId) return;   // real demo mode: the sample data IS the point
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem('almanakk-events') || 'null'); } catch (e) { return; }
+    if (cached && cached.length) { state.events = cached; render(); }
+  }
+  paintLastSync();
+
   if (PROXY) {
     // signed in to Cloudflare already, or we would not have been served
     document.querySelector('#signin').hidden = true;

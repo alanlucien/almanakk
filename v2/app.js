@@ -4319,4 +4319,9 @@ if (!ALMANAKK_CONFIG.clientId) {
   b.textContent = 'Demo — viser eksempeldata fra arket. Legg inn Google clientId i config.js for å koble til Google Kalender.';
 }
 applyLang();
-loadDemo();
+// SAMPLE DATA ONLY WHERE IT IS THE POINT (22.09). This ran on every load, so an
+// almanac that was about to show Alan his own year drew a fictional February
+// first — sample shows, sample flights, his eye reading them for a second
+// before they were swept away. Where a calendar is coming, the sheet is drawn
+// empty and gcal.js fills it from the last sync in the same breath.
+if (!ALMANAKK_CONFIG.clientId && !window.ALMANAKK_PROXY) loadDemo(); else render();
