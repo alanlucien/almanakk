@@ -663,6 +663,11 @@ header h1 .v2 { font-weight: 400; color: var(--red); letter-spacing: 0; margin-l
    rather than as a title. */
 .wday .wname { letter-spacing: .12em; color: var(--ink); }
 .wday.red .wnum, .wday.red .wname { color: var(--red); }
+/* A PERFORMANCE DAY IS RED TOO (Alan, 23.09). The same treatment a Sunday
+   takes — the figure and the weekday name — because that is the sheet's
+   existing word for a day that is not an ordinary day, and he asked for both
+   the cell and the number rather than one of them. */
+.wday.showday .wnum, .wday.showday .wname { color: var(--red); }
 .wday .whol { margin-left: auto; font-style: italic; color: var(--red); }
 .wday.today > h3 { box-shadow: inset 3px 0 0 var(--ink); }
 
@@ -1209,7 +1214,15 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .week > h2 small, .dayview > h2 small { flex: 0 0 auto; white-space: nowrap; }
-.week > h2 .wcity, .dayview > h2 .wcity { flex: 0 0 auto; text-align: right; }
+/* THE CITIES GIVE WAY, NOT THE MONTH (23.09). The month span used to be the
+   one thing allowed to clip; now that it carries the month at reading size it
+   is the thing that must survive, and a week of three or four cities is what
+   bends. Both still hold their line — neither wraps. */
+.week > h2 .wcity, .dayview > h2 .wcity {
+  flex: 0 1 auto; min-width: 0; text-align: right;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pair .pw .week > h2 .wspanlabel { flex: 0 0 auto; }
 .dayview > h2 .dnum, .dayview > h2 .dname, .dayview > h2 .wkno { flex: 0 0 auto; white-space: nowrap; }
 .dayview > h2 .dname { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 430px) {
@@ -1424,9 +1437,19 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
    it, and the month it falls in following quietly. UKE 7 FEBRUAR 2026 against
    13 FREDAG FEBRUAR 2026. */
 .pair .pw .week > h2 .wspanlabel {
-  /* the same size as the day's own <small>, so "FEBRUAR 2026" reads as one
-     quiet note on both sheets rather than two sizes on one and one on the other */
-  font-weight: 400; letter-spacing: .1em; color: var(--muted); font-size: .8333em;
+  /* THE MONTH, AT THE WEEKDAY'S SIZE (Alan, 23.09: "month name should be the
+     font size of TORSDAG in the day view"). It had been quietened on 14.09 to
+     make the two sheets match, and that went too far: on a desk he could not
+     tell at a glance which month the figures down the left belonged to. So it
+     is set exactly as `.dayview > h2 .dname` is — 15px, regular, .08em, full
+     ink — and the two sheets still match, because that is the size the day
+     sheet writes FREDAG at.
+     THE GAP IS PART OF THE FIX. He named why it was taken away: "the dimmed
+     word week, next to a bold week number, next to a bold month, made it look
+     like 3 January". UKE 39 SEPTEMBER binds 39 to the month unless something
+     stands between them, so the month starts a clear space further on. */
+  font-weight: 400; letter-spacing: .08em; color: var(--ink); font-size: 15px;
+  margin-left: .7em;
 }
 .pair .pw .wday, .pair .pw .wev, .pair .pd .dev { cursor: pointer; }
 
