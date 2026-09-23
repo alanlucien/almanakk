@@ -3155,8 +3155,16 @@ function renderWeekEl(ds, inPair) {
     const allDay = evs.filter(e => !effTime(e));
     const rider = !starts.length && allDay.length ? allDay[0] : null;
     const headNames = starts.length ? nameSpan(starts[0])
+      // THE RIDER READS LIKE EVERY OTHER ENTRY (Alan, 23.09: "why do these two
+      // performances render differently on the second and on 3 October?"). It
+      // printed the raw title while the lines below it asked showOnLine, so the
+      // SAME event read "Performance 2 (15)" on a day it rode the head line and
+      // "Antigone 16" on a day something else got there first — and which of the
+      // two happened is invisible to him, since the head line goes to the first
+      // all-day entry only when no run starts that day. A run's own name still
+      // stands as written (nameSpan): a run is titled, not compacted.
       : rider ? `<span class="wspanname dayrider ${isPencil(rider) ? 'pencil' : ''}" data-eid="${rider.id}" data-date="${key}"`
-        + ` style="--lane:0;color:${evInk(rider)}">${esc(deco(rider.title))}</span>` : '';
+        + ` style="--lane:0;color:${evInk(rider)}">${esc(showOnLine(rider) || deco(rider.title))}</span>` : '';
     const lines = evs.filter(e => e !== rider).map(e => {
       const span = e.end > e.start;
       const when = e.time ? e.time : (span ? '' : '');
