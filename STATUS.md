@@ -350,13 +350,31 @@ Alan joined the Apple Developer Program and asked for **"web app and ios app / m
 Nothing is built. This section is the shape of it, written so the first decision can be
 made before any Xcode project exists.
 
-### The thing being protected
-**The renderer is the product.** The stops, the bands, the alignment rules, the flight
-parsing, the wall-calendar typography — that is a year of decisions, nearly all of them
-Alan's, and almost all of it lives in CSS and in layout measurement. Every rule above in
-this file is written against it. A SwiftUI rewrite means re-deriving all of it in a
-language where none of it is written down yet, and it is exactly the part that took
-longest and broke most often. **So: the web app is not rewritten. It is wrapped.**
+### The destination, fixed by Alan 23.09: **"short term hybrid, long term full app."**
+So the web view is scaffolding, not the answer. That changes two things from the first
+draft of this section, and both matter more than the Xcode steps:
+
+**1. The written rules become load-bearing.** The renderer is a year of decisions — the
+stops, the bands, the alignment, the flight parsing, the typography — and almost all of
+it lives in CSS and in layout measurement. As long as wrapping was the destination, the
+code could stay the only place those decisions existed. It cannot now. A native renderer
+has to be built from the RULES, not from the CSS, so the alignment spec Alan dictated on
+17.09 stops being a brief for fixing this app and becomes the specification the Swift one
+is built against. **Every layout decision from here is written down in prose as well as
+in code**, and `_sweep.js`'s checks are the acceptance tests the native views must also
+pass. That is the cheapest thing that can be done today to make the long path affordable.
+
+**2. Stage B stops being a cost and becomes the first half of the native app.** Bundled
+assets, native Google sign-in, the token in the Keychain, the App Group snapshot — none
+of that is web scaffolding. A full SwiftUI app needs every piece of it unchanged. The
+only thing eventually thrown away is the `WKWebView` itself. So B is worth reaching
+quickly rather than living on A.
+
+**The renderer then migrates ONE VIEW AT A TIME, and in this order**, because each view is
+its own screen and can be native while the others are still web:
+day → week → month → quarter → year. The day view carries almost no layout logic and is
+the right place to learn; the quarter and the year carry all of it and go last, by which
+time the rules have been written down and tested twice.
 
 The one thing that genuinely cannot be wrapped is a **widget**. WidgetKit draws SwiftUI
 and nothing else — a widget can never be a web view. That is true on iOS and on macOS.
@@ -378,9 +396,11 @@ Function and the plain web app at the same URL are untouched, so the desk browse
 carries on exactly as now.
 *Costs:* real work, and the OAuth client needs an iOS/macOS entry beside the web one.
 
-**Recommendation: A first, then B.** A is cheap enough to be worth building only to prove
-the wrapper, get TestFlight working and put the icon on his devices; B is the shape the
-widget requires, and the widget is the reason he wants this at all.
+**A first, then B, and do not linger on A.** A exists only to prove the pipeline — a
+bundle id, a provisioning profile, TestFlight, the icon on his devices — which Alan has
+never done before and should do once with the simplest possible app rather than while
+also debugging OAuth. B is where the real work starts, and none of B is wasted: it is
+the native app's foundation, built early.
 
 ### What the widget can honestly show
 Not the wall calendar — a small widget has no room for the sheet, and enlarging the type
@@ -406,7 +426,8 @@ not a professional developer (see Constraints), so this is done ONE STEP AT A TI
 one explained, and nothing is begun until the step before it is working on his device.
 
 ### Waiting on Alan before anything is built
-1. **A first, or straight to B?** The recommendation is A first.
+1. ~~A first, or straight to B?~~ **Answered 23.09: hybrid now, full app later.**
+   So A, briefly, then B.
 2. **A bundle identifier and an app name.** `com.winterguests.almanakk` unless he says
    otherwise; "Almanakk" as the name.
 3. **What the widget says**, from pictures, once there is a wrapper to hang it on.
