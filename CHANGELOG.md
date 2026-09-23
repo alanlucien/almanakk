@@ -5,6 +5,27 @@ what the app shows at the foot of Kalendere ("bygg …"); the commit is what to 
 to get exactly that version back (`git checkout <commit>` then `python3 publiser.py`).
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
+## 23.09.2026 — the 20.09 feedback batch (bygg 20260923c)
+- The desk opens on the QUARTER it is in, not the year. The phone is unchanged.
+  `2b539a0`
+- The week header names every city the week passed through: "Oslo / Beijing /
+  Paris", where it used to read only the first and the last.
+- The month stands at the size the day sheet writes ONSDAG, with a clear space
+  after the week number so "UKE 39 SEPTEMBER" cannot read as "39 September".
+- A performance turns the day red in the week view — figure and weekday both,
+  the same treatment a Sunday takes. `53d2e9a`
+- Brackets are cut from titles in the month and year views. A performance's
+  bracketed number is untouched: it is read before this runs, so
+  "Performance 1 (13)" still becomes "Antigone 13".
+- HELDAGS: a switch that converts a timed event back to an all-day one. The
+  conversion always worked; there was no way to reach it, because iOS's time
+  wheel cannot be emptied.
+- The same performance now reads the same way wherever it stands. On the head
+  line it printed the raw title while the lines below it were compacted, so
+  2 October said "Performance 2 (15)" and 3 October "Antigone 16". `214cae6`
+- TO UNDO: Cloudflare dashboard → almanakk-v2 → Deployments → Rollback, or
+  `git checkout fcda383` then `python3 publiser.py` for 20260922b.
+
 ## 22.09.2026 — LIVE: the sheet is drawn from the last sync (bygg 20260922b)
 - The page opens on his calendar instead of empty paper. The last sync is drawn in
   the frame the page appears and replaced when Google answers; no banner, because

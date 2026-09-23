@@ -344,6 +344,73 @@ Taste. Whether the answer is one stop or two on a given row is Alan's call. The 
 the spec is that he should only ever have to answer that question about a sheet which is
 already free of the defects above.
 
+## THREE SURFACES, ONE ALMANAC — decided 23.09.2026
+
+Alan joined the Apple Developer Program and asked for **"web app and ios app / mac app."**
+Nothing is built. This section is the shape of it, written so the first decision can be
+made before any Xcode project exists.
+
+### The thing being protected
+**The renderer is the product.** The stops, the bands, the alignment rules, the flight
+parsing, the wall-calendar typography — that is a year of decisions, nearly all of them
+Alan's, and almost all of it lives in CSS and in layout measurement. Every rule above in
+this file is written against it. A SwiftUI rewrite means re-deriving all of it in a
+language where none of it is written down yet, and it is exactly the part that took
+longest and broke most often. **So: the web app is not rewritten. It is wrapped.**
+
+The one thing that genuinely cannot be wrapped is a **widget**. WidgetKit draws SwiftUI
+and nothing else — a widget can never be a web view. That is true on iOS and on macOS.
+So the widget is native, small, and fed by the app rather than sharing its renderer.
+
+### The fork that decides everything downstream
+**A — the wrapper points at the live URL.** A WKWebView on
+`https://almanakk-v2.pages.dev/v2/`. Perhaps thirty lines of Swift, works on both
+platforms, and he has an icon and no Safari chrome the same day.
+*Costs:* the Cloudflare Access login happens inside the web view on first run and again
+when the 730h session lapses; an opening with no signal shows nothing; and there is no
+route to widget data without doing B anyway.
+
+**B — the web assets ship inside the app, and sign-in is native.** `app.js`, `style.css`,
+`gcal.js`, `airports.js` are bundled, so it opens instantly and offline with no Access
+prompt. Google sign-in goes through `ASWebAuthenticationSession`, the refresh token
+lives in the **Keychain**, and an **App Group** shares it with the widget. The Pages
+Function and the plain web app at the same URL are untouched, so the desk browser
+carries on exactly as now.
+*Costs:* real work, and the OAuth client needs an iOS/macOS entry beside the web one.
+
+**Recommendation: A first, then B.** A is cheap enough to be worth building only to prove
+the wrapper, get TestFlight working and put the icon on his devices; B is the shape the
+widget requires, and the widget is the reason he wants this at all.
+
+### What the widget can honestly show
+Not the wall calendar — a small widget has no room for the sheet, and enlarging the type
+until it fits is the one thing this app has never done. Realistically: today's date, the
+city, the week number, a red mark when the day holds a show, and the next two or three
+entries. Which of those, and in what order, is a picture conversation like every other
+layout question here. Sizes: small/medium/large on the iOS home screen, the lock-screen
+accessory, and the macOS desktop widget — one WidgetKit target serves all of them.
+It is fed by a small JSON snapshot the app writes to the App Group after each sync,
+NOT by the widget fetching Google itself.
+
+### What macOS specifically wants
+The Mac is where the QUARTER and the YEAR live — the desk sheets. So the window has a
+minimum useful width (the year is six-over-six and wants ~1180) and the app should open
+on the quarter, as the browser now does. Mac Catalyst is the cheap path from one target;
+a separate macOS target sharing the web-view code is the tidy one. **Printing finally
+gets an honest answer here**: the system print dialog owns the paper size and the
+orientation, which is the open question in the print section above.
+
+### Ops burden, and it is real
+Bundle identifiers, provisioning profiles, App Store Connect, TestFlight, review. Alan is
+not a professional developer (see Constraints), so this is done ONE STEP AT A TIME, each
+one explained, and nothing is begun until the step before it is working on his device.
+
+### Waiting on Alan before anything is built
+1. **A first, or straight to B?** The recommendation is A first.
+2. **A bundle identifier and an app name.** `com.winterguests.almanakk` unless he says
+   otherwise; "Almanakk" as the name.
+3. **What the widget says**, from pictures, once there is a wrapper to hang it on.
+
 ## Waiting on Alan
 
 | | |
