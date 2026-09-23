@@ -19,7 +19,7 @@ const LANGS = {
     wdLong: ['MANDAG','TIRSDAG','ONSDAG','TORSDAG','FREDAG','LØRDAG','SØNDAG'],
     week: 'uke',
     fTitle: 'Tittel', fTime: 'Klokkeslett', fFrom: 'Fra', fTo: 'Til',
-    fFromClock: 'Fra kl.', fToClock: 'Til kl.',
+    fFromClock: 'Fra kl.', fToClock: 'Til kl.', fAllDay: 'Heldags',
     fWhere: 'Sted', fNotes: 'Notat', save: 'Lagre', closeEdit: 'Lukk', atTime: 'Klokken', onMap: 'Kart',
     year: 'År', month: 'Måned', detail: 'Detaljer', print: 'Skriv ut', tour: 'wg | turné',
     signin: 'Logg inn med Google', cals: 'Kalendere',
@@ -41,7 +41,7 @@ const LANGS = {
     wdLong: ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'],
     week: 'wk',
     fTitle: 'Title', fTime: 'Time', fFrom: 'From', fTo: 'To',
-    fFromClock: 'From', fToClock: 'To',
+    fFromClock: 'From', fToClock: 'To', fAllDay: 'All day',
     fWhere: 'Location', fNotes: 'Notes', save: 'Save', closeEdit: 'Close', atTime: 'By the clock', onMap: 'Map',
     year: 'Year', month: 'Month', detail: 'Details', print: 'Print', tour: 'wg | touring',
     signin: 'Sign in with Google', cals: 'Calendars',
@@ -141,6 +141,29 @@ function wallTitle(title, covers) {
   return t || original;
 }
 
+
+// BRACKETS ARE FOR THE DAY, NOT FOR THE WALL (Alan, 23.09: "I asked for the
+// bracket and information to be cut in MONTH view, month view only. As a
+// general thing"). His titles carry the evening's particulars in brackets —
+// "(Meng-Ke)", "(SK 2869)", "(Wuppertal trip)" — which are what he opens the
+// day to read and not what he wants to see across a month.
+//
+// IT RUNS LAST, AFTER EVERY PARSE, and that is the whole safety of it:
+//  * a performance's bracketed number is the count since the premiere, and it
+//    is already gone by the time this runs — showLabel has eaten it and handed
+//    back "Antigone 13" (Alan, 23.09, confirming the rule: the piece's name is
+//    read off the band overhead, the number out of the brackets).
+//  * the flight parser reads places from inside brackets, and it reads the
+//    ORIGINAL title, not this.
+// So nothing that had meaning is lost; only what is left over is dropped.
+// Never returns nothing: a title that is ALL brackets keeps its text.
+function stripParens(t) {
+  const out = String(t).replace(/\s*\([^)]*\)/g, ' ')
+    .replace(/\s*\[[^\]]*\]/g, ' ')
+    .replace(/^[\s\-\u2013\u2014:\u00b7,]+|[\s\-\u2013\u2014:\u00b7,]+$/g, '')
+    .replace(/\s+/g, ' ').trim();
+  return /[\p{L}\d]/u.test(out) ? out : String(t);
+}
 
 function stripClock(t) {
   const out = String(t).replace(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/g, ' ')
@@ -1129,7 +1152,28 @@ function wireDayView() {
       box.dataset.cid = sw.dataset.cid;
     }
   });
+  sec.addEventListener('change', e => {
+    // HELDAGS CLEARS THE CLOCKS, and un-ticking hands them back. The save path
+    // reads the fields, not the tick, so emptying them IS the instruction —
+    // this is only the way to give it on a phone, where the time wheel has no
+    // empty. A clock typed after ticking would contradict the tick, so the
+    // fields are disabled while it is on; and typing one un-ticks it, so the
+    // two can never disagree.
+    if (e.target.name !== 'allday') return;
+    const form = e.target.closest('.dedit');
+    form.querySelectorAll('[name="time"], [name="endtime"]').forEach(f => {
+      if (e.target.checked) f.value = '';
+      f.disabled = e.target.checked;
+    });
+  });
   sec.addEventListener('input', e => {
+    // A CLOCK CONTRADICTS HELDAGS: writing one takes the tick off, rather than
+    // saving a timed event that says it is all day.
+    if (e.target.name === 'time' || e.target.name === 'endtime') {
+      const box = e.target.closest('.dedit').querySelector('[name="allday"]');
+      if (box && e.target.value) box.checked = false;
+      return;
+    }
     // A NEW EVENT IS NAMED IN THE FORM, so the trip tick has to follow the
     // typing rather than wait for a render that never comes. It offers itself
     // the moment the title is nothing but a place, and takes itself away again
@@ -2486,7 +2530,7 @@ function renderMonthEl(y, m) {
       // between"). At a month's distance the question is what is on that day,
       // not when; the day view still has every clock. The order is still the
       // order of the day, so they read left to right in the order they happen.
-      if (V3 && !state.detailed) txt = wallTitle(stripClock(txt), coverNames);
+      if (V3 && !state.detailed) txt = stripParens(wallTitle(stripClock(txt), coverNames));
       // A ROUTE HAS A SHORTER READING (Alan, 14.09, on his 8 September:
       // "if we have a flight on a day with many events and it gets clipped,
       // switch to outputting codes, so we would have managed to see BGO-OSL").
@@ -2864,9 +2908,18 @@ function renderDayEl(ds) {
     }
     return `<form class="dedit" data-eid="${e.id}">`
       + `<label>${L().fTitle}<input name="title" type="text" value="${esc(e.title)}"></label>`
+      // HELDAGS, BECAUSE A CLOCK CANNOT BE UNSAID (Alan, 23.09: "there is no way
+      // to edit a timed event back to an all day. No toggle or no possibility to
+      // delete the times all together"). The conversion itself has worked all
+      // along — saveEvent writes `date` and nulls `dateTime`, which is the thing
+      // Google insists on — but the only way to reach it was an EMPTY clock
+      // field, and iOS's time wheel has no way to empty one. So the switch says
+      // it instead: on, and both clocks are cleared and put out of reach.
+      + `<label class="dpencil dallday"><input type="checkbox" name="allday"${e.time ? '' : ' checked'}>`
+      + `<span>${L().fAllDay}</span></label>`
       + `<div class="drow">`
-      + `<label>${L().fFromClock}<input name="time" type="time" value="${esc(e.time || '')}"></label>`
-      + `<label>${L().fToClock}<input name="endtime" type="time" value="${esc(e.endTime || '')}"></label>`
+      + `<label>${L().fFromClock}<input name="time" type="time" value="${esc(e.time || '')}"${e.time ? '' : ' disabled'}></label>`
+      + `<label>${L().fToClock}<input name="endtime" type="time" value="${esc(e.endTime || '')}"${e.time ? '' : ' disabled'}></label>`
       + `<label>${L().fFrom}<input name="start" type="date" value="${esc(e.start)}"></label>`
       + `<label>${L().fTo}<input name="end" type="date" value="${esc(e.end)}"></label>`
       + `</div>`
@@ -3061,6 +3114,15 @@ function renderWeekEl(ds, inPair) {
     const h = hol[key] || holNext[key];
     const red = i === 6 || (h && h.red);
     const free = i === 6 || !!h || (SAT_GREY && i === 5);
+    // A PERFORMANCE MAKES THE DAY RED (Alan, 23.09: "whenever there is a
+    // performance — in WEEK VIEW — let's have the day red", and asked whether
+    // that meant the cell or the figure, "both should"). So it takes the same
+    // treatment a Sunday takes, which is the language the sheet already has
+    // for a day that is not an ordinary day: the figure and the weekday name
+    // in red. Single-day and timed both count, which is what makes a Paris
+    // evening show up here as well as the all-day "Performance 4".
+    const showday = shownEvents().some(e => e.start <= key && e.end >= key
+      && e.end === e.start && isShow(e));
     // A RUNNING PROJECT IS NOT NEWS SEVEN TIMES (12.09). What spans the week
     // is said once at the top of it; a day's own lines are the day's own
     // events, which is what you came to the week to read.
@@ -3112,7 +3174,7 @@ function renderWeekEl(ds, inPair) {
     const heads = starts.slice(1).map(r =>
       `<p class="wspan own ${isPencil(r.e) ? 'pencil' : ''}" data-eid="${r.e.id}" data-date="${key}" style="--lane:${r.lane}">`
       + nameSpan(r) + '</p>').join('');
-    days += `<section class="wday ${free ? 'free' : ''} ${red ? 'red' : ''} ${key === todayStr ? 'today' : ''}`
+    days += `<section class="wday ${free ? 'free' : ''} ${red ? 'red' : ''} ${showday ? 'showday' : ''} ${key === todayStr ? 'today' : ''}`
       + `${key === state.weekDay ? ' picked' : ''}" data-idx="${i}" data-date="${key}">`
       + `<h3><span class="wnum">${d.getDate()}</span> <span class="wname">${L().wdLong[i]}</span>`
       // the moon's turn and the day's name for it, together at the right
@@ -3133,10 +3195,21 @@ function renderWeekEl(ds, inPair) {
   if (idx) {
     // where the week STARTED is where you were the night before it, so a
     // Monday flight reads as a journey rather than as the destination alone
-    const before = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() - 1);
-    const a = cityOn(fmt(before), idx), z = cityOn(lastKey, idx);
-    const an = a && cityLabel(a.dest), zn = z && cityLabel(z.dest);
-    wcity = an && zn && an !== zn ? an + ' / ' + zn : (zn || an || '');
+    // EVERY CITY THE WEEK PASSED THROUGH (Alan, 23.09: "Week 39 for instance,
+    // cities should display Oslo / Beijing / Paris"). It used to read exactly
+    // two points — the night before Monday and Sunday — so a week he flew
+    // through the middle of said where it began and where it ended and threw
+    // the journey away. Week 39 is Oslo, then Beijing, then Paris, and it was
+    // printing "Oslo / Paris". Now every day is asked and each new city is
+    // kept, so the line reads as the journey it was.
+    const names = [];
+    for (let i = -1; i < 7; i++) {
+      const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
+      const c = cityOn(fmt(d), idx);
+      const n = c && cityLabel(c.dest);
+      if (n && n !== names[names.length - 1]) names.push(n);
+    }
+    wcity = names.join(' / ');
   }
   // THE WEEK IS NUMBERED ONCE (Alan, 14.09, circling both). The header carries
   // UKE 42 in the largest type on the screen, so the sheet said it again three
