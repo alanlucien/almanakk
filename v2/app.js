@@ -181,11 +181,17 @@ const VIEW_ARG = (location.search.match(/[?&]view=(month|quarter|year|week|day)\
 const MONTH_ARG = (location.search.match(/[?&]month=(\d{1,2})\b/) || [])[1];
 const YEAR_ARG = (location.search.match(/[?&]year=(\d{4})\b/) || [])[1];
 const state = {
-  // A DESK OPENS ON THE YEAR, WITH TODAY IN IT (Alan, 21.09). A phone still opens
-  // on the month, which is the sheet it can actually hold. The year is scrolled
-  // to today on the first paint — see `showToday` — because a year that opens on
-  // January is a year you have to travel through before it tells you anything.
-  view: VIEW_ARG || (window.innerWidth < 700 ? 'month' : 'year'),
+  // A DESK OPENS ON THE QUARTER IT IS IN (Alan, 23.09: "when I open this on my
+  // computer I open on the year view — I would like to land in a quarter view on
+  // the month we are in"). It opened on the year from 21.09 until then.
+  // 'month' IS the quarter on a desk: at spread width render() draws the three
+  // months of the season round `state.month`, and `state.month` is today's. On a
+  // phone the same value is the single-month strip, which is the sheet it can
+  // hold. So one value, and the width decides how much of it is paper.
+  // The quarter is a FIXED third of the year (his own rule, 14.09: "the same
+  // three months are always on the same page"), so in late September today's
+  // month is the third sheet, not the first. `showToday` scrolls to it.
+  view: VIEW_ARG || 'month',
   year: YEAR_ARG ? +YEAR_ARG : new Date().getFullYear(),
   month: MONTH_ARG ? Math.min(11, Math.max(0, +MONTH_ARG - 1)) : new Date().getMonth(), // 0-based, for month view
   events: [],      // {id, title, start, end (inclusive 'YYYY-MM-DD'), color, time?, gid?, calId?, src?}
