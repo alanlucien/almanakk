@@ -5,6 +5,34 @@ what the app shows at the foot of Kalendere ("bygg …"); the commit is what to 
 to get exactly that version back (`git checkout <commit>` then `python3 publiser.py`).
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
+## 22.09.2026 — LIVE: the sheet is drawn from the last sync (bygg 20260922b)
+- The page opens on his calendar instead of empty paper. The last sync is drawn in
+  the frame the page appears and replaced when Google answers; no banner, because
+  that one is for the real failure. `fcda383`
+- The sample February no longer flashes past on a signed-in load. `loadDemo()` ran
+  on every load whatever the mode; it now runs only where sample data is the point.
+- Year view: one tap opens the month, two open the week under the thumb.
+- Opens on the year with today in view. A day returns to the sheet that opened it.
+- The vertical swipe only steps the year where there is nothing left to scroll, so
+  a dense week scrolls. `46595fb`
+- Lagre stands clear of the keyboard, measured against `visualViewport`. Third
+  attempt, first one at the root.
+- TO UNDO: Cloudflare dashboard → almanakk-v2 → Deployments → Rollback, or
+  `git checkout 6d1067f` then `python3 publiser.py` for 20260917m2.
+
+## 17.09.2026 — LIVE: twelve month sheets, six over six (bygg 20260917m2)
+- The year is twelve real month sheets in two rows of six, not thumbnails and not a
+  scrolling strip. A strip needed a 1674px window; six over six gives each sheet
+  231px instead of 132. `c58be5e`
+- A view in the URL (`?month=`, `?year=`), so a build can be checked on both.
+- ROLLED BACK THE SAME DAY: `20260917r` carried a day of alignment work — "a word is
+  a wall", the spill, the run's single column — and collapsed multi-day events into
+  each other on a packed February. Alan: "go back to my build from this morning."
+  `app.js` and `style.css` were restored to `c58be5e` and shipped as m2 (`6d1067f`).
+  The alignment pass is on the branch `alignment-work`, unmerged, to be re-applied
+  one rule at a time. Do not redeploy `710c35c`.
+- TO UNDO: `git checkout 1f0cadf` then `python3 publiser.py` for 13.09.
+
 ## 13.09.2026 — LIVE: black and white paper, week and day views (bygg 20260913n)
 - The paper is black and white. Sundays and holidays grey, a heavy rule closing
   each week, print frames round the blocks. Brown is gone. `e3b2f4e`

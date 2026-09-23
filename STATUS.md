@@ -1,8 +1,8 @@
 # STATUS — where Almanakk stands
 
-Updated 17.09.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
+Updated 23.09.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
 
-A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260917r`.
+A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260922b` (Alan read the build line 23.09).
 
 ## ⚠️ It writes to the live calendar with no confirmation step
 
@@ -48,6 +48,37 @@ default and shows nothing — pass `--remote`. Half an hour was lost to this.
 Still live in parallel: github.io/almanakk/v2/ (Google sign-in in the browser) — retire or
 redirect once the Cloudflare address has proven itself for a week.
 
+## 22.09.2026 — LIVE as `20260922b`: six things, none of them the alignment
+
+Built on top of `20260917m2`, not on the rolled-back alignment work.
+
+**`46595fb` — five he asked for.** In the year, one tap opens the month and two open the
+WEEK under the thumb, both read off the same touched date. The app opens on the year with
+today in view — one scroll, once, and only when today is off the glass. A day remembers
+the sheet that opened it and returns there instead of climbing one fixed level. The
+vertical swipe only steps the year where there is nothing left to scroll (90px now, and
+twice as vertical as sideways), so a dense week scrolls. And **Lagre under the keyboard,
+fixed at the root on the third attempt**: `scrollIntoView` aligns to the LAYOUT viewport,
+which iOS does not shrink for the keyboard, so the browser hid the row and called it
+visible; the paper below the form was a fixed 96px, so with the form at the foot of the
+sheet there was nowhere to scroll TO. The band now grows by the keyboard's own height and
+the scroll is measured against `visualViewport`.
+
+**`fcda383` — the first paint is his calendar, not empty paper.** Alan, 22.09: *"perhaps
+page can buffer in browser for offline, so it does not seem to take so long to load."* The
+files were never the wait — the service worker has cached those since August. The wait is
+Google. The last sync was already in localStorage and every event carries its colour, so
+the whole sheet is drawn from it in the frame the page appears and replaced when Google
+answers. No banner on that path; `showCached`'s banner stays for the real failure case, or
+it cries wolf. **And the sample February stops flashing past:** `loadDemo()` ran on every
+load whatever the mode, drawing fictional shows and flights into a signed-in almanac until
+Google answered — and its own side effect ("state.events is empty" was never true) is what
+hid the first attempt at the cached paint.
+
+**Not pushed to GitHub.** `main` is 2 commits ahead of `origin/main`. Production is
+Cloudflare and unaffected, but GitHub has no copy of either commit, and
+github.io/almanakk/v2/ is a build behind.
+
 ## NEXT: the row rewrite, in v2, on the preview lane (handed over 12.09)
 
 Alan uses production v2 daily. Build in `v2/app.js` + `v2/style.css` only; deploy with
@@ -56,7 +87,20 @@ Show pictures of month, year, print and phone strip before any production deploy
 Spec: `Front/NOTES-calendar.md` → "The day row is one dynamic space" and the preview result
 below it; branch `preview-flow-line` shows why a CSS grid cannot do it. Keep it short in chat.
 
-## The year view — BUILT 17.09.2026, live as build `20260917r`
+## The year view — BUILT 17.09.2026, live; the alignment pass beside it was ROLLED BACK
+
+**Read this before the spec below.** `20260917r` was live for part of 17.09 and is not
+live now. Alan: *"go back to my build from this morning so that's something for me to work
+on, while you keep going in the background."* r's faults were things COLLIDING, which he
+cannot work with; the morning's were "doesn't use the space it could", which he can. So
+`v2/app.js` and `v2/style.css` went back to `c58be5e` — the six-over-six year, and the
+alignment as it stood before "a word is a wall" — shipped as **`20260917m2`** (`6d1067f`),
+keeping only the `?month=`/`?year=` test parameters. **The whole alignment pass is on the
+branch `alignment-work`**, to be re-applied ONE RULE AT A TIME against a sweep that runs on
+HIS data rather than on invented fixtures. Everything from here to the end of the spec is
+therefore a BRIEF, not a description of what is on his phone.
+
+The six-over-six year view itself survived the rollback and is live.
 
 Twelve real month sheets in one row, as in Alan's mock — not thumbnails, not a 4x3 grid.
 Same renderer, same click, same rules. CSS: `#app.year12`, `style.css:1559`.
