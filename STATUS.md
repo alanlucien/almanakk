@@ -2,7 +2,8 @@
 
 Updated 05.10.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
 
-A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260922b` (Alan read the build line 23.09).
+A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260923c` (`ec44786`, deployed 23.09 — the
+20.09 feedback batch). The preview lane is ahead of it at `20261005a`, the touring calendar.
 
 ## ⚠️ It writes to the live calendar with no confirmation step
 
