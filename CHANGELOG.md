@@ -5,6 +5,19 @@ what the app shows at the foot of Kalendere ("bygg …"); the commit is what to 
 to get exactly that version back (`git checkout <commit>` then `python3 publiser.py`).
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
+## 05.10.2026 — one touring calendar (bygg 20261005a, PREVIEW lane only)
+- Tours are read from the robot's `wg | TOURING` calendar whenever it exists; the
+  calendars that used to be tagged as tours are untagged and hidden once, with a toast,
+  and are one tick away in Kalendere.
+- Every word of the tour's day — Travel, Get in, Work day, Performance 3 — is written
+  INSIDE the leg's band, performances red, the rest in the band's ink. Nothing of the
+  tour's stands on the day line. A word on a row where the band writes its own name is
+  let go; a performance on such a row keeps the line.
+- A `HOLD …` span reads dashed and italic, like a tbc tour.
+- Not in production. To see it: https://preview.almanakk-v2.pages.dev/v2/ (same login).
+  TO UNDO on preview: `git checkout ec44786` then `python3 publiser.py --preview`.
+- Beside it, not a web change: `native/` holds the first iPhone + Mac build (stage A).
+
 ## 23.09.2026 — the 20.09 feedback batch (bygg 20260923c)
 - The desk opens on the QUARTER it is in, not the year. The phone is unchanged.
   `2b539a0`

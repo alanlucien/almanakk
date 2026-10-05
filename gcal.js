@@ -256,6 +256,8 @@
       // else — the private gmail, a shared studio calendar — is somebody's guest.
       primary: !!c.primary,
     }));
+    // v2 decides which calendar is the tour (gcal.js keeps no opinion); v1 has no hook
+    if (window.adoptTouringCalendar) adoptTouringCalendar(calendars);
     renderCalPicker();
   }
 

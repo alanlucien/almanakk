@@ -1,12 +1,85 @@
 # STATUS — where Almanakk stands
 
-Updated 23.09.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
+Updated 05.10.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
 
 A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260922b` (Alan read the build line 23.09).
 
 ## ⚠️ It writes to the live calendar with no confirmation step
 
 Verified 12.09: quick-add `POST`s the moment you press enter (`gcal.js:353`), and the day panel's Slett `DELETE`s immediately (`gcal.js:420`). There is no `confirm()` anywhere in `app.js` — the only net is the undo toast, which `PATCH`es the event back to `confirmed` (`gcal.js:384`).
+
+## 05.10.2026 — ONE TOURING CALENDAR, and the first native build
+
+Alan, 05.10: *"It is time to make this into an iPhone app and a Mac desktop app. wg tours
+now will be read from one calendar, and it will not include schedule (schedule is in a
+separate Google calendar), so in month view we only have the tour banner, with travel /
+get in inside the band. Much less noise."*
+
+### The touring calendar (v2, bygg `20261005a`, on the PREVIEW lane — not production)
+
+The company robot now writes **`wg | TOURING`** (spec: `…/winter guests/Calendar entry
+app/SPEC — touring calendar app 04.10.md`): one all-day span per leg (`ANTIGONE Rome`,
+` tbc` until confirmed), one all-day word per day from a list of eight (Travel · Get in ·
+Work day · Performance n · Day off · Travel day Tech · Travel day Performers · Get in –
+tech only), city in Location, and `HOLD Available · ANTIGONE` / `HOLD Festival · <name>`
+spans for dates held. Read-only for everyone. The call sheets go to `wg | Schedule`
+(the renamed Still Life calendar); `wg | ANTIGONE` retires.
+
+What the almanac does with it (`v2/app.js`, `gcal.js`, `v2/style.css`, `demo-data.js`):
+- **The calendar named TOURING is the tour calendar whenever it exists**, whatever was
+  ticked in Kalendere; the robot's `wg | TOURING (test)` twin never is. Without it the
+  ticks decide, as before. `tourCalIds`, `app.js:212`.
+- **Once, when it is first seen** (`adoptTouringCalendar`, called from `gcal.js` after
+  the calendar list arrives and before any event is fetched): the calendars that used
+  to be tagged as tours are untagged **and hidden**, the test twin with them, the wg
+  button is switched on, and a toast names what was hidden. Each is one tick away in
+  Kalendere. Keyed per robot calendar id in localStorage, so it never runs twice.
+- **Every word of the tour's day is written inside the leg's band** — performances
+  red (`Antigone 3`, the run lending its name as before), everything else italic in
+  the band's own ink (`.bshow.bword`). Nothing of the tour's stands on his line any
+  more. A flight in a tour calendar is still a move and still stands on the line (the
+  14.09 Helsinki rule).
+- The word is matched to **its own run** first (innermost span of the same calendar,
+  `runOf`), then to any band of the same calendar — two legs can share a Travel day.
+- **On a row where the band writes its own name** (the first day, the 14-day beat, the
+  1st of a month) an ordinary word is let go: the name is on the row, and the week and
+  day views still say Travel. A performance on such a row keeps the day line, red, as
+  before — a show is never dropped. Decision mine, 05.10; say if the word should be
+  written after the name instead.
+- **A HOLD reads as tentative**: dashed band, italic name, like a `tbc` tour
+  (`isTbc`). A hold is never "the run" a performance borrows its name from.
+- Week and day views are untouched.
+
+Verified in the browser on demo data shaped like the robot's leg (February: Travel,
+Get in, Work day, Performance 1-2, Travel, plus a HOLD): the words sit in the band, the
+line is clear of them. Not yet seen on Alan's real calendar: the Cloudflare lane needs
+his login. **Pre-existing, seen while checking:** at phone width a two-word name on a
+MONDAY label row is cut ("ANTIGONE Pa…") because the band is narrowed for "uke 7" on
+that row only; the continuation rows are full width. Not from this change.
+
+### The native app — `native/`, stage A of "Three surfaces", BUILT 05.10
+
+`native/Almanakk.xcodeproj` (hand-written pbxproj, like Wallet Pass; no xcodegen on
+this Mac): ONE target, `SUPPORTED_PLATFORMS = iphoneos iphonesimulator macosx`, so the
+same code is the iPhone app and the Mac app — no Catalyst. Bundle id
+`com.winterguests.almanakk`, team `BAV75G9G6M` (the OU on his Apple Development
+certificate; the same team Wallet Pass signs with), iOS 17 / macOS 14 and up. Two
+Swift files: the window, and a `WKWebView` on `https://almanakk-v2.pages.dev/v2/` with a
+Safari user-agent (Google refuses sign-in from anything it recognises as an embedded
+view), outside links handed to the real browser, and a retry card when there is no
+connection. Mac: sandboxed with network, opens at 1280×860 (the year wants ~1180), ⌘R
+reloads. Icon rendered from `icon.svg` (QuickLook; ImageMagick's own SVG pass drew a
+flat square) — full bleed for iOS, Apple's 824-on-1024 rounded grid for the Mac.
+
+**Built and run 05.10:** `xcodebuild` succeeds for the iPhone 17 Pro simulator and for
+macOS; the simulator shows the Cloudflare Access login inside the app (screenshot
+taken); the Mac app launches and stays up (its window could not be captured — the
+terminal has no screen-recording permission). Nobody has signed in through it yet:
+that is Alan's email code, which only he can enter. Steps for him in `native/README.md`.
+
+**Not done, in order:** TestFlight (so the phone build does not lapse after 7 days);
+stage B (bundled assets, native sign-in, Keychain, App Group); the widget; the native
+day view. Nothing of stage A is thrown away by B except the `WKWebView` itself.
 
 ## v2 — started 12.09.2026, local only
 
@@ -428,8 +501,8 @@ one explained, and nothing is begun until the step before it is working on his d
 ### Waiting on Alan before anything is built
 1. ~~A first, or straight to B?~~ **Answered 23.09: hybrid now, full app later.**
    So A, briefly, then B.
-2. **A bundle identifier and an app name.** `com.winterguests.almanakk` unless he says
-   otherwise; "Almanakk" as the name.
+2. ~~A bundle identifier and an app name.~~ **Built 05.10 as `com.winterguests.almanakk`,
+   "Almanakk"** — say if either should change before TestFlight.
 3. **What the widget says**, from pictures, once there is a wrapper to hang it on.
 
 ## Waiting on Alan
@@ -450,7 +523,8 @@ one explained, and nothing is begun until the step before it is working on his d
 | **January blank** until the year's first flight | **Confirmed in code.** `gcal.js:263` loads from `year-01-01` only; no prior-year fetch, so the city pin has nothing to carry in. |
 | **Pencilled `P` events** | Decided 03.09, **nothing built** — `gcal.js` never requests the `description` field, so no code can read the marker. Per-event colours and a separate calendar were tried and rejected; don't revisit. |
 | Drop "uke" on ordinary Mondays | Open; `app.js:18` still renders `uke`. |
-| L1 day line / L2 A+ / L4 wg items in-band | None in the code. Previews first. |
+| L1 day line / L2 A+ | None in the code. Previews first. |
+| L4 wg items in-band | **DONE 05.10** for the robot's calendar: every day word is written in the band; see the 05.10 section. |
 | L3 header menu | **DONE — shipped 02.09.2026.** The `⋯` menu is in `app.js:1074`, closing on pick and on tap-away. (Corrected 12.09.2026; the first draft of this status wrongly said it was unbuilt.) |
 | Kalendere dropdown clipped on phone | Reported 02.09, unverified by reading. |
 | PARKED after aborted previews | June left-space; timezone auto-translate. Discuss before building. |

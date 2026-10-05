@@ -397,6 +397,9 @@ button.active { background: var(--ink); color: var(--card); }
 .v3 .day .band b.bshow {
   justify-content: flex-start; font-weight: 400; padding-left: 12px;
 }
+/* the tour's ordinary day — Travel, Get in, Work day — in the band's own ink;
+   only a performance is red (05.10.2026) */
+.v3 .day .band b.bshow.bword { color: var(--ci, var(--c)); }
 /* the one thing that may be heavier is the day's own headline */
 .v3 .day .detail .evt.allday { font-weight: 700; }
 .v3 .day .detail .evt.showevt { font-weight: 400; }

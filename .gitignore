@@ -7,3 +7,4 @@ dist/
 .dev.vars
 .wrangler/
 v2/_sweep.js
+native/build/

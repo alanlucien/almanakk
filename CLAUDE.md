@@ -78,6 +78,10 @@ The sheet is the layout reference and the initial data to import.
   and be clipped or painted over; a single long word still clips with ….
   (Rewritten 2026-08-28: this was one tall multi-line box, which caused three
   separate "sliced word" reports — see B6/B7.)
+- Since 05.10.2026 the tour calendar is the robot's `wg | TOURING` whenever it
+  exists (one span per leg, one all-day word per day — see STATUS.md, 05.10); the
+  Kalendere ticks decide only when it is absent. Every day word is written inside
+  the band in month view. The older rule, still true for the week and day views:
 - Tour-tagged calendars (user-picked in the Kalendere panel) are an overlay,
   not normal calendars: the wg button shows their multi-day spans as dashed
   bands and their single-day items dimmed at the end of the day line.

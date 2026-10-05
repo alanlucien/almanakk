@@ -209,12 +209,52 @@ const state = {
 function allCalendars() {
   return (state.mode === 'google' && window.gcalCalendars) ? window.gcalCalendars() : DEMO_CALENDARS;
 }
+// ONE TOURING CALENDAR (Alan, 05.10.2026: "wg tours now will be read from one
+// calendar, and it will not include schedule"). The company robot writes
+// wg | TOURING and nothing else writes it: one span per leg ("ANTIGONE Rome"),
+// and one all-day word per day — Travel, Get in, Work day, Performance 3, Day
+// off. The call sheets live in a separate Schedule calendar, which is not the
+// almanac's business. So the calendar named TOURING is the tour calendar
+// whenever it exists, whatever was ticked before; the robot's "(test)" twin
+// never is. Without it, the Kalendere ticks decide, as they always did.
+const ROBOT_CAL = /\btouring\b/i, TEST_CAL = /\(test\)/i;
+function robotCalIds(cals) {
+  return cals.filter(c => ROBOT_CAL.test(c.name) && !TEST_CAL.test(c.name)).map(c => c.id);
+}
 function tourCalIds() {
   const all = allCalendars();
+  const robot = robotCalIds(all);
+  if (robot.length) return robot;
   const stored = JSON.parse(localStorage.getItem('almanakk-tourcals') || 'null');
   if (stored) return stored.filter(id => all.some(c => c.id === id));
   return all.filter(c => /tour|turné|turne/i.test(c.name)).map(c => c.id);
 }
+// THE FIRST TIME THE ROBOT'S CALENDAR IS SEEN, the calendars that used to be
+// tagged as tours (wg | ANTIGONE, wg | Still Life — call sheets now, 59 and 60
+// events of them) are untagged and hidden, and the test twin with them, so the
+// month does not fill with the schedule he just moved out of it. Done once per
+// robot calendar and said in a toast; each is one tick away in Kalendere.
+// gcal.js calls this after the calendar list arrives and before any event is
+// fetched, so the hidden calendars are never loaded at all.
+window.adoptTouringCalendar = function (cals) {
+  const robot = robotCalIds(cals);
+  if (!robot.length) return;
+  const doneKey = 'almanakk2-touring:' + robot.join(',');
+  if (localStorage.getItem(doneKey)) return;
+  const tagged = JSON.parse(localStorage.getItem('almanakk-tourcals') || '[]');
+  const drop = new Set(tagged.filter(id => !robot.includes(id)));
+  cals.filter(c => TEST_CAL.test(c.name)).forEach(c => drop.add(c.id));
+  const sel = JSON.parse(localStorage.getItem('almanakk-selected-cals') || 'null') || cals.map(c => c.id);
+  const keep = sel.filter(id => !drop.has(id)).concat(robot.filter(id => !sel.includes(id)));
+  localStorage.setItem('almanakk-selected-cals', JSON.stringify(keep));
+  localStorage.setItem('almanakk-tourcals', JSON.stringify(robot));
+  localStorage.setItem('almanakk2-wg', '1'); state.wg = true;
+  localStorage.setItem(doneKey, '1');
+  const names = cals.filter(c => drop.has(c.id) && sel.includes(c.id)).map(c => c.name);
+  if (names.length) toast((state.lang === 'en'
+    ? 'Tours now come from wg | TOURING. Hidden: ' : 'Turné leses nå fra wg | TOURING. Skjult: ')
+    + names.join(', ') + (state.lang === 'en' ? ' — one tick in Calendars brings them back.' : ' — ett kryss i Kalendere henter dem tilbake.'));
+};
 // Tour-tagged calendars are never part of the normal view — they are an
 // overlay (the wg button), like the Cities column.
 function visibleEvents() {
@@ -539,15 +579,18 @@ const ORDINALS = {
 // "ANTIGONE Roma". So the run lends its name, the brackets lend the number, and
 // the day reads "ANTIGONE 6". A run in the same calendar is preferred, and any
 // place on the end of its title is dropped: Roma is where, not what.
-function runName(ev) {
-  // ONLY ITS OWN CALENDAR LENDS A NAME. Any covering run would do it otherwise,
-  // and a performance would take the name of whatever unrelated project happened
-  // to span that week — "Performance 1 (4)" came out as "Kongen av Bastøy 4"
-  // the first time this ran. Innermost wins, so a run inside a season is the one
-  // that speaks.
+// ONLY ITS OWN CALENDAR LENDS A NAME. Any covering run would do it otherwise,
+// and a performance would take the name of whatever unrelated project happened
+// to span that week — "Performance 1 (4)" came out as "Kongen av Bastøy 4"
+// the first time this ran. Innermost wins, so a run inside a season is the one
+// that speaks. A hold is never the run: it is not a tour.
+function runOf(ev) {
   const covers = state.events.filter(x => x.end > x.start && x.calId === ev.calId
-    && x.start <= ev.start && x.end >= ev.start && x.id !== ev.id);
-  const run = covers.sort((a, b) => (a.start < b.start ? 1 : -1))[0];
+    && x.start <= ev.start && x.end >= ev.start && x.id !== ev.id && !/^HOLD\b/.test(x.title));
+  return covers.sort((a, b) => (a.start < b.start ? 1 : -1))[0] || null;
+}
+function runName(ev) {
+  const run = runOf(ev);
   if (!run) return null;
   const words = deco(run.title).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
   // THE PIECE IS THE SHOUTED PART (Alan, 14.09: "ANTIGONE Epidaurus" kept its
@@ -636,7 +679,10 @@ function compactTitle(e) {
   return showLabel(e.title, runName(e)) || e.title;
 }
 function evInk(e) { return isShow(e) ? 'var(--red)' : inkColor(e.color); }
-const isTbc = ev => /\btbc\b/i.test(ev.title);
+// ...and so does a HOLD — dates held for sale or a festival window, which the
+// robot writes as "HOLD Available · ANTIGONE". Not a tour yet; it must not look
+// like one.
+const isTbc = ev => /\btbc\b/i.test(ev.title) || /^HOLD\b/.test(ev.title);
 // PENCILLED (decided 03.09): a line holding nothing but P, first in the notes.
 // Not a colour — that was tried and rejected, because his other clients throw
 // event colours away and show the calendar's instead. Not a local flag either:
@@ -2244,7 +2290,14 @@ function renderMonthEl(y, m) {
     // the band below, and everything else goes nowhere
     let wgBandShows = [];
     if (V3) {
-      wgBandShows = wgTodays.filter(isShow);
+      // EVERY WORD OF THE TOUR'S DAY IS WRITTEN IN ITS BAND (Alan, 05.10.2026:
+      // "in month view we only have the tour banner, with travel / get in
+      // inside the band. Much less noise"). The robot's calendar says one
+      // thing per day — Travel, Get in, Work day, Performance 2 — and that
+      // word belongs inside the leg's banner, performances in red, the rest
+      // in the band's own ink. Nothing of the tour's stands on his line.
+      // A performance comes first, so where a band can take only one word
+      // the red one is the one it takes.
       // A MOVE IS NEVER "THE TOUR'S ORDINARY DAY" (Alan, 14.09: "a flight on
       // the 27th of June not appearing even though there is lots of real
       // estate"). It was the tour's flight to Helsinki, and the rule that
@@ -2252,7 +2305,9 @@ function renderMonthEl(y, m) {
       // while the city column went on saying HELSINKI, because the flight
       // index still knew. A move is the one tour item that is also HIS day:
       // it is where he is, and it is why the margin changed.
-      wgTodays = wgTodays.filter(e => !isShow(e) && flightLegs(deco(e.title)).length >= 2);
+      const isMove = e => flightLegs(deco(e.title)).length >= 2;
+      wgBandShows = wgTodays.filter(e => !isMove(e)).sort((a, b) => (isShow(b) ? 1 : 0) - (isShow(a) ? 1 : 0));
+      wgTodays = wgTodays.filter(isMove);
     }
     const lineEmpty = !todays.length && !wgTodays.length && !wgBandShows.length;
     // bands grouped left: Alan's solid lanes, then wg's dashed lanes
@@ -2449,12 +2504,17 @@ function renderMonthEl(y, m) {
       // the band is otherwise silent today — a band already carrying a word of
       // its title keeps it, and the show falls back to the day line, so one
       // can never paint over the other.
-      let inband = '';
+      let inband = '', inbandShow = false;
       if (V3 && ev._wg && !txt && wgBandShows.length) {
-        const k = wgBandShows.findIndex(x => x.calId === ev.calId);
+        // the word that belongs to THIS run first — two legs of one calendar
+        // can share a day (Travel out of one city, Travel into the next) and
+        // each band must carry its own; then any word of the same calendar
+        let k = wgBandShows.findIndex(x => (runOf(x) || {}).id === ev.id);
+        if (k < 0) k = wgBandShows.findIndex(x => x.calId === ev.calId);
         if (k >= 0) {
           const sh = wgBandShows[k];
           inband = showOnLine(sh) || deco(sh.title);
+          inbandShow = isShow(sh);
           wgBandShows.splice(k, 1);
         }
       }
@@ -2492,11 +2552,13 @@ function renderMonthEl(y, m) {
         + ` data-eid="${ev.id}" style="${onRight ? `right:${wgRight(i).toFixed(2)}em` : `left:${laneX}em`};width:${w.toFixed(2)}em;`
         + `--w:${w.toFixed(2)}em;--c:${ev.color};--ci:${inkColor(ev.color)}">`
         + (txt ? `<b>${esc(deco(txt))}</b>` : '')
-        + (inband ? `<b class="bshow">${esc(inband)}</b>` : '') + '</i>';
+        + (inband ? `<b class="bshow ${inbandShow ? '' : 'bword'}">${esc(inband)}</b>` : '') + '</i>';
     });
     // a performance whose band said something else today keeps the day line,
-    // so nothing is ever silently dropped
-    if (V3 && wgBandShows.length) wgTodays = wgBandShows;
+    // so a show is never silently dropped. An ordinary word that found no band
+    // — a Travel on the row the banner writes its own name — is let go: the
+    // name is on the row, and the day and week views still say the word.
+    if (V3 && wgBandShows.length) wgTodays = wgBandShows.filter(isShow);
     // ONE wide shared day line: Alan's headline first, shows (any calendar)
     // pinned next, then Alan's items, then wg's dimmed items
     const lineItems = todays.map(e => ({ e, wg: false }))

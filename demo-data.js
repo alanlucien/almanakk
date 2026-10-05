@@ -15,7 +15,15 @@ window.DEMO_MONTH = 1;
 window.DEMO_EVENTS = [
   { c: 'arbeid', t: 'Fanny og Alexander', s: '2026-02-02', e: '2026-02-27' },
   { c: 'arbeid', t: 'Kongen av Bastøy', s: '2026-02-16', e: '2026-03-06' },
-  { c: 'turne', t: 'ANTIGONE Paris TDLV', s: '2026-02-09', e: '2026-02-14' },
+  { c: 'turne', t: 'ANTIGONE Paris', s: '2026-02-09', e: '2026-02-14' },
+  // ...and its days, one word each, the way the touring robot writes them
+  { c: 'turne', t: 'Travel', s: '2026-02-09' },
+  { c: 'turne', t: 'Get in', s: '2026-02-10' },
+  { c: 'turne', t: 'Work day', s: '2026-02-11' },
+  { c: 'turne', t: 'Performance 1', s: '2026-02-12' },
+  { c: 'turne', t: 'Performance 2', s: '2026-02-13' },
+  { c: 'turne', t: 'Travel', s: '2026-02-14' },
+  { c: 'turne', t: 'HOLD Available · ANTIGONE', s: '2026-02-23', e: '2026-02-26' },
   { c: 'arbeid', t: '14:00 Kostymeprøve', s: '2026-02-18' },
   { c: 'privat', t: '07:05 OSL–BGO', s: '2026-02-18' },
   { c: 'privat', t: 'Middag hos mor', s: '2026-02-20' },
