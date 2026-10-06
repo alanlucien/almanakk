@@ -1,6 +1,6 @@
 # STATUS — where Almanakk stands
 
-Updated 05.10.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
+Updated 06.10.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
 
 A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260923c` (`ec44786`, deployed 23.09 — the
 20.09 feedback batch). The preview lane is ahead of it at `20261005a`, the touring calendar.
@@ -8,6 +8,24 @@ A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucie
 ## ⚠️ It writes to the live calendar with no confirmation step
 
 Verified 12.09: quick-add `POST`s the moment you press enter (`gcal.js:353`), and the day panel's Slett `DELETE`s immediately (`gcal.js:420`). There is no `confirm()` anywhere in `app.js` — the only net is the undo toast, which `PATCH`es the event back to `confirmed` (`gcal.js:384`).
+
+## 06.10.2026 — STEPPED BACK: a redesign is proposed, nothing built
+
+Alan, 06.10: *"I've started not liking the almanakk. Looks home-made on the phone. The
+desktop app is not good either. The week view is flawed a little. The bands are still not
+working well. Do a thorough step back and redesign."*
+
+The proposal is **`Front/REDESIGN — 06.10.md`**, with pictures in
+**`Front/mockup-redesign.html`** (also published as a private page so it opens on his
+phone). In one line: *the month sees the tour, the week sees the schedule, the line is his
+alone* — wg | TOURING in month and year only, as a column on the right; wg | Schedule in
+week, day and widget only; his spans as thin rules in a gutter; text in ink and red; the
+year as the 12×31 planner poster. It retires the 17.09 alignment spec, the stair, the
+14-day beat and the five URL switches. **Waiting on Alan: four questions at the foot of the
+document.** Everything below this line is the state of what is live, unchanged.
+
+Corrected while reading the code for it: the pencilled `P` IS built in v2 (`isPencil`,
+`v2/app.js:690`, and a tick in the day form); the Open table below said otherwise.
 
 ## 05.10.2026 — ONE TOURING CALENDAR, and the first native build
 
@@ -506,6 +524,27 @@ one explained, and nothing is begun until the step before it is working on his d
    "Almanakk"** — say if either should change before TestFlight.
 3. **What the widget says**, from pictures, once there is a wrapper to hang it on.
 
+## A sister almanac for winter guests — recorded 06.10.2026, nothing built
+
+From the wg workspace design session (`…/winter guests/wg workspace/`, brief item D11).
+Alan, verbatim: *"almanakk i suppose not sure here. depens how almanac ends up looking. But
+what is clear that it has to work on different almanac rules than alan's private. it's a
+sister almanac only previewing wg | Touring and wg | Shcedule."* Decided there the same day:
+no new states — "asked is tbc, almost confirmed is also tbc".
+
+So: a separate, READ-ONLY almanac on its own rules, reading exactly `wg | TOURING` and
+`wg | Schedule`, coloured by the robot's hidden fields (`wg_confirmed` yes|no, `wg_hold`
+Available|Festival), with year / month / week prints and a share link per audience with a
+toggle of which states show. Not Alan's private almanac with a toggle. Who builds it —
+this codebase (Alan leaning yes) or a workspace screen — is open until v2 has its shape.
+
+What that means here, if it comes this way: `gcal.js` never requests
+`extendedProperties`, so nothing in Almanakk can read `wg_confirmed` today; the 05.10 work
+reads the robot's calendar by TITLE only (` tbc`, `HOLD …`). The sister almanac would be a
+second entry point sharing the engine (like `v2/` shares it with v1), with its own calendar
+set, its own colour rule and no write path. The workspace would link to it and supply the
+state-filter contract, nothing more.
+
 ## Waiting on Alan
 
 | | |
@@ -522,7 +561,7 @@ one explained, and nothing is begun until the step before it is working on his d
 | sak | stand |
 |---|---|
 | **January blank** until the year's first flight | **Confirmed in code.** `gcal.js:263` loads from `year-01-01` only; no prior-year fetch, so the city pin has nothing to carry in. |
-| **Pencilled `P` events** | Decided 03.09, **nothing built** — `gcal.js` never requests the `description` field, so no code can read the marker. Per-event colours and a separate calendar were tried and rejected; don't revisit. |
+| **Pencilled `P` events** | **Built in v2** (grey in the views, a tick in the day form; `v2/app.js:690`). Per-event colours and a separate calendar were tried and rejected; don't revisit. |
 | Drop "uke" on ordinary Mondays | Open; `app.js:18` still renders `uke`. |
 | L1 day line / L2 A+ | None in the code. Previews first. |
 | L4 wg items in-band | **DONE 05.10** for the robot's calendar: every day word is written in the band; see the 05.10 section. |
