@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="2; url=https://almanakk-v2.pages.dev/">
+<title>Almanakk har flyttet</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #ebebe7; color: #1b1f26;
+         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  main { background: #fff; border: 1px solid #1b1f26; padding: 28px 32px; max-width: 30em; margin: 16px; }
+  h1 { font-size: 13px; letter-spacing: .16em; margin: 0 0 12px; }
+  a { color: #1b1f26; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ALMANAKK HAR FLYTTET</h1>
+  <p>Almanakken ligger nå på <a href="https://almanakk-v2.pages.dev/">almanakk-v2.pages.dev</a>.
+  Du sendes dit straks. Legg den gjerne til på hjemskjermen på nytt derfra.</p>
+</main>
+<script>
+// This address was the almanac until 08.10.2026. Old installs carry a service worker
+// that would keep showing the old app offline: unregister it, empty its caches, go.
+(async () => {
+  try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch (e) {}
+  try { for (const k of await caches.keys()) await caches.delete(k); } catch (e) {}
+  location.replace('https://almanakk-v2.pages.dev/');
+})();
+</script>
+</body>
+</html>
