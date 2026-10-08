@@ -366,7 +366,10 @@
             // the day view edits the clock, so the END time and the event's own
             // zone have to travel with it too (13.09)
             endTime: (ev.end && ev.end.dateTime || '').slice(11, 16),
-            tz: (ev.start && ev.start.timeZone) || '' });
+            tz: (ev.start && ev.start.timeZone) || '',
+            // the standard fields v3's form edits (07.10): repeat, reminders, guests
+            recurringEventId: ev.recurringEventId || '', recurrence: ev.recurrence || [],
+            reminders: ev.reminders || null, attendees: (ev.attendees || []).map(a => a.email).filter(Boolean) });
         }
         pageToken = data.nextPageToken || '';
         if (stale()) return; // a newer tick superseded us mid-fetch: drop everything
@@ -402,11 +405,15 @@
       if (f.location) body.location = f.location;
       if (f.notes) body.description = f.notes;
       if (f.colorId) body.colorId = f.colorId;
+      if (f.recurrence && f.recurrence.length) body.recurrence = f.recurrence;
+      if (f.reminders) body.reminders = f.reminders;
+      if (f.attendees && f.attendees.length) body.attendees = f.attendees.map(email => ({ email }));
+      const tz = f.tz || 'Europe/Oslo';
       if (f.time) {
         const endClock = f.endTime || f.time;
         const endDay = endDate >= startDate ? endDate : startDate;
-        body.start = { dateTime: startDate + 'T' + f.time + ':00', timeZone: 'Europe/Oslo' };
-        body.end = { dateTime: endDay + 'T' + endClock + ':00', timeZone: 'Europe/Oslo' };
+        body.start = { dateTime: startDate + 'T' + f.time + ':00', timeZone: tz };
+        body.end = { dateTime: endDay + 'T' + endClock + ':00', timeZone: tz };
         // an end clock at or before the start means he means the next morning
         if (body.end.dateTime <= body.start.dateTime) {
           const n = parseDate(endDay); n.setDate(n.getDate() + 1);

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ebebe7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Almanakk</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icon-192-v3.png">
+<link rel="stylesheet" href="style.css?v=20261008c">
+</head>
+<body>
+<header class="top">
+  <button id="prev" class="arrow" aria-label="Forrige">‹</button>
+  <h1 id="title"></h1>
+  <button id="next" class="arrow" aria-label="Neste">›</button>
+  <span class="sp"></span>
+  <span id="yr"></span>
+  <button id="signin" hidden>Logg inn med Google</button>
+  <details id="more">
+    <summary title="Mer" aria-label="Mer">···</summary>
+    <div id="more-list">
+      <div class="views"><button data-view="month"></button><button data-view="week"></button><button data-view="year"></button></div>
+      <button id="today"></button>
+      <button id="tour-chip"></button>
+      <button id="lang-chip"></button>
+      <button id="print"></button>
+      <details id="cal-picker" hidden>
+        <summary>Kalendere</summary>
+        <div id="cal-list"></div>
+      </details>
+    </div>
+  </details>
+</header>
+<div id="banner" hidden></div>
+<main id="app"></main>
+<div id="toast" hidden></div>
+<!-- null here = Google sign-in in the browser. publiser.py flips it to
+     '/api/gcal' in the Cloudflare build, where the key lives on the server. -->
+<script>window.ALMANAKK_PROXY = null;</script>
+<script src="../config.js?v=20261008c"></script>
+<script src="../demo-data.js?v=20261008c"></script>
+<script src="../airports.js?v=20261008c"></script>
+<script src="app.js?v=20261008c"></script>
+<script src="../gcal.js?v=20261008c"></script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="window.gcalReady && gcalReady()"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+</body>
+</html>

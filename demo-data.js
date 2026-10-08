@@ -5,6 +5,8 @@ window.DEMO_CALENDARS = [
   { id: 'privat', name: 'Privat', color: '#15803d' },
   { id: 'turne', name: 'Turné', color: '#b45309' },
   { id: 'festival', name: 'Festival', color: '#0f766e' },
+  // the call sheets: the week's and the day's, never the month's (v3)
+  { id: 'schedule', name: 'wg | Schedule', color: '#b45309' },
 ];
 
 // The month the sample data lives in — ?demo=1 opens here (0 = January).
@@ -15,7 +17,7 @@ window.DEMO_MONTH = 1;
 window.DEMO_EVENTS = [
   { c: 'arbeid', t: 'Fanny og Alexander', s: '2026-02-02', e: '2026-02-27' },
   { c: 'arbeid', t: 'Kongen av Bastøy', s: '2026-02-16', e: '2026-03-06' },
-  { c: 'turne', t: 'ANTIGONE Paris', s: '2026-02-09', e: '2026-02-14' },
+  { c: 'turne', t: 'ANTIGONE Paris', s: '2026-02-09', e: '2026-02-14', l: 'Paris' },
   // ...and its days, one word each, the way the touring robot writes them
   { c: 'turne', t: 'Travel', s: '2026-02-09' },
   { c: 'turne', t: 'Get in', s: '2026-02-10' },
@@ -24,6 +26,9 @@ window.DEMO_EVENTS = [
   { c: 'turne', t: 'Performance 2', s: '2026-02-13' },
   { c: 'turne', t: 'Travel', s: '2026-02-14' },
   { c: 'turne', t: 'HOLD Available · ANTIGONE', s: '2026-02-23', e: '2026-02-26' },
+  { c: 'schedule', t: 'Soundcheck', s: '2026-02-12', tm: '16:00' },
+  { c: 'schedule', t: 'Call', s: '2026-02-12', tm: '18:00' },
+  { c: 'schedule', t: 'Get out', s: '2026-02-13', tm: '22:30' },
   { c: 'arbeid', t: '14:00 Kostymeprøve', s: '2026-02-18' },
   { c: 'privat', t: '07:05 OSL–BGO', s: '2026-02-18' },
   { c: 'privat', t: 'Middag hos mor', s: '2026-02-20' },

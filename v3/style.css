@@ -1,0 +1,376 @@
+/* Almanakk v3 — the sheet. One face, two weights, ink and red. The calendar's
+   colour lives in the gutter rule and in a dot, never in the words (D4). */
+:root {
+  --bg: #ebebe7;        /* the desk the sheets lie on */
+  --paper: #ffffff;
+  --ink: #141410;
+  --ink-soft: #4a4a45;
+  --muted: #80807a;
+  --rule: #d9d9d4;
+  --rule-strong: #1c1c1a;
+  --wash: #f1f1ee;      /* Sunday, holiday */
+  --red: #c0221b;
+  --tour: #b0652a;      /* the tour column's own ink */
+  --tour-wash: rgba(176, 101, 42, .10);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 13px/1.35 var(--font); font-variant-numeric: tabular-nums;
+  display: flex; flex-direction: column; height: 100dvh;
+  -webkit-text-size-adjust: 100%;
+}
+main { flex: 1; min-height: 0; overflow: auto; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+/* ---------- the header: a title, nothing else ---------- */
+header.top {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 8px;
+  background: var(--paper); border-bottom: 1px solid var(--rule-strong);
+  position: relative; z-index: 5;
+}
+header.top #title { font-size: 20px; font-weight: 700; letter-spacing: .12em; margin: 0; cursor: pointer; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+header.top #yr { font-size: 13px; letter-spacing: .08em; font-weight: 600; }
+header.top #yr[data-yr="1"] { color: #2f7d4a; } header.top #yr[data-yr="2"] { color: #a07a12; }
+header.top #yr[data-yr="3"] { color: var(--red); } header.top #yr[data-yr="4"] { color: #2b4fb3; }
+header.top .arrow { font-size: 20px; line-height: 1; padding: 0 6px; color: var(--ink-soft); display: none; }
+header.top #signin { font-size: 12px; border: 1px solid var(--rule-strong); border-radius: 3px; padding: 2px 8px; }
+#more { position: relative; }
+#more summary { list-style: none; cursor: pointer; font-size: 18px; letter-spacing: .05em; line-height: 1; padding: 0 2px; }
+#more summary::-webkit-details-marker { display: none; }
+#more-list {
+  position: absolute; right: 0; top: 140%; z-index: 11; min-width: 180px;
+  background: var(--paper); border: 1px solid var(--rule-strong); padding: 6px 0;
+  display: flex; flex-direction: column;
+}
+#more-list button, #more-list summary { text-align: left; padding: 7px 14px; font-size: 14px; }
+#more-list button.active::after { content: " ✓"; }
+#cal-picker summary { list-style: none; cursor: pointer; }
+#cal-picker summary::-webkit-details-marker { display: none; }
+#cal-list { padding: 4px 14px 8px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; max-height: 50vh; overflow: auto; }
+#cal-list .cal-row { display: grid; grid-template-columns: 2em 2em 2.4em 1em minmax(0, 1fr); gap: 4px; align-items: center; white-space: nowrap; }
+#cal-list .nm { overflow: hidden; text-overflow: ellipsis; }
+#cal-list .cal-head { font-size: 10px; color: var(--muted); letter-spacing: .05em; }
+#cal-list .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c, #999); display: inline-block; }
+#cal-list .cal-build { font-size: 10px; color: var(--muted); letter-spacing: .05em; margin-top: 6px; border-top: 1px solid var(--rule); padding-top: 5px; }
+#banner { background: var(--paper); padding: 4px 14px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--rule); }
+
+/* ---------- the month ---------- */
+.month { background: var(--paper); display: flex; flex-direction: column; --tourw: 72px; --infw: 62px; }
+.month h2 { margin: 0; padding: 5px 10px 3px; font-size: 11px; letter-spacing: .14em; font-weight: 600; border-bottom: 1px solid var(--rule-strong); display: flex; justify-content: space-between; }
+.month h2 span { color: var(--muted); font-weight: 400; letter-spacing: .08em; }
+.day {
+  display: grid; align-items: center; white-space: nowrap;
+  grid-template-columns: 24px 18px calc(4px + var(--lanes, 1) * 5px) minmax(0, 1fr) var(--tourw) var(--infw);
+  border-bottom: 1px solid var(--rule); min-height: 0;
+}
+.day.sun, .day.hol { background: var(--wash); }
+.day.red .n, .day.red .w { color: var(--red); }
+.day.sun { border-bottom: 1px solid var(--rule-strong); }   /* the week closes */
+.day.pad { border-bottom: 0; }
+.day .n { text-align: right; font-weight: 600; padding-right: 4px; position: relative; }
+.day .n i { position: absolute; left: 1px; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; background: var(--red); }
+.day.today .n { color: var(--paper); }
+.day.today .n::before { content: ""; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 20px; height: 18px; border-radius: 3px; background: var(--ink); z-index: -1; }
+.day.today { position: relative; z-index: 0; }
+.day.open { background: var(--wash); }
+.day .w { color: var(--ink-soft); font-size: 11px; }
+/* two rules read as two: 2px of ink, 3px of paper between (Alan, 07.10) */
+.day .gut { height: 100%; display: flex; gap: 3px; padding: 0 2px; }
+.day .gut i { width: 2px; display: block; flex: none; }
+.day .gut i.a { margin-top: 3px; } .day .gut i.z { margin-bottom: 3px; }
+.day .line { min-width: 0; display: flex; gap: 0 8px; overflow: hidden; padding-left: 4px; align-items: baseline; }
+.day .line > span { flex: none; }
+.day .line > span:only-child, .day .line > span.lone { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.day .line .sp { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+.day .line .tm { font-style: normal; color: var(--muted); font-size: 11px; margin-right: 3px; }
+.day .line .show { color: var(--red); }
+.day .line .pencil { color: var(--muted); }
+.day .line .more { color: var(--muted); font-size: 11px; }
+.day.notour .line { grid-column: 4 / 6; }
+.day .tour {
+  height: 100%; display: flex; align-items: center; padding: 0 5px; overflow: hidden;
+  font-size: 11px; color: var(--tour); background: var(--tour-wash); border-left: 2px solid var(--tour);
+}
+.day .tour.open { border-top: 1px solid var(--tour); }
+.day .tour.tbc { border-left-style: dashed; font-style: italic; background: none; }
+.day .tour .nm { font-weight: 700; letter-spacing: .03em; text-transform: uppercase; font-size: 10px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
+.day .tour .perf { color: var(--red); font-weight: 700; font-size: 13px; font-style: normal; }
+.day .info { text-align: right; padding-right: 8px; font-size: 10px; color: var(--muted); letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; }
+.day .info.cty { text-transform: uppercase; letter-spacing: .08em; font-weight: 600; color: var(--ink-soft); }
+.day .info.long { font-size: 9px; letter-spacing: .04em; }
+.day .info.cty.tbc { font-style: italic; font-weight: 400; }
+.day .info.hn { color: var(--red); font-style: italic; }
+.day.hol:not(.red) .info.hn { color: var(--ink-soft); }
+
+/* the phone: one month fills the screen, nothing scrolls */
+#app.strip { height: 100%; display: flex; flex-direction: column; }
+#app.strip .month { flex: 1; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4px); }
+#app.strip .day { flex: 1 1 0; }
+#app.strip .day.pad { display: none; }
+#app.strip .month h2 { display: none; }   /* the header names the month */
+
+/* the desk: three sheets, row for row */
+#app.quarter { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding: 14px; align-items: start; }
+#app.quarter .month { border: 1px solid var(--rule-strong); --tourw: 92px; --infw: 86px; }
+#app.quarter .day { height: 23px; }
+#app.quarter .day.pad { height: 23px; }
+@media (min-width: 1000px) { header.top .arrow { display: inline-block; } header.top #title { flex: none; } header.top .sp { flex: 1; } }
+@media (min-width: 1300px) { #app.quarter .month { --tourw: 104px; --infw: 96px; } }
+
+/* ---------- the day sheet ---------- */
+#daysheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: var(--paper); border-top: 1px solid var(--rule-strong);
+  padding: 10px 14px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  max-height: 70vh; overflow: auto; font-size: 15px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, .08);
+}
+@media (min-width: 1000px) {
+  #daysheet { left: auto; top: 70px; bottom: auto; right: 24px; width: 420px; border: 1px solid var(--rule-strong); max-height: calc(100vh - 100px); }
+}
+#daysheet header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--rule-strong); padding-bottom: 6px; margin-bottom: 4px; font-size: 16px; letter-spacing: .06em; }
+#daysheet header b { font-size: 22px; font-weight: 700; margin-right: 4px; }
+#daysheet header span { font-size: 11px; color: var(--muted); letter-spacing: .08em; display: flex; gap: 10px; align-items: baseline; }
+#daysheet header .cty { font-style: normal; text-transform: uppercase; font-weight: 600; color: var(--ink-soft); letter-spacing: .1em; }
+#daysheet header .cty.tbc { font-style: italic; font-weight: 400; }
+#daysheet header .hn { color: var(--red); font-style: italic; }
+#daysheet .list hr { border: 0; border-top: 1px solid var(--rule); margin: 4px 0; }
+#daysheet .ev { display: grid; grid-template-columns: 44px 10px minmax(0, 1fr) auto 28px; gap: 0 6px; align-items: baseline; margin: 0; padding: 5px 0; border-bottom: 1px solid var(--rule); }
+#daysheet .ev .tm { font-style: normal; color: var(--muted); font-size: 12px; text-align: right; }
+#daysheet .ev .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; position: relative; top: -2px; }
+#daysheet .ev b { font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#daysheet .ev b u { text-decoration: none; color: var(--muted); }
+#daysheet .ev.show b { color: var(--red); }
+#daysheet .ev.pencil b { color: var(--muted); }
+#daysheet .ev.wg b { color: var(--tour); }
+#daysheet .ev small { color: var(--muted); font-size: 11px; white-space: nowrap; }
+#daysheet .ev .x { color: var(--muted); font-size: 18px; line-height: 1; text-align: right; }
+#daysheet .qa { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 10px; }
+#daysheet .qa input { font: inherit; font-size: 16px; padding: 7px 0; border: 0; border-bottom: 1px solid var(--rule-strong); background: none; color: var(--ink); outline: none; min-width: 0; }
+#daysheet .qa button { border: 1px solid var(--rule-strong); border-radius: 3px; padding: 4px 12px; }
+#daysheet .target { margin: 8px 0 0; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+#daysheet .target .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+#toast[hidden] { display: none; }
+#toast {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translateX(-50%);
+  background: var(--ink); color: var(--paper); padding: 8px 14px; font-size: 13px; z-index: 30;
+  display: flex; gap: 14px; align-items: center; max-width: 92vw;
+}
+#toast button { color: var(--paper); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- paper ---------- */
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  header.top, #banner, #toast, #daysheet { display: none !important; }
+  body, main { background: #fff; display: block; height: auto; overflow: visible; }
+  #app.quarter, #app.strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4mm; padding: 0; height: auto; }
+  #app.strip .month h2 { display: flex; }
+  .month { border: 1px solid #000; break-inside: avoid; --tourw: 22mm; --infw: 20mm; }
+  .day, .day.pad { height: 5.8mm; font-size: 7.5pt; flex: none; }
+  .day.pad { display: grid; }
+  .day .n i { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .day .gut i, .day .tour { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .day.today .n { color: inherit; } .day.today .n::before { display: none; }
+}
+
+/* ---------- the menu's view row ---------- */
+#more-list .views { display: flex; border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
+#more-list .views button { flex: 1; text-align: center; padding: 7px 6px; }
+#more-list .views button.active { font-weight: 700; }
+#more-list .views button.active::after { content: ""; }
+
+/* ---------- the year: the planner poster (phone) ---------- */
+#app.posterwrap { height: 100%; }
+.poster {
+  height: 100%; background: var(--paper);
+  display: grid; grid-template-columns: 22px repeat(12, minmax(0, 1fr));
+  grid-template-rows: 22px repeat(31, minmax(0, 1fr));
+  font-size: 9px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
+}
+.poster .ph { text-align: center; font-weight: 600; letter-spacing: .04em; border-bottom: 1px solid var(--rule-strong); display: flex; align-items: center; justify-content: center; }
+.poster .pn { text-align: right; padding-right: 3px; color: var(--ink-soft); border-bottom: 1px solid var(--rule); font-weight: 600; display: flex; align-items: center; justify-content: flex-end; }
+.poster .cell { position: relative; border-bottom: 1px solid var(--rule); border-left: 1px solid var(--rule); overflow: hidden; }
+.poster .cell.sun, .poster .cell.hol { background: var(--wash); }
+.poster .cell.none { background: repeating-linear-gradient(135deg, transparent 0 3px, var(--rule) 3px 4px); }
+.poster .cell.today::after { content: ""; position: absolute; inset: 1px; border: 1.5px solid var(--ink); pointer-events: none; }
+.poster .cell .rl { position: absolute; left: 3px; top: 0; bottom: 0; width: 2px; }
+.poster .cell .rl.l1 { left: 8px; }
+.poster .cell .tr { position: absolute; left: 45%; right: 0; top: 0; bottom: 0; background: var(--tour-wash); border-left: 2px solid var(--tour); }
+.poster .cell .tr.tbc { background: none; border-left-style: dashed; }
+.poster .cell .tr.open { border-top: 1px solid var(--tour); }
+.poster .cell .dot { position: absolute; right: 3px; top: 50%; margin-top: -2.5px; width: 5px; height: 5px; border-radius: 50%; background: var(--red); }
+
+/* ---------- the year: six over six (desk) ---------- */
+#app.year12 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 10px; align-items: start; }
+#app.year12 .month { border: 1px solid var(--rule-strong); --tourw: 44px; --infw: 34px; cursor: pointer; }
+#app.year12 .month h2 { font-size: 9px; padding: 3px 6px 2px; }
+#app.year12 .day, #app.year12 .day.pad { height: max(11px, calc((100dvh - 120px) / 66)); font-size: 8.5px; grid-template-columns: 15px 12px calc(3px + var(--lanes, 1) * 4px) minmax(0, 1fr) var(--tourw) var(--infw); }
+#app.year12 .day .w { font-size: 7.5px; }
+#app.year12 .day .line { gap: 0 5px; padding-left: 2px; }
+#app.year12 .day .line .sp { font-size: 7.5px; letter-spacing: .04em; }
+#app.year12 .day .line .tm { font-size: 7.5px; margin-right: 2px; }
+#app.year12 .day .line .more { font-size: 7.5px; }
+#app.year12 .day .tour { font-size: 7.5px; padding: 0 3px; }
+#app.year12 .day .tour .nm { font-size: 7px; letter-spacing: .02em; }
+#app.year12 .day .tour .perf { font-size: 8.5px; }
+#app.year12 .day .info { font-size: 7px; padding-right: 3px; letter-spacing: .02em; }
+#app.year12 .day .info.long { font-size: 6.5px; }
+#app.year12 .day .n i { width: 3px; height: 3px; margin-top: -1.5px; left: 0; }
+#app.year12 .day.today .n::before { width: 13px; height: 11px; right: 1px; }
+#app.year12 .day .gut { gap: 2px; padding: 0 1px; } #app.year12 .day .gut i { width: 2px; }
+
+/* ---------- the week: the schedule page ---------- */
+#app.weekview { padding: 0; }
+.week { background: var(--paper); font-size: 15px; min-height: 100%; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); }
+@media (min-width: 1000px) { #app.weekview { padding: 14px; } .week { max-width: 760px; margin: 0 auto; border: 1px solid var(--rule-strong); min-height: 0; } }
+.week .spans { padding: 6px 14px 6px 24px; border-bottom: 1px solid var(--rule-strong); font-size: 11px; display: flex; flex-direction: column; gap: 3px; }
+.week .spans div { display: flex; align-items: center; gap: 8px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
+.week .spans i { width: 2px; height: 11px; display: inline-block; }
+.week .spans small { color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 11px; }
+.week .wd { border-bottom: 1px solid var(--rule-strong); position: relative; padding: 0 0 7px 24px; }
+.week .wd.quiet { padding-bottom: 5px; }
+.week .wd.sun { background: var(--wash); }
+.week .wd .rl { position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; }
+.week .wd .rl.l1 { left: 15px; } .week .wd .rl.l2 { left: 20px; }
+.week .wd .rl.a { top: 8px; } .week .wd .rl.z { bottom: 8px; }
+.week .dh { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 7px 14px 3px 0; }
+.week .dh .dn { font-size: 15px; letter-spacing: .06em; white-space: nowrap; }
+.week .dh .dn b { font-weight: 700; margin-right: 6px; }
+.week .dh .dn .moon { font-style: normal; color: var(--ink-soft); margin-left: 8px; font-size: 12px; }
+.week .dh .ctx { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--tour); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.week .dh .ctx.perf { color: var(--red); }
+.week .dh .ctx.tbc { font-style: italic; font-weight: 400; }
+.week .dh .ctx.hn { color: var(--red); font-style: italic; letter-spacing: .02em; text-transform: none; }
+.week .wd.red .dn, .week .wd.show .dn { color: var(--red); }
+.week .wd.today .dn b { background: var(--ink); color: var(--paper); padding: 0 5px; border-radius: 3px; }
+.week .ln { display: grid; grid-template-columns: 44px 10px minmax(0, 1fr); align-items: baseline; gap: 0 6px; padding: 2px 14px 2px 0; margin: 0; }
+.week .ln .tm { font-style: normal; text-align: right; color: var(--muted); font-size: 12px; }
+.week .ln .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; position: relative; top: -1px; }
+.week .ln .tt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.week .ln .tt u { text-decoration: none; color: var(--muted); }
+.week .ln.show .tt { color: var(--red); }
+.week .ln.pencil .tt { color: var(--muted); }
+
+/* THE WEEK FILLS THE PAGE (Alan, 07.10: "a lot of empty space at the bottom if not
+   a lot of events — can it look more like an almanac"). On the phone the seven
+   days share the screen the way a diary week does: a quiet day takes its share
+   of the paper; a full week grows past the screen and scrolls. */
+@media (max-width: 999px) {
+  #app.weekview { min-height: 100%; display: flex; flex-direction: column; }
+  .week { flex: 1; display: flex; flex-direction: column; min-height: 100%; }
+  .week .spans { flex: none; }
+  .week .wd { flex: 1 0 auto; display: flex; flex-direction: column; }
+  .week .wd.quiet { flex: 1 0 auto; }
+  .week .wd .dh { flex: none; }
+}
+
+/* ---------- the day sheet's form: the line, opened ---------- */
+#daysheet.editing { max-height: 92vh; }
+@media (max-width: 999px) { #daysheet.editing { top: calc(env(safe-area-inset-top, 0px) + 44px); max-height: none; border-top: 1px solid var(--rule-strong); } }
+#daysheet .ev { cursor: pointer; }
+#daysheet .ev:active { background: var(--wash); }
+#daysheet .qa .more { border: 0; color: var(--muted); padding: 4px 6px; }
+#daysheet .qa { grid-template-columns: minmax(0, 1fr) auto auto; }
+.edit { display: flex; flex-direction: column; gap: 10px; padding: 10px 0 12px; border-bottom: 1px solid var(--rule-strong); font-size: 14px; }
+.edit input, .edit textarea, .edit select { font: inherit; font-size: 16px; color: var(--ink); background: var(--paper); border: 0; border-bottom: 1px solid var(--rule-strong); border-radius: 0; padding: 5px 0; outline: none; min-width: 0; width: 100%; }
+.edit input[type="time"], .edit input[type="date"] { width: auto; font-variant-numeric: tabular-nums; }
+.edit input[name="title"] { font-size: 18px; font-weight: 600; }
+.edit label { display: flex; flex-direction: column; gap: 2px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); min-width: 0; }
+.edit .frow { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.edit .frow > label { flex: 0 1 auto; }
+.edit label.tick { flex-direction: row; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--ink); padding-bottom: 6px; }
+.edit label.tick input { width: auto; border: 0; margin: 0; }
+.edit label.cal { flex: 1; }
+.edit .where > span { display: flex; gap: 10px; align-items: baseline; }
+.edit .maplink { font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--ink-soft); white-space: nowrap; }
+.edit textarea { resize: vertical; line-height: 1.4; }
+.edit .btns { display: flex; gap: 10px; margin-top: 4px; }
+.edit .btns button { font: inherit; padding: 6px 14px; border: 1px solid var(--rule-strong); border-radius: 3px; }
+.edit .btns .save { background: var(--ink); color: var(--paper); }
+.edit .btns .del { color: var(--red); border-color: var(--red); margin-left: auto; }
+.edit .btns button:disabled { opacity: .5; }
+
+/* the form's standard fields (07.10): colour, repeat, reminder, zone, guests */
+.edit .colour { display: flex; align-items: center; gap: 12px; }
+.edit .colour .lbl { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.edit .swatches { display: flex; gap: 7px; flex-wrap: wrap; }
+.edit .sw { width: 20px; height: 20px; border-radius: 50%; background: var(--c); display: inline-block; cursor: pointer; box-sizing: border-box; border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--rule); }
+.edit .sw.on { box-shadow: 0 0 0 2px var(--ink); }
+.edit label small { text-transform: none; letter-spacing: 0; }
+.edit select { appearance: none; -webkit-appearance: none; background: none; padding-right: 0; }
+
+/* the form's standard fields (07.10): colour, repeat, reminder, zone, guests */
+.edit .colour { display: flex; align-items: center; gap: 12px; }
+.edit .colour .lbl { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.edit .swatches { display: flex; gap: 7px; flex-wrap: wrap; }
+.edit .sw { width: 20px; height: 20px; border-radius: 50%; background: var(--c); display: inline-block; cursor: pointer; box-sizing: border-box; border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--rule); }
+.edit .sw.on { box-shadow: 0 0 0 2px var(--ink); }
+.edit label small { text-transform: none; letter-spacing: 0; }
+.edit select { appearance: none; -webkit-appearance: none; background: none; padding-right: 0; }
+#daysheet header .dn { cursor: pointer; }
+#daysheet .qa[hidden] { display: none; }   /* the sheet's grid must not outrank the fold */
+
+/* the poster's peek: what a dot is */
+#peek { position: fixed; z-index: 25; background: var(--paper); border: 1px solid var(--rule-strong); padding: 8px 12px 6px; max-width: min(300px, 92vw); font-size: 13px; box-shadow: 0 4px 16px rgba(0, 0, 0, .10); cursor: pointer; }
+#peek b { font-weight: 700; letter-spacing: .04em; }
+#peek > span { color: var(--muted); font-size: 11px; margin-left: 4px; }
+#peek p { margin: 4px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+#peek p.red { color: var(--red); }
+#peek .rl { width: 2px; height: 12px; display: inline-block; flex: none; }
+#peek small { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.poster .cell.peeked { outline: 1.5px solid var(--ink); outline-offset: -1px; }
+
+/* THE PHONE'S SHEETS LIE ON THE DESK, AND SPEAK QUIETLY (Alan, 08.10: "it fills too
+   close to the edge of the screen" and "just like the widget design has elegance and
+   simplicity I'd like the same for the month view"; decided in the DESIGN session,
+   STATUS 08.10 items 1 and 3). The month, the week and the poster are inset 10px on the
+   desk ground with their ink frame; the header stands on the ground with no rule. The
+   month takes the widget's restraint: lighter figures, hairlines between days (Sunday
+   keeps its ink rule), smaller type in the columns. The desk keeps its sizes. */
+@media (max-width: 999px) {
+  header.top { background: var(--bg); border-bottom: 0; padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 8px; }
+  header.top #title { font-size: 12px; letter-spacing: .16em; font-weight: 700; }
+  header.top #yr { font-size: 11px; letter-spacing: .12em; font-weight: 500; }
+  #more summary { font-size: 15px; }
+  #app.strip, #app.weekview, #app.posterwrap { padding: 0 10px calc(env(safe-area-inset-bottom, 0px) + 10px); background: var(--bg); }
+  #app.strip .month, #app.weekview .week, #app.posterwrap .poster { border: 1px solid var(--rule-strong); }
+  #app.strip .month, #app.posterwrap .poster { padding-bottom: 0; }
+  /* the month */
+  #app.strip .month { --tourw: 64px; --infw: 56px; }
+  #app.strip .day { border-bottom: .5px solid var(--rule); font-size: 12px; }
+  #app.strip .day.sun { border-bottom: 1px solid var(--rule-strong); }
+  #app.strip .day .n { font-weight: 500; font-size: 12px; }
+  #app.strip .day .w { font-size: 10px; color: var(--muted); }
+  #app.strip .day .line { padding-left: 6px; }
+  #app.strip .day .line .tm, #app.strip .day .line .more { font-size: 10px; }
+  #app.strip .day .line .sp { font-size: 10px; letter-spacing: .06em; font-weight: 600; }
+  #app.strip .day .tour { font-size: 10px; padding: 0 5px; }
+  #app.strip .day .tour .nm { font-size: 9px; letter-spacing: .02em; }
+  #app.strip .day .tour .perf { font-size: 12px; }
+  #app.strip .day .info { font-size: 9px; padding-right: 7px; }
+  #app.strip .day .info.cty { letter-spacing: .06em; font-weight: 500; }
+  #app.strip .day .gut i { width: 1.5px; }
+  #app.strip .day.today .n::before { width: 18px; height: 16px; }
+  /* the week fills the screen inside its margin, not the screen itself */
+  #app.weekview { min-height: 0; }
+  #app.weekview .week { min-height: 0; flex: 1 0 auto; padding-bottom: 0; }
+  /* the week, the same restraint */
+  .week .wd { border-bottom: .5px solid var(--rule); }
+  .week .wd.sun { border-bottom: 1px solid var(--rule-strong); }
+  .week .dh .dn { font-size: 14px; }
+  .week .dh .dn b { font-weight: 500; }
+  .week .dh .ctx { font-size: 10px; }
+  .week .ln { font-size: 14px; }
+  .week .ln .tm { font-size: 11px; }
+  .week .wd .rl { width: 1.5px; }
+  .week .spans { border-bottom: .5px solid var(--rule); font-size: 10px; }
+  /* the poster */
+  .poster .pn { font-weight: 500; color: var(--muted); }
+  .poster .ph { font-weight: 600; }
+  .poster .cell .rl { width: 1.5px; }
+}
