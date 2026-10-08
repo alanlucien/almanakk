@@ -5,6 +5,50 @@ what the app shows at the foot of Kalendere ("bygg …"); the commit is what to 
 to get exactly that version back (`git checkout <commit>` then `python3 publiser.py`).
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
+
+## 08.10.2026 — LIVE: v3 is production (bygg 20261008c)
+- https://almanakk-v2.pages.dev/ and /v2/ now open v3: the redesigned month, the year
+  poster and six over six, the week, the day sheet with editing, the widgets' snapshot,
+  the quiet phone look, his eight wg colours.
+- The iPhone and Mac app (TestFlight build 3) open production instead of the preview lane.
+- TO UNDO: Cloudflare dashboard → almanakk-v2 → Deployments → Rollback to 20260923c,
+  or in `publiser.py` set `_redirects` back to `/  /v2/  302` and run `python3 publiser.py`.
+
+## 07.10.2026 — v3, step 1: the month and the quarter (bygg 20261007a, PREVIEW lane, /v3/)
+- bygg 20261008b/c (08.10, PREVIEW): the quiet phone look — sheets inset on the desk,
+  lighter type, the month's show dots gone, the day sheet without an add line at rest
+  (tap its head or the day again to write, swipe down to close); the new web icon; his
+  eight wg colours for events. TestFlight build 2: icon E and the grey top.
+- bygg 20261008a (08.10): the page now actually sends the widgets their snapshot;
+  the code had not been deployed, so the TestFlight widgets were blank.
+- A new renderer in `v3/`, built from `Front/REDESIGN — 06.10.md`: his line flush
+  left, whole entries then +n; his spans as thin gutter rules; the tour as a column
+  on the right with the robot's words; text in ink and red only.
+- wg | Schedule never reaches the month. Tap a day for the sheet: full list, delete
+  with undo, quick-add. No editing yet (step 3).
+- Same day, step 2: the year as the planner poster on the phone and six over six on
+  the desk; the week as the schedule page (tour word and city per day, the schedule's
+  calls with a dot, the moon's turns); tap "uke N" to open a week, the title to climb.
+- bygg 20261007b: on the phone the week's seven days share the screen like a diary
+  page; a quiet week no longer leaves the bottom blank.
+- bygg 20261007c, step 3: tap a line in the day sheet and it opens as the form —
+  title, clocks or Heldags, dates, place with a map link, notes, Blyant, Reise, the
+  calendar; Lagre with Angre, Slett with Angre; Skjema opens the form for a new event.
+- bygg 20261007d: the sheet opens quiet (+ Ny unfolds the add line); the form gains
+  Gjentas, Varsel, Tidssone, Gjester and eleven event colours drawn in the almanac's
+  dusty palette; a tap on the poster peeks at the day; swipe in the sheet steps a day;
+  the year figure opens the year. gcal.js carries repeat, reminders and guests.
+- 08.10: three widgets — Dag, Uke, Måned — each drawn as the sheet; the iPhone app
+  uploaded to TestFlight (build 1.0 (1)) under the App Store Connect record Alan made.
+- The widget (native, `native/Widget/`): small, medium and lock-screen, fed by a
+  snapshot the page posts to the app after every sync; the wrapper now opens /v3/
+  on the preview lane. Built for the iPhone simulator and the Mac. Not deployed
+  anywhere: it reaches his phone through Xcode.
+- bygg 20261007e: 3px of paper between parallel gutter rules, so two projects from
+  the same calendar no longer fuse into one stroke (Alan asked; I agreed).
+- https://preview.almanakk-v2.pages.dev/v3/ (same login). v2 and production untouched.
+  TO UNDO on preview: `git checkout 69ed6ab` then `python3 publiser.py --preview`.
+
 ## 05.10.2026 — one touring calendar (bygg 20261005a, PREVIEW lane only)
 - Tours are read from the robot's `wg | TOURING` calendar whenever it exists; the
   calendars that used to be tagged as tours are untagged and hidden once, with a toast,

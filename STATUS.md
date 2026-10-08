@@ -1,6 +1,6 @@
 # STATUS — where Almanakk stands
 
-Updated 06.10.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
+Updated 07.10.2026. Updated in place — one file, never a dated copy. **Read this first.** `CLAUDE.md` and the notes in `Front/` are working notes, not the state.
 
 A Norwegian wall-calendar view on Google Calendar. **Live** at https://alanlucien.github.io/almanakk/, installed as a PWA. v2 is live at https://almanakk-v2.pages.dev/, build `20260923c` (`ec44786`, deployed 23.09 — the
 20.09 feedback batch). The preview lane is ahead of it at `20261005a`, the touring calendar.
@@ -21,8 +21,425 @@ phone). In one line: *the month sees the tour, the week sees the schedule, the l
 alone* — wg | TOURING in month and year only, as a column on the right; wg | Schedule in
 week, day and widget only; his spans as thin rules in a gutter; text in ink and red; the
 year as the 12×31 planner poster. It retires the 17.09 alignment spec, the stair, the
-14-day beat and the five URL switches. **Waiting on Alan: four questions at the foot of the
-document.** Everything below this line is the state of what is live, unchanged.
+14-day beat and the five URL switches. **Answered 07.10** (section 7 of the document): ink not
+colour, yes; poster on the phone, six over six on the desk; the tour column on the right;
+and the column is wg | TOURING's alone (the only tours there are), with the robot's
+eight words; his long-running projects are the thin gutter rules, not tours. **Step 1 BUILT 07.10**, below.
+Everything from "05.10.2026" down is the state of v2, unchanged.
+
+### Step 1 — `v3/`: the month on the phone, the quarter on the desk (bygg `20261007a`, PREVIEW)
+
+Alan said go, 07.10. `v3/` is a new renderer beside v2 — `index.html`, `app.js` (955
+lines, of which 240 are the city tables copied verbatim from v2), `style.css` (176 lines),
+`sw.js`, `manifest.webmanifest` — sharing `../gcal.js`, `../airports.js`, `../config.js`
+and `../demo-data.js`. `publiser.py` now builds both lanes into `dist/`; production's
+redirect still points at `/v2/`. **To see it: https://preview.almanakk-v2.pages.dev/v3/**
+(same login). v2 is untouched; production is untouched.
+
+What it does, from the document: the row is day · letter · gutter · the line · tour
+column · info. His spans are 2px rules in the gutter (up to four), named once on the
+line where they begin and on the 1st. His line starts flush left on every row, whole
+entries, then **+n**; a show is red; a pencilled or tbc entry grey. The tour column is
+wg | TOURING's: the production's name where a leg begins, the robot's word on every
+other row, a performance as its bare number in red, a HOLD or tbc leg dashed and
+italic; on a row with no leg the line runs into the column. The info column: a holiday
+(italic), `uke` on Monday (on Tuesday when Monday is a holiday), the city on Tuesday, on
+the 1st and when it changes — a booking that day, else the leg's Location, else the
+last move. Red dot on the day number when the day holds a show. The phone fills one
+screen with the month, nothing scrolls; the desk shows the quarter, row for row, with
+‹ › and the arrow keys. wg | Schedule is never drawn in the month (D1).
+
+**Tap a day → a sheet** (bottom on the phone, right on the desk): everything that day
+in full, the schedule's calls included, with a × to delete (undo in the toast) and the
+quick-add line (`8-12 tekst`, `13:00`, `-Roma tbc` all work as before). **No editing
+yet** — that is step 3's day view; for editing he uses production v2 meanwhile.
+**ONE measuring pass** (`clipLines`) is all that runs after render.
+
+Verified in the browser on the sample February at 375×812 and 1280×860: no console
+errors, 28 rows fill the phone exactly, the quarter fits a desk, quick-add makes a span
+and a third gutter rule, the day sheet opens and closes. **Not yet seen on his real
+calendar** — the Cloudflare lane needs his login. Known: on 23 Feb the sample flight
+hides behind "FESTIVALUKE +1" because a span's name is written first on the day it
+begins (D2); say if a move should outrank the name.
+
+**Alan, 07.10, on the pictures: "i like it."** Step 1 stands as built; nothing to redo.
+
+### Step 2 — the year and the week (bygg `20261007b`, PREVIEW, same address)
+
+Alan, 07.10: *"go and a good week view i want as well."* Built the same day:
+- **The year on the phone is the planner poster** (D5): 12 columns, 31 rows, one screen,
+  marks only — a tour leg a tinted column, a show a red dot, his spans thin rules, Sundays
+  and holidays washed, today framed. Tap any month to open it.
+- **The year on the desk is six over six**, twelve real sheets drawn with the v3 row at
+  8.5px, row heights from the window so the year fits without scrolling at 1280×860.
+  Tap a sheet to open the month.
+- **The week is the schedule page.** The spans running through it named once at the top
+  with their rules continuing down the days. Each day: the figure and the name, the
+  moon's turn when there is one, and at the right the tour's word and city — *GET IN ·
+  PARIS*, red *ANTIGONE 15 · PARIS* on a show — or the holiday. Under it his all-day
+  lines, then every timed line in order, wg | Schedule's among them, told apart by the
+  dot. A quiet day is one line tall. Tap a day for the same sheet as the month.
+- **Navigation:** tap *uke 7* in the month and the week opens; tap the title to climb
+  (month → year; year or week → month); the ⋯ menu has a Måned · Uke · År row and I dag;
+  ‹ › and the arrow keys step a week, a quarter or a year; a phone swipes.
+
+Verified on the sample February at 375×812 and 1280×860, no console errors; the poster
+measures exactly the height of the screen. Not yet seen on his real calendar.
+
+**Alan, 07.10, on the pictures: "i like this."** Step 2 stands as built. One ask the
+same day, done as bygg `20261007b`: *"the week view on iPhone has a lot of empty space
+at the bottom if not a lot of events — can it look more like an almanac?"* On the phone
+the seven days now share the screen the way a diary week does — a quiet day takes its
+share of the paper, a full week grows past the screen and scrolls. The desk is unchanged.
+**Corrected 08.10:** that rule set `min-height: 100%` on `#app.weekview`, which is the
+`<main>` itself, so on the phone the week's container was a full screen tall UNDER the
+header and every week ran 63px off the bottom (seen once the sheet had a frame to show
+it). Found and fixed in the build session with the inset sheet: `#app.weekview {
+min-height: 0 }`, the `.week` grows with its days (`flex: 1 0 auto`).
+
+### Step 3 — the day sheet edits (bygg `20261007c` → `20261007d`, PREVIEW, same address)
+
+Alan said go, 07.10. **The line is the form (E1):** tap an entry in the day sheet and it
+opens in place — no buttons on the rows. Title; Heldags or the clocks (from, to); the
+dates (from, to — so a day becomes a span, E4); the place, with a Kart link; the notes;
+Blyant (the `P`) and Reise (a bare place becomes `→ Roma`, with Blyant it becomes `→
+Roma tbc`); the calendar it lives in (a select of the writable ones — changing it is
+Google's own move, E3); Lagre · Slett · Lukk. **Angre after an edit (Q2):** the toast
+after Lagre carries Angre, which patches the words and the when back exactly as they
+were and moves it back if it was moved. Slett still carries Angre as before.
+**Skjema** beside the quick-add line opens the same form for a new event, with whatever
+was typed as its title. No colour swatches, by decision: his clients throw event colours
+away (03.09) and v3 does not paint words by colour (D4).
+
+On the phone an open form takes the sheet to full height so the fields can scroll
+clear of the keyboard; a tap off the sheet never drops an open form (Lukk does).
+The save body is v2's exactly: timed → `dateTime` with the event's own zone and `date:
+null`; all-day → `date` with `dateTime: null`, end exclusive. Verified on the sample
+data: an edit saves and the day reopens changed; a new event through Skjema lands with
+its pencil, place and note; no console errors. **Not yet exercised against Google** —
+that is his first real edit on the preview lane, where production v2 is the fallback.
+
+**Same evening, bygg `20261007d`, four asks from Alan on the pictures:**
+- *"make sure day view doesn't open immediately in 'add event'"* — the sheet opens
+  quiet: no field, nothing focused; **+ Ny** at the foot unfolds the quick-add line.
+- *"no edit fields that exist on a standardized calendar that are not available to me"*
+  — the form now also has **Gjentas** (never / daily / weekly / every 2 weeks / monthly /
+  yearly, with an until date; on an instance of a series the rule is written to the
+  series), **Varsel** (none / default / at start / 10 / 30 / 60 min / 1 day before),
+  **Tidssone** (for timed events; the event's own zone plus the cities he lands in) and
+  **Gjester** (emails, comma-separated — Google sends them the invitation). `gcal.js`
+  now carries `recurrence`, `recurringEventId`, `reminders` and `attendees` with every
+  event and writes them on create; additive, v2 unaffected. **Left out, deliberately:**
+  attachments, Meet links, visibility, busy/free — say if any is missed.
+- *"set colours for an event, independent of Google calendar colour — my good dusty
+  colours with high contrast"* — eleven swatches in the form, stored as Google's
+  `colorId` 1–11 so they survive in Google, DRAWN in the almanac's own dusty palette
+  (`DUSTY`, `v3/app.js`): the dot, the gutter rule, and the words on the line take the
+  colour **only when he chose one**; a calendar's colour stays in the dot and rule
+  alone (D4 holds). The first swatch is "the calendar's".
+- *"tap a dot so that we see what the event is"* — on the poster a tap on any day (hover
+  on a desk) opens a **peek**: the date, the tour's word and city, his spans, his
+  entries; a tap on the peek opens the month with that day's sheet. Also: **swipe
+  left/right in the day sheet** steps a day (the month or week underneath follows), and
+  **the year figure in the header opens the year** from anywhere; the title still
+  climbs.
+
+Bygg `20261007e`: Alan asked whether parallel span rules sat too close; they did —
+2px of ink with 2px between, so two blue projects fused. Now 3px of paper between, in
+the month, the year sheets and the poster.
+
+With this, v3 has everything v2 has except print's 6/12-per-page choice.
+
+### Step 4 — the widget, BUILT 07.10 (native, `native/Widget/`)
+
+Alan: *"now the widget."* Built and seen in the iPhone simulator the same evening.
+
+**How it is fed — no stage B needed.** The web page (`v3/app.js` → `snapshot()`)
+writes a JSON of yesterday to 45 days ahead after every render — per day: the city,
+the week, the holiday, the tour's name/word/number/city, whether it is a show day,
+his spans, and his and the schedule's lines with time, title and colour — and posts it
+to the wrapper through `window.webkit.messageHandlers.almanakk`. `WebView.swift`
+writes it to the App Group `group.com.winterguests.almanakk` (`Shared/Snapshot.swift`)
+and tells WidgetKit to redraw. The widget never touches Google or Cloudflare.
+**It is therefore as fresh as the last time the app was opened**; the timeline carries
+every day the snapshot covers, so it turns over at midnight on its own, and today's
+lines drop off as their clocks pass. Until the app has been opened once it says "Åpne
+Almanakk". (Native sign-in and the Keychain — stage B — are no longer needed for the
+widget; they remain the path to a fully native app.)
+
+**What it shows.** Small: the day large (red on a Sunday/holiday, a red dot when a
+show), the weekday, *PARIS · UKE 41*, the tour's word, a show as its number in red.
+Medium: the same, and today's lines still ahead, with the clock and the colour dot.
+Lock screen (iOS): a rectangular one (day, word, context, next line) and an inline one.
+Mac: small and medium. Paper white, the almanac's inks.
+
+**The project.** `native/Almanakk.xcodeproj` now has two targets: `Almanakk` (embeds
+the widget) and `AlmanakkWidget` (`com.winterguests.almanakk.widget`). Both carry the
+App Group; iOS and macOS have separate entitlements files. The wrapper now opens
+**https://preview.almanakk-v2.pages.dev/v3/** (move it to production's address when v3
+takes over). Built 07.10: iPhone 17 Pro simulator (BUILD SUCCEEDED, widget embedded)
+and macOS (BUILD SUCCEEDED, with `-allowProvisioningUpdates`, which **registered the
+App Group and new profiles on his Apple account** — Xcode will show them). In the
+simulator, with a sample snapshot written into the group container, the small and
+medium widgets drew correctly and were added to the home screen. **Not yet seen with
+his real snapshot**: that needs the app on his phone, signed in, opened once.
+
+**For Alan:** in Xcode, build to the iPhone as in `native/README.md`, open the app
+once (it signs in through Cloudflare as before), then long-press the home screen →
+Edit → Add Widget → Almanakk. TestFlight is still the next ops step, so the build
+does not lapse after 7 days.
+
+**Later the same evening — three widgets, drawn as the sheet (Alan: "make sure the
+widget does not look like calendars on iPhone... day view, week view, even month
+view").** The snapshot was rebuilt: `monthData(y, m)` in `v3/app.js` now produces the
+month's rows ONCE and both `renderMonth` and `snapshot()` read them, so the widget can
+never disagree with the sheet (per day: figure, letter, week, lanes with colours,
+the line's parts with time/ink/colour, the tour cell with name/word/number/open, the
+info cell). It covers the Monday before this month's 1st to 62 days ahead, and the
+schedule's calls join the day's lines. `Shared/Snapshot.swift` matches.
+`Widget/AlmanakkWidget.swift` is now a bundle of three: **Dag** (small/medium + lock
+screen: the day's head, the tour's word on its own line, the lines with clock and dot,
+the city and week at the foot), **Uke** (medium/large: seven rows, figure and letter,
+the day's lines on one line, the tour's word at the right, Sunday washed and closed
+with the heavy rule, today marked), **Måned** (large: the whole sheet — every row with
+the gutter rules, the line, the tour column and the info cell, 7pt type). Built for
+the simulator and the Mac (BUILD SUCCEEDED, both). The Dag widget was seen on the
+simulator's home screen with a sample October snapshot and reflowed once (the
+weekday wrapped at small width). **Seen 08.10, all three, in the simulator's gallery** (`Front/bilder/v3-step4-widget-*.png`):
+Dag small with the reflowed head, Uke medium and large, Måned large — the whole October
+sheet, 31 rows, the gutter rules, the tour column with 24–28 in red, Hold dashed, the
+info column. The month's rows are cut from the widget's own height (`GeometryReader`),
+so 31 rows always fit and the type follows the row (~7pt on a 6.1" phone). Overnight the
+Dag widget rolled over to Torsdag on its own — the timeline works.
+
+**08.10 — Alan on the real calendar: an edit (a pencilled event on the 9th) saved and
+kept.** So the save path against Google works.
+
+**TestFlight, 08.10 — the iPhone build is UP.** Alan created the App Store Connect
+record (iOS + macOS, name Almanakk, SKU almanakk) and the upload succeeded at 10:13:
+build 1.0 (1), `Almanakk.ipa`, "Uploaded package is processing". The Mac app went up
+the same way at 10:16 (`Almanakk.pkg`, archive `build/Almanakk-mac.xcarchive`). He adds
+himself as an internal tester under the app's TestFlight tab and installs from the
+TestFlight app, on the phone and on the Mac.
+Each later upload needs `CURRENT_PROJECT_VERSION` bumped in the pbxproj (or Apple's
+"manageAppVersionAndBuildNumber" in `build/export.plist` does it). The earlier note: `xcodebuild archive` for iOS (Release,
+`-allowProvisioningUpdates`) SUCCEEDED: Apple issued the distribution profiles for the
+app and the widget (`native/build/Almanakk.xcarchive`). The upload
+(`-exportArchive`, `build/export.plist`: method app-store-connect, destination upload)
+failed with *"App record with bundle identifier com.winterguests.almanakk not found on
+App Store Connect"*. The record can only be made by him (App Store Connect → My Apps →
++ → New App: iOS, name Almanakk, bundle id com.winterguests.almanakk, SKU almanakk,
+language Norwegian). Once it exists, rerun:
+`cd native && xcodebuild -exportArchive -archivePath build/Almanakk.xcarchive -exportOptionsPlist build/export.plist -exportPath build/export -allowProvisioningUpdates`
+then in App Store Connect → TestFlight add him as an internal tester, and the TestFlight
+app on the phone installs it. The Mac app can go to TestFlight the same way (archive with
+`-destination 'generic/platform=macOS'`), under the same record.
+
+## 08.10 — DESIGN session; the build is now another session's (Opus)
+
+Alan, 08.10: *"this is now design only session. I have opened an Opus for the build. Any
+decision here is sent to Opus."* So from here this file carries decisions and pictures;
+the code moves in the build session.
+
+**The app icon — an A cut from the wg signature (Alan's ask, 08.10: "part of my wg logo
+but without the w part and a bigger A").** Source: `wg | PRODUCTIONS /MARKETING/wg LOGO/
+wg Symbol.svg` on the shared drive (the suite's vector; a copy in
+`Front/bilder/logo/wg-symbol.svg`). The mark is one pen stroke: the A (left leg, right
+leg, a free-ended crossbar) and then the w and the tail. The A's three centre lines were
+measured off the outline — apex (241.4,303.7), bottom-left (112,768), right foot
+(367.6,760), crossbar end (449.2,540), stroke 18.8, round caps — and redrawn alone at
+1.75× (`Front/bilder/logo/almanakk-A-*.svg`, PNGs at 1024 beside them, rendered with
+QuickLook like the old icon). Four colourways for Alan to pick from
+(`icon-candidates-1/2.jpg`): **A** white on the suite's oxblood #7A2E2B (wg send's
+ground), **B** ink on paper (the almanac's own), **C** white on ink (wg workspace's),
+**D** the almanac's red #C0221B on paper. Then, on his ask, two more shapes
+(`icon-candidates-3.jpg`, `almanakk-E-*` / `almanakk-F-*`): **E** the crossbar stops
+at the right leg (centre lines cross at 329.2,621.1; nothing pokes out right), **F** no
+crossbar at all, two legs only. Each in the four colourways. **Alan, 08.10: shape E.** Colourway still
+open (oxblood, the suite's, is the default if he says nothing more). For Opus, when
+chosen: replace `native/Almanakk/Assets.xcassets/AppIcon.appiconset` (iOS 1024 full
+bleed; the Mac set from the same SVG on Apple's rounded grid as before), and the web
+`icon.svg` + the two PNGs with a new filename (iOS caches by URL).
+
+**08.10 — widgets blank on his phone (TestFlight build), fixed as bygg `20261008a`.**
+The snapshot code (`snapshot`, `publishSnapshot`, `monthData` in `v3/app.js`) was
+written AFTER the last preview deploy (`20261007e`), so the page the app opens never
+posted a snapshot and the widgets had nothing to draw. Signing checked and right (app
+and widget both carry `group.com.winterguests.almanakk`, profiles too). Redeployed to
+preview; `dist/v3/app.js` contains `publishSnapshot`. Only real hex colours now cross
+to the widget (a show's ink was `var(--red)`). **Lesson: the native build depends on
+the web page — deploy the page first, check `dist/`, then archive.** No new TestFlight
+build is needed for this: the app loads the page live.
+
+**Two more design decisions for Opus (Alan, 08.10, from the phone):**
+1. *"The month view is not very elegant on phone, it fills too close to the edge of the
+   screen."* Decision: on the phone the month is a SHEET ON THE DESK, like the quarter on
+   the Mac — inset 10px on both sides and below, with its 1px ink frame, on the desk
+   ground `--bg #ebebe7`; the header stands on the desk ground with no rule under it.
+   Mock-up: `Front/bilder/v3-phone-month-inset-mock.jpg` (CSS, shown to Alan):
+   `body{background:var(--bg)} header.top{background:var(--bg);border-bottom:0}
+   #app.strip{padding:0 10px calc(env(safe-area-inset-bottom)+10px);background:var(--bg)}
+   #app.strip .month{border:1px solid var(--rule-strong)}`. The week and the poster
+   should take the same inset so the three phone sheets agree. Rows shrink by ~1px each;
+   February still fits. Waiting on his yes to the picture.
+2. *"I don't like the yellow colour on the top of the screen."* That is the native
+   wrapper: `ContentView` paints `Color(0xef,0xe8,0xd4)` (v2's cream) behind the status
+   bar, and `WebView.swift` sets the same as `underPageBackgroundColor`. Decision: both
+   become the desk ground #EBEBE7 (so the status bar area is the desk the sheet lies on);
+   if 1 is declined, white #FFFFFF instead. `v3/index.html`'s `theme-color` follows the
+   same value.
+
+**Build session, 08.10 — decisions 1, 2 and the dots BUILT LOCALLY, not deployed.**
+- The phone's month, week and poster lie on the desk: inset 10px with the ink frame,
+  the header on `--bg` with no rule (`v3/style.css`, last block). Measured at 375×812:
+  10px left, right and below, nothing scrolls, February fits.
+- The month's red show dots on the day number are gone (`renderMonth`); the poster
+  keeps its dots, since there they are the only mark a show has.
+- `theme-color` and the manifest colours are `#ebebe7`; the native `ContentView` and
+  `underPageBackgroundColor` are `#EBEBE7` (`AlmanakkApp.swift`, `WebView.swift`).
+Waiting for the DESIGN session's typography note, then one preview deploy. The native
+colour reaches Alan only through a new TestFlight upload; that waits for the icon's
+colourway so he gets one upload.
+
+3. *"The mock is better, but just like the widget design has elegance and simplicity I'd
+   like the same for the month view."* and *"not sure what the dots in the left column
+   are now. Shows? Do we need them?"* Decision, shown as `Front/bilder/v3-phone-month-
+   quiet-mock.jpg` (Alan to confirm): the phone month takes the widget's restraint —
+   **the red show dots go** (a show is already red on the line or a red number in the
+   tour column); the day figure drops from 600 to 500 weight at 12px, the letter to 10px
+   in the muted ink; the rules between days become 0.5px hairlines, the Sunday rule stays
+   1px ink; the line's type 12px with 10px clocks; span names 10px; the tour column 64px
+   at 10px (name 9px, number 12px); the info column 56px at 9px; gutter rules 1.5px; the
+   header is small caps at 12px with the year at 11px, standing on the desk ground. The
+   exact CSS used for the mock (inject over v3/style.css, phone only):
+   `body{background:var(--bg)} header.top{background:var(--bg);border-bottom:0;padding:calc(env(safe-area-inset-top,0px)+14px) 16px 8px}
+   header.top #title{font-size:12px;letter-spacing:.16em;font-weight:700} header.top #yr{font-size:11px;letter-spacing:.12em;font-weight:500}
+   #more summary{font-size:15px} #app.strip{padding:0 10px calc(env(safe-area-inset-bottom,0px)+10px);background:var(--bg)}
+   #app.strip .month{border:1px solid var(--rule-strong);padding-bottom:0;--tourw:64px;--infw:56px}
+   .day{border-bottom:.5px solid var(--rule);font-size:12px} .day.sun{border-bottom:1px solid var(--rule-strong)}
+   .day .n{font-weight:500;font-size:12px} .day .n i{display:none} .day .w{font-size:10px;color:var(--muted)}
+   .day .line{padding-left:6px} .day .line .tm{font-size:10px} .day .line .sp{font-size:10px;letter-spacing:.06em;font-weight:600}
+   .day .line .more{font-size:10px} .day .tour{font-size:10px;padding:0 5px} .day .tour .nm{font-size:9px;letter-spacing:.02em}
+   .day .tour .perf{font-size:12px} .day .info{font-size:9px;padding-right:7px} .day .info.cty{letter-spacing:.06em;font-weight:500}
+   .day .gut i{width:1.5px} .day.today .n::before{width:18px;height:16px}`
+   The same restraint applies to the week and the poster on the phone, so the three
+   sheets agree; the desk keeps its sizes. Sent to the build session 08.10.
+
+**Build session, 08.10 — items 1, 2 and 3 BUILT LOCALLY, NOT DEPLOYED (waiting on
+Alan's yes to the quiet-month picture, which he gives in the build session).**
+- The phone's month, week and poster lie on the desk, inset 10px with the ink frame;
+  the header on `--bg`, no rule, small caps 12px, year 11px (`v3/style.css`, the last
+  `@media (max-width: 999px)` block — item 3's CSS, scoped to the phone, with the same
+  restraint carried to the week and the poster).
+- The month's red show dots are gone (`renderMonth`), on the phone AND the desk — one
+  rule everywhere (DESIGN session, 08.10). The poster keeps its dots, where they are the
+  only mark a show has.
+- Measured at 375×812: month, week (busy and quiet) and poster all close at 802, 10px
+  above the bottom, nothing scrolls. A fault found on the way: an older rule made the
+  week's container a full screen tall under the header, so the phone week ran 63px off
+  the bottom; fixed.
+- `theme-color` and the manifest are `#ebebe7`; the native `ContentView` and
+  `underPageBackgroundColor` are `#EBEBE7`. The native part reaches him only with a new
+  TestFlight upload, held for the icon's colourway (shape E chosen; oxblood if he says
+  nothing).
+
+4. **The day sheet (Alan, 08.10).** *"Clicking into a day in month view brings up the
+   bottom date view. Good. But would like to be able to swipe it down and away."* —
+   Decision: a downward swipe on the sheet (on its head or its list, not on a field, not
+   with a form open) closes it; the same gesture a system sheet has. *"The add-new-event
+   takes up too much space; rather have it be another tap to add in day view, or a
+   double tap on the day in the month view to get to the current add."* — Decision: the
+   sheet carries NO add line at rest, not even "+ Ny". Two ways in, both to the same
+   quick-add line, focused: a second tap on the day's row in the month (the sheet is
+   already open for that day, so the second tap means "write"), and inside the sheet a
+   tap on its head (the figure and the name) unfolds the line. The Skjema button goes
+   with the line. Sent to the build session 08.10.
+
+5. **His palette, not mine (Alan, 08.10: "what were my colour swatches to choose from?
+   I had built one for the wg suite").** It is `wg LOGO/Apps/wg swatches.md` on the
+   shared drive (05.10.2026; a copy in `Front/bilder/logo/wg-swatches.md`): Paper
+   #F2EFE9 · Ink #1B1F26 · White · Black · Slate #5B7183 · Deep sea #2F5560 · Oxblood
+   #7A2E2B · Brick #9E4A3C · Rust #A7532F · Straw #E3C85A · Saffron #E0A526 · Brand
+   yellow #F5D33F, plus nine "not chosen, on record". Picture
+   `Front/bilder/logo/palette-and-grounds.jpg`: (1) shape E on each of the twelve
+   grounds (`almanakk-E-wg-*.svg`), so the icon's colourway is picked from his own set;
+   (2) **the event colours in the form become his palette**, replacing my `DUSTY`
+   table: the eleven that read as words on white, in Google's eleven slots — 1 Slate
+   #5B7183 · 2 Deep sea #2F5560 · 3 Petrol #3E6B74 · 4 Verdigris #4F8378 · 5 Oxblood
+   #7A2E2B · 6 Brick #9E4A3C · 7 Rust #A7532F · 8 Dusty rose #B4625C · 9 Wine #6E2F3F ·
+   10 Old gold #B8962E · 11 Ink #1B1F26. Straw, Saffron and Brand yellow are left out as
+   text (too light on paper) and stay icon grounds. **Alan, 08.10: the icon's ground is
+   PAPER** — shape E, the A in Ink #1B1F26 on Paper #F2EFE9: `Front/bilder/logo/
+   almanakk-E-wg-paper.svg`, rendered `almanakk-E-paper-1024.png`. **Alan, 08.10: yes to the event
+   palette, "go for the ones with the most contrast."** Measured as words on white
+   (WCAG, 4.5:1 is the floor for text): Ink 16.5 · Wine 9.8 · Oxblood 9.3 · Deep sea
+   8.1 · Brick 6.0 · Petrol 5.9 · Rust 5.4 · Slate 5.1 pass; Verdigris 4.3 and Dusty
+   rose 4.3 are weak; Old gold 2.8 fails. **So the event palette is EIGHT**, in Google's
+   slots 1–8 in this order: 1 Ink #1B1F26 · 2 Wine #6E2F3F · 3 Oxblood #7A2E2B · 4 Deep
+   sea #2F5560 · 5 Brick #9E4A3C · 6 Petrol #3E6B74 · 7 Rust #A7532F · 8 Slate #5B7183.
+   Slots 9–11 unused (a colorId 9–11 already on an event draws as the calendar's
+   colour). For Opus: `DUSTY` becomes these eight, the form shows eight swatches plus
+   "the calendar's".** For Opus: `DUSTY` in `v3/app.js` and the
+   swatches in the form take these eleven, in this order; the widget reads colours
+   from the snapshot so it needs nothing.
+
+**Build session, 08.10 — item 4 (the day sheet) BUILT LOCALLY, held with the rest.**
+- (a) A swipe down on the sheet's head or list closes it (`wireSheet`, ≥70px, mostly
+  vertical) — never on a field, never with a form open, never while the list is
+  scrolled down (then it scrolls). A swipe up does nothing; sideways still steps a day.
+- (b) No add line at rest, and "+ Ny" is gone. The quick-add line (with Skjema) unfolds
+  focused from a tap on the sheet's head (the figure and the name) or a second tap on
+  the open day's row — in the month and, for consistency, in the week (`focusAdd`). A
+  second tap therefore no longer closes the sheet: a swipe down or a tap off it does.
+- Checked in the browser at 375×812: quiet at rest, head tap and second tap both open
+  the line focused, swipe down closes, swipe down with a form open and swipe up do not.
+  The picture caught one thing the checks did not: the sheet's own `display: grid` beat
+  the `hidden` flag, so the line still showed; fixed with `#daysheet .qa[hidden]`.
+
+**Build session, 08.10 — the icon (shape E, Ink #1B1F26 on Paper #F2EFE9) is IN THE
+PROJECT, not uploaded.** From `Front/bilder/logo/almanakk-E-wg-paper.svg`:
+- iOS `ios-1024.png`: the 1024 render, its alpha channel removed (Apple refuses an iOS
+  icon with alpha; the design session's PNG carried one).
+- Mac `mac-16 … mac-512@2x`: the same mark on Apple's 824-on-1024 rounded grid (radius
+  185), rendered with QuickLook, corners cut clear with an ImageMagick mask (alpha 0 at
+  the corner, 1 at the centre), then resized with Lanczos. The old set is kept in the
+  scratchpad only.
+- Web: NEW names `icon-v3.svg`, `icon-192-v3.png`, `icon-512-v3.png` (iOS caches the old
+  ones by URL); v3's `index.html`, manifest and `sw.js` point at them, `publiser.py`
+  ships them. v1 and v2 keep `icon-192-v2.png` / `icon.svg` untouched.
+- Preview of both shapes: `Front/bilder/logo/almanakk-E-installed-preview.png`. The
+  asset catalogue compiles (iOS Release build, BUILD SUCCEEDED).
+**One TestFlight upload (icon + #EBEBE7 backdrop) waits on Alan's word here.**
+
+**Build session, 08.10, on Alan's "yes to both":**
+- **Preview deployed as bygg `20261008b`**: the quiet phone look (items 1–4) and the new
+  web icon names. `dist/` checked: `focusAdd`, `publishSnapshot`, the quiet CSS and
+  `icon-*-v3` all shipped.
+- **TestFlight build 2 uploaded, iPhone 10:54 and Mac 10:56**: icon E (Ink on Paper) and
+  the #EBEBE7 backdrop. `CURRENT_PROJECT_VERSION` is now 2 in the pbxproj.
+- **Item 5, the event palette, DEPLOYED to preview as bygg `20261008c`** on Alan's
+  "yes" in the build session. `DUSTY` is his eight, slots 1–8:
+  Ink, Wine, Oxblood, Deep sea, Brick, Petrol, Rust, Slate. An event carrying Google's
+  9–11 draws in its CALENDAR's colour (`calColor`, never Google's bright one), the
+  form's first swatch is on for it, and saving it untouched keeps its colorId in Google
+  (`data-was` / `data-touched`), so his other clients see no change. Checked in the
+  browser: 9 swatches, a picked Wine saves and draws, a slot-10 event keeps 10.
+
+**08.10 — v3 IS PRODUCTION** (Alan: *"switch production to v3"*). `publiser.py`
+writes `_redirects` as `/ → /v3/`, `/v2/ → /v3/`, `/v2 → /v3/` (302), so his home-screen
+web app, which opens `/v2/`, lands in v3 too; the v2 files are still deployed but no
+longer reachable by those paths. Deployed 11:1x (`2bc9d4b6.almanakk-v2.pages.dev`), bygg
+`20261008c`; the address answers behind Cloudflare Access as before (302 to the login),
+which is as far as it can be checked from outside. **TestFlight build 3** (iPhone 11:13,
+Mac 11:15): the app now opens `https://almanakk-v2.pages.dev/v3/` instead of the
+preview lane. **To undo:** Cloudflare → almanakk-v2 → Deployments → Rollback to the
+23.09 deployment (20260923c), or set the three redirect lines back to `/ → /v2/`.
+Nothing is committed to git this session; the repo is public, `Front/` and `inventory/`
+stay ignored.
+
+**Next:** github.io/almanakk/v2/ (the old Google-sign-in copy) can be retired; the
+preview lane is free again for the next change.
+
 
 Corrected while reading the code for it: the pencilled `P` IS built in v2 (`isPencil`,
 `v2/app.js:690`, and a tick in the day form); the Open table below said otherwise.
