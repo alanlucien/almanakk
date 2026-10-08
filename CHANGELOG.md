@@ -6,6 +6,24 @@ to get exactly that version back (`git checkout <commit>` then `python3 publiser
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
 
+## 08.10.2026 — LIVE: bygg 20261008h
+- Production takes the day's preview work: one-stroke month rules, the first entry
+  always standing, the widget-like header and day sheet, I DAG, the title as the
+  month/week toggle (⇄), the day sheet that pulls up to full height and follows the
+  finger down, Skjema working, the week's rules hanging from their names, the year's
+  peek opening its day, no edge taps on the phone.
+- TO UNDO: Cloudflare dashboard → almanakk-v2 → Deployments → Rollback to 2bc9d4b6
+  (20261008c).
+
+## 08.10.2026 — Alan's phone list (bygg 20261008d, PREVIEW lane)
+- The month's rules are one stroke, from the middle of the first day to the middle of
+  the last; a day's first entry always stands; the header names the month like the widget.
+- The day's number opens its week; I DAG in the header; edge taps gone on the phone.
+- The day sheet takes half the screen, written like the Dag widget, in full ink, with a
+  visible blank line to write on; swipe down from its top to close.
+- The week's rules hang from their names; the year's peek opens its day.
+- TO SEE: https://preview.almanakk-v2.pages.dev/v3/ in Safari. Production unchanged.
+
 ## 08.10.2026 — LIVE: v3 is production (bygg 20261008c)
 - https://almanakk-v2.pages.dev/ and /v2/ now open v3: the redesigned month, the year
   poster and six over six, the week, the day sheet with editing, the widgets' snapshot,

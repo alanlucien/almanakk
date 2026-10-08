@@ -437,8 +437,104 @@ preview lane. **To undo:** Cloudflare → almanakk-v2 → Deployments → Rollba
 Nothing is committed to git this session; the repo is public, `Front/` and `inventory/`
 stay ignored.
 
-**Next:** github.io/almanakk/v2/ (the old Google-sign-in copy) can be retired; the
-preview lane is free again for the next change.
+**08.10 — TestFlight builds 2 and 3 were held at "Missing Compliance"** (Alan's
+screenshot): Apple does not distribute a build until the export-encryption question is
+answered, so only build 1 ever reached his phone and no Mac build reached the Mac. He
+answers it in App Store Connect for build 3 (iOS and macOS). The app target now carries
+`INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO` (standard HTTPS only), so every later
+upload skips the question. Also: Mac builds must be added to the internal group
+separately from iOS ones.
+
+**08.10 afternoon — Alan's list from his phone (12 points), built as bygg `20261008d`,
+on the PREVIEW lane only** (production stays 20261008c until his go):
+1. *Widgets clearer; month headline should be articulated like the widget* — the phone
+   header is now the month's name at 22px bold with one ink line under it, in step with
+   the sheet's frame.
+2. *No quick way to the week* — the day's FIGURE (number and letter) opens its week;
+   the rest of the row opens the day. **v2's edge taps are gone on the phone**: the left
+   14% stepped a month and the day numbers sat inside it, which is also what made a tap
+   on a day "glitch". A sideways swipe still steps the month.
+3. *No swift way home to today* — an **I DAG** button in the header, from every view;
+   grey when you are already on today's month/week/year.
+4. *The week's rule should connect to its name at the top* — the week's rules are now
+   one stroke each (`drawWeekRules`, measured after render): from the span's name in the
+   head of the page, with a short tick into it, down to the day it ends.
+5. *The day sheet is too small and low-contrast* — it takes ~half the screen (min 46vh),
+   with a grabber, the head written like the Dag widget (40px figure, spaced weekday,
+   city and week at the right, ink line), entries in full ink.
+6. *No way to add an event from the sheet* — the blank ruled line "Ny hendelse …" is
+   VISIBLE at the foot of the sheet but never focused on open (his 07.10 rule); tap it to
+   write; Skjema beside it. (The DESIGN session's "no add line at rest" is overruled by
+   this, by Alan directly.)
+7. *Swipe down triggers the iPhone's own gesture* — the swipe-to-close now only starts
+   in the sheet's top 64px (grabber and head), far from the screen's bottom edge.
+8. *Double-tapping a day glitches* — a second tap within 500ms is ignored; double-tap
+   zoom is off (`touch-action: manipulation`); and see 2.
+9. *The month's lines are not perfect* — they were broken at every day line (the rule
+   lived inside its row, so the hairline and each Sunday's ink rule cut across it). Now
+   each rule paints over the border below its row, and starts at the middle of its first
+   day and stops at the middle of its last, level with the name.
+10. *Year view: tapping the peek does nothing* — the peek lives on `<body>`, outside the
+   listener that was meant to open it; it now opens the month with that day's sheet.
+11. Found in his October screenshot: **a day could read only "+2"** — the measuring pass
+   hid the first entry when it was wider than the line. The first entry always stands
+   now, cut with an ellipsis.
+12. The phone week's title is "UKE 9" alone (the month range was cut).
+Checked at 390×844 on the sample data; the numbers in each case measured, not judged.
+**bygg `20261008e` (preview), the DESIGN session's review of d:** the line under the
+month's name is now the sheet's top edge (the sheets drop their own top border on the
+phone, measured: header 10–380 and sheet 10–380, header bottom = sheet top), so there
+is one rule, not two; the resting "Ny hendelse …" line shows no buttons until he writes.
+The "uke N" cell still opens the week alongside the figure. If the figure's new job
+feels ambiguous on his phone, the fallback is figure → day, week on the uke cell.
+
+**bygg `20261008f` (preview), three bugs from Alan's next message:** (a) pulling the
+sheet down dragged the whole page — the close was read only on lift, so Safari scrolled
+and bounced underneath; now from the sheet's top a downward drag moves the sheet itself
+(`touchmove`, non-passive, `preventDefault`), closes past 90px, springs back short of
+it; `overscroll-behavior` holds the page. (b) Skjema did nothing — it shows only while
+the line has focus and the tap blurred the line first; the line's buttons now act on
+`pointerdown` with the blur prevented. (c) "Ny hendelse → wg | ALAN" shows only while
+he is writing (`:has(.qa:focus-within)`). All three checked with synthetic touches.
+His navigation questions (how to reach the week, I DAG as a toggle, long-press, the
+year figure as a jump to another year, the old phone year view) went to the DESIGN
+session with the build session's proposal; nothing built for them yet.
+
+**bygg `20261008g` (preview) — ONE month/week button** (Alan: *"I need a button for
+week view / month view, the ellipsis menu is cumbersome, I don't want three buttons"*).
+`#viewbtn` beside I DAG names where it goes: UKE in the month, MÅNED in the week, hidden
+in the year. Month → the open day's week, else today's week if today is in the month,
+else the month's first full week (a 1st on a weekend belongs to the week before).
+SEPTEMBER fits at 375px with both buttons. The design session's answer on the title
+toggle and the phone year is still to come; this button does not wait for it.
+
+**PRODUCTION is bygg `20261008h` since 08.10 evening** (Alan: *"go"*): everything from
+20261008d to h below is live at https://almanakk-v2.pages.dev/ (deployment
+`67397cd0`). The app opens production, so it has it on next launch — no TestFlight build
+needed. **To undo:** Cloudflare → almanakk-v2 → Deployments → Rollback to the 11:1x
+deployment `2bc9d4b6` (20261008c).
+
+**bygg `20261008h` (preview) — the TITLE is the month/week toggle, and the sheet has a
+FULL height** (Alan, choosing the title over the button he asked for just before: *"build
+the title toggle and the pull-up day sheet"*). One job per thing in the header: the
+title (with a small muted ⇄) switches month and week — `toggleMonthWeek`, same targets
+as the button had; I DAG goes to today; 2026 opens the year; ⋯ the settings. The UKE
+button is gone again, and the title no longer opens the year (that duplicated 2026).
+In the year, the title goes back to the month. The day sheet: pulled up from its top it
+grows with the finger and settles at full height (`state.sheetFull`, kept when stepping
+days); from full, a pull down returns to half; from half, a pull down closes. Checked
+with synthetic touches at 375×812: half top 410 → full top 0 → half → closed.
+
+**08.10 — the github.io copy is RETIRED** (Alan: *"retire the github.io copy"*). GitHub
+Pages now serves the orphan branch `gh-pages` (one commit, `61b8b30`), not `main`: every
+page — `/`, `/v2/`, `/v3/`, `import.html`, and any unknown path through `404.html` —
+unregisters the old service worker, empties its caches and forwards to
+https://almanakk-v2.pages.dev/. No `sw.js` is served (404), so old installs also drop
+their worker on the next update check. Verified from outside after the Pages build.
+`main` is untouched and still pushed to GitHub as the code's home. **To undo:**
+`gh api -X PUT repos/alanlucien/almanakk/pages -f "source[branch]=main" -f "source[path]=/"`.
+For Alan, optional: remove `https://alanlucien.github.io` from the OAuth client's
+authorised origins in Google Cloud (Almanakk web), since nothing signs in from there now.
 
 
 Corrected while reading the code for it: the pencilled `P` IS built in v2 (`isPencil`,
