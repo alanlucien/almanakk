@@ -36,7 +36,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             // the almanac's own paper, so the status bar and any gap read as the page
-            Color(red: 0xef / 255, green: 0xe8 / 255, blue: 0xd4 / 255).ignoresSafeArea()
+            Color(red: 0xeb / 255, green: 0xeb / 255, blue: 0xe7 / 255).ignoresSafeArea()
             WebView(page: page)
                 // under the home indicator: the page already keeps its last row
                 // clear of it (env(safe-area-inset-bottom)); the status bar stays ours

@@ -1,9 +1,11 @@
 import SwiftUI
 import WebKit
+import WidgetKit
 
 /// The one web view, and what it is allowed to do.
-final class Page: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate {
-    static let home = URL(string: "https://almanakk-v2.pages.dev/v2/")!
+final class Page: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
+    // v3 — the redesigned sheet (Front/REDESIGN — 06.10.md), production since 08.10
+    static let home = URL(string: "https://almanakk-v2.pages.dev/v3/")!
     @Published var error: String?
     private(set) weak var web: WKWebView?
 
@@ -25,6 +27,8 @@ final class Page: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate
     func make() -> WKWebView {
         let cfg = WKWebViewConfiguration()
         cfg.websiteDataStore = .default()   // the Access session survives a relaunch
+        // the page hands the widget its snapshot through here after every sync
+        cfg.userContentController.add(self, name: "almanakk")
         let w = WKWebView(frame: .zero, configuration: cfg)
         w.customUserAgent = Page.userAgent
         w.navigationDelegate = self
@@ -34,7 +38,7 @@ final class Page: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate
         w.scrollView.contentInsetAdjustmentBehavior = .never
         w.isOpaque = false
         #endif
-        w.underPageBackgroundColor = PlatformColor(red: 0xef / 255, green: 0xe8 / 255, blue: 0xd4 / 255, alpha: 1)
+        w.underPageBackgroundColor = PlatformColor(red: 0xeb / 255, green: 0xeb / 255, blue: 0xe7 / 255, alpha: 1)
         web = w
         load()
         return w
@@ -74,6 +78,14 @@ final class Page: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate
         let ns = e as NSError
         if ns.domain == NSURLErrorDomain && ns.code == NSURLErrorCancelled { return }
         error = e.localizedDescription
+    }
+
+    // THE WIDGET'S FOOD. The page posts a JSON of the coming weeks; it is kept in
+    // the App Group, where the widget — a separate process — can read it, and the
+    // widget is told to redraw. The widget never talks to Google or Cloudflare.
+    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "almanakk", let json = message.body as? String else { return }
+        if Snapshot.write(json) { WidgetCenter.shared.reloadAllTimelines() }
     }
 
     private func open(_ url: URL) {

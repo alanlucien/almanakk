@@ -8,3 +8,4 @@ dist/
 .wrangler/
 v2/_sweep.js
 native/build/
+native/build-mac/
