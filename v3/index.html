@@ -9,7 +9,7 @@
 <title>Almanakk</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="../icon-192-v3.png">
-<link rel="stylesheet" href="style.css?v=20261008c">
+<link rel="stylesheet" href="style.css?v=20261008h">
 </head>
 <body>
 <header class="top">
@@ -17,6 +17,7 @@
   <h1 id="title"></h1>
   <button id="next" class="arrow" aria-label="Neste">›</button>
   <span class="sp"></span>
+  <button id="home" class="home"></button>
   <span id="yr"></span>
   <button id="signin" hidden>Logg inn med Google</button>
   <details id="more">
@@ -40,11 +41,11 @@
 <!-- null here = Google sign-in in the browser. publiser.py flips it to
      '/api/gcal' in the Cloudflare build, where the key lives on the server. -->
 <script>window.ALMANAKK_PROXY = null;</script>
-<script src="../config.js?v=20261008c"></script>
-<script src="../demo-data.js?v=20261008c"></script>
-<script src="../airports.js?v=20261008c"></script>
-<script src="app.js?v=20261008c"></script>
-<script src="../gcal.js?v=20261008c"></script>
+<script src="../config.js?v=20261008h"></script>
+<script src="../demo-data.js?v=20261008h"></script>
+<script src="../airports.js?v=20261008h"></script>
+<script src="app.js?v=20261008h"></script>
+<script src="../gcal.js?v=20261008h"></script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="window.gcalReady && gcalReady()"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

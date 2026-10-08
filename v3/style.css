@@ -374,3 +374,102 @@ header.top #signin { font-size: 12px; border: 1px solid var(--rule-strong); bord
   .poster .ph { font-weight: 600; }
   .poster .cell .rl { width: 1.5px; }
 }
+
+/* ---------- 08.10, Alan's list from his phone ---------- */
+
+/* ONE STROKE DOWN THE MONTH (Alan: "the lines drawn down in month view are still not
+   perfect"). A rule lived inside its day's row, so every hairline between days, and
+   the ink rule under each Sunday, cut it: on a phone's sharp screen it read as a dashed
+   line. It now paints over the border beneath its row, and it starts at the middle of
+   the day it begins (level with the name) and stops at the middle of the day it ends,
+   so its two ends say where the span begins and ends instead of leaving a gap. */
+.day .gut i { position: relative; height: calc(100% + 1px); margin-bottom: -1px; z-index: 1; }
+.day .gut i.a, .day .gut i.z { margin-top: 0; }
+.day .gut i.a { height: calc(50% + 1px); align-self: flex-end; }
+.day .gut i.z { height: 50%; margin-bottom: 0; align-self: flex-start; }
+.day .gut i.a.z { height: 40%; align-self: center; }
+#app.strip .day .gut i { width: 1.5px; }
+.day .line > span:first-child { min-width: 0; }
+
+/* the week's rules, drawn by drawWeekRules: one stroke from the name to its last day */
+.week { position: relative; }
+.week .wrule { position: absolute; display: block; z-index: 1; pointer-events: none; }
+.week .spans > div { padding-left: 0; }
+
+/* HOME, one tap from anywhere (Alan: "no swift way to come home to today") */
+header.top .home { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+  color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 3px; padding: 2px 7px; }
+header.top .home.here { color: var(--muted); border-color: var(--rule); }
+
+/* the day's figure is the week's handle */
+.day .n, .day .w { cursor: pointer; }
+
+/* NO DOUBLE-TAP ZOOM on the sheet (Alan: "double tapping a day glitches") */
+html, body { touch-action: manipulation; }
+
+/* THE DAY SHEET, written the way the widget writes a day (Alan: "the widgets are more
+   elegant and more clear to read ... the simple large figure, the week number and the
+   thin line"; "it should take at least a third or almost half the screen"; "the
+   contrast is very low"). A large figure, the weekday spaced beside it, the city and
+   the week at the right, one ink line under; full-ink entries; a blank ruled line to
+   write on, not focused; a grabber, and the swipe down starts there. */
+#daysheet { border-top: 0; box-shadow: 0 -1px 0 var(--rule-strong), 0 -10px 30px rgba(0, 0, 0, .14); padding-top: 6px; font-size: 16px; }
+#daysheet .grab { display: block; width: 38px; height: 4px; border-radius: 2px; background: var(--rule-strong); opacity: .35; margin: 0 auto 8px; }
+#daysheet header { align-items: baseline; padding-bottom: 8px; margin-bottom: 2px; letter-spacing: 0; }
+#daysheet header .dn { display: flex; align-items: baseline; gap: 10px; font-size: 12px; font-weight: 600; letter-spacing: .16em; color: var(--ink); }
+#daysheet header .dn b { font-size: 40px; line-height: .9; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+#daysheet header span { color: var(--ink-soft); font-size: 11px; letter-spacing: .1em; }
+#daysheet header .cty { color: var(--ink); }
+#daysheet .ev { padding: 8px 0; border-bottom: .5px solid var(--rule); }
+#daysheet .ev b { color: var(--ink); }
+#daysheet .ev .tm, #daysheet .ev small { color: var(--ink-soft); }
+#daysheet .ev .dot { width: 7px; height: 7px; }
+#daysheet .qa { margin-top: 2px; border-bottom: .5px solid var(--rule); grid-template-columns: minmax(0, 1fr) auto auto; padding: 4px 0; }
+#daysheet .qa input { border-bottom: 0; padding: 8px 0 8px 60px; font-size: 16px; }
+#daysheet .qa input::placeholder { color: var(--muted); }
+#daysheet .qa button[type="submit"] { display: none; }
+#daysheet .qa input:focus ~ button[type="submit"], #daysheet .qa:focus-within button[type="submit"] { display: inline-block; }
+#daysheet .target { color: var(--ink-soft); }
+@media (max-width: 999px) {
+  #daysheet { min-height: 46vh; }
+  /* THE MONTH'S NAME, said like the widget says a day: larger, with one ink line under
+     the header, in step with the sheet's frame (Alan: "the month headline could be
+     more articulated, like the widget") */
+  header.top { border-bottom: 0; box-shadow: inset 0 -1px 0 transparent; margin: 0 10px; padding-left: 6px; padding-right: 6px; border-bottom: 1px solid var(--rule-strong); }
+  header.top #title { font-size: 22px; letter-spacing: .06em; font-weight: 700; }
+  header.top #yr { font-size: 13px; letter-spacing: .1em; font-weight: 500; color: var(--ink-soft); }
+  #app.strip, #app.weekview, #app.posterwrap { padding-top: 8px; }
+  #banner { margin: 0 10px; }
+}
+
+/* ONE RULE, NOT TWO (DESIGN session review of 20261008d). The line under the month's
+   name IS the sheet's top edge: the sheets drop their own top border and the gap above
+   it, so the title stands on the frame instead of above a second rule. */
+@media (max-width: 999px) {
+  #app.strip, #app.weekview, #app.posterwrap { padding-top: 0; }
+  #app.strip .month, #app.weekview .week, #app.posterwrap .poster { border-top: 0; }
+  #banner { border-bottom: 0; }
+}
+/* the resting add line is the quietest thing on the sheet: muted words on one hairline,
+   no button until he is writing */
+#daysheet .qa .more { display: none; }
+#daysheet .qa:focus-within .more { display: inline-block; }
+
+/* the page holds still under the sheet; the sheet keeps its own scroll */
+html, body { overscroll-behavior: none; }
+#daysheet { overscroll-behavior: contain; will-change: transform; }
+/* where a new event goes is said only while he is writing one (Alan, 08.10) */
+#daysheet .target { display: none; }
+#daysheet:has(.qa:focus-within) .target { display: flex; }
+
+/* the title is the month/week toggle, and says so with a small mark (Alan, 08.10) */
+header.top #title.toggle::after { content: "⇄"; font-size: .55em; font-weight: 400; letter-spacing: 0; color: var(--muted); margin-left: .45em; vertical-align: .2em; }
+header.top #title { cursor: pointer; }
+
+/* THE FULL DAY: the sheet pulled up to the top of the screen */
+@media (max-width: 999px) {
+  #daysheet.full { top: env(safe-area-inset-top, 0px); max-height: none; min-height: 0; box-shadow: none; }
+}
+@media (min-width: 1000px) {
+  #daysheet.full { bottom: 24px; max-height: none; }
+}

@@ -30,7 +30,7 @@ const LANGS = {
     fColour: 'Farge', calColour: 'Kalenderens', fRepeat: 'Gjentas', fRemind: 'Varsel', fTz: 'Tidssone', fGuests: 'Gjester',
     rep: ['Aldri', 'Hver dag', 'Hver uke', 'Hver 2. uke', 'Hver måned', 'Hvert år'], repUntil: 'til',
     rem: ['Ingen', 'Standard', 'Ved start', '10 min før', '30 min før', '1 time før', '1 dag før'],
-    series: 'serie', open: 'Åpne',
+    series: 'serie', newLine: 'Ny hendelse …', today: 'I dag', open: 'Åpne',
   },
   en: {
     months: ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'],
@@ -50,7 +50,7 @@ const LANGS = {
     fColour: 'Colour', calColour: 'Calendar\u2019s', fRepeat: 'Repeats', fRemind: 'Reminder', fTz: 'Time zone', fGuests: 'Guests',
     rep: ['Never', 'Daily', 'Weekly', 'Every 2 weeks', 'Monthly', 'Yearly'], repUntil: 'until',
     rem: ['None', 'Default', 'At start', '10 min before', '30 min before', '1 hour before', '1 day before'],
-    series: 'series', open: 'Open',
+    series: 'series', newLine: 'New event …', today: 'Today', open: 'Open',
   },
 };
 const L = () => LANGS[state.lang] || LANGS.no;
@@ -685,7 +685,9 @@ function clipLines() {
     kids.forEach((k, i) => {
       const room = i < kids.length - 1 ? 26 : 0;    // keep space for the +n
       used += k.offsetWidth + (i ? 8 : 0);
-      if (hidden || used > w - room) { k.hidden = true; hidden++; }
+      // THE FIRST ENTRY ALWAYS STANDS (Alan's October, 08.10: a day reading only
+      // "+2"). If it is wider than the line it is cut with an ellipsis instead.
+      if (i > 0 && (hidden || used > w - room)) { k.hidden = true; hidden++; }
     });
     if (hidden) {
       const b = document.createElement('span');
@@ -693,6 +695,7 @@ function clipLines() {
       line.appendChild(b);
     }
     if (kids.filter(k => !k.hidden).length === 1) kids.find(k => !k.hidden).classList.add('lone');
+    if (hidden && kids[0].offsetWidth + 34 > w) kids[0].classList.add('lone');
   });
 }
 
@@ -824,6 +827,8 @@ function openPeek(cell) {
     + (lines.length ? lines.map(l => `<p${l.red ? ' class="red"' : ''}${l.c && !l.red ? ` style="color:${l.c}"` : ''}>${l.sp ? '<i class="rl" style="background:' + l.rl + '"></i>' : ''}${esc(l.t)}</p>`).join('') : '')
     + `<small>${L().open} ›</small>`;
   document.body.appendChild(box);
+  // A TAP ON THE PEEK OPENS ITS DAY (Alan, 08.10: "nothing happens when I clicked that")
+  box.addEventListener('click', ev => { ev.stopPropagation(); closePeek(); show('month', d); openDay(ds); });
   const r = cell.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight;
   box.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 8)) + 'px';
   box.style.top = (r.top - h - 8 > 60 ? r.top - h - 8 : r.bottom + 8) + 'px';
@@ -837,6 +842,35 @@ $('#app').addEventListener('mouseover', e => {
   if (cell && !cell.classList.contains('peeked')) openPeek(cell);
 });
 $('#app').addEventListener('mouseleave', () => { if (window.matchMedia('(hover: hover)').matches) closePeek(); });
+
+// THE WEEK'S RULES HANG FROM THEIR NAMES (Alan, 08.10: "the line from the multi day
+// should connect to the multi day at the top"). One rule per span, measured after the
+// page is drawn: it starts at its name in the head of the page with a short tick into
+// it, and runs down to the day the span ends (or off the foot of the week).
+function drawWeekRules() {
+  const wk = document.querySelector('.week');
+  if (!wk) return;
+  wk.querySelectorAll('.wrule').forEach(x => x.remove());
+  const box = wk.getBoundingClientRect();
+  const days = [...wk.querySelectorAll('.wd[data-date]')];
+  if (!days.length) return;
+  [...wk.querySelectorAll('.spans > div[data-start]')].forEach((row, i) => {
+    const x = 10 + i * 5;
+    const r = row.getBoundingClientRect();
+    const top = r.top + r.height / 2 - box.top;
+    const end = days.filter(d => d.dataset.date <= row.dataset.end).pop();
+    if (!end) return;
+    const endsHere = row.dataset.end <= days[days.length - 1].dataset.date;
+    const er = end.getBoundingClientRect();
+    const bottom = (endsHere ? er.top + 22 : er.bottom) - box.top;
+    const c = row.dataset.color;
+    const v = document.createElement('i');
+    v.className = 'wrule'; v.style.cssText = `left:${x}px;top:${top}px;width:1.5px;height:${Math.max(0, bottom - top)}px;background:${c}`;
+    const t = document.createElement('i');
+    t.className = 'wrule'; t.style.cssText = `left:${x}px;top:${top - 0.75}px;width:${22 - x}px;height:1.5px;background:${c}`;
+    wk.append(v, t);
+  });
+}
 
 /* ---------- the week: the schedule page ---------- */
 
@@ -858,7 +892,7 @@ function renderWeek(monKey) {
   let html = '<section class="week">';
   if (spans.length) {
     html += '<div class="spans">' + spans.map(sp =>
-      `<div data-eid="${sp.id}"><i style="background:${evColor(sp)}"></i>${esc(stripParens(deco(sp.title)))} <small>${esc(shortRange(sp.start, sp.end))}</small></div>`).join('') + '</div>';
+      `<div data-eid="${sp.id}" data-start="${sp.start}" data-end="${sp.end}" data-color="${evColor(sp)}">${esc(stripParens(deco(sp.title)))} <small>${esc(shortRange(sp.start, sp.end))}</small></div>`).join('') + '</div>';
   }
   for (const d of days) {
     const ds = fmt(d), wi = weekdayIdx(d), h = holidays(d.getFullYear())[ds];
@@ -875,7 +909,6 @@ function renderWeek(monKey) {
       ctx = `<span class="ctx ${perf ? 'perf' : ''} ${isTbc(leg) ? 'tbc' : ''}">${w}${legCity(leg) ? ' · ' + esc(legCity(leg)) : ''}</span>`;
     } else if (h) ctx = `<span class="ctx hn">${esc(h.name)}</span>`;
     html += `<div class="wd ${wi === 6 || (h && h.red) ? 'red' : ''} ${wi === 6 ? 'sun' : ''} ${show ? 'show' : ''} ${ds === todayStr ? 'today' : ''} ${dayEv.length ? '' : 'quiet'}" data-date="${ds}">`;
-    spans.forEach((sp, i) => { if (sp.start <= ds && sp.end >= ds) html += `<i class="rl l${i} ${sp.start === ds ? 'a' : ''} ${sp.end === ds ? 'z' : ''}" style="background:${evColor(sp)}"></i>`; });
     html += `<div class="dh"><span class="dn"><b>${d.getDate()}</b>${L().wdLong[wi]}${moon ? `<i class="moon" title="${esc(moon[state.lang] || moon.no)}">${moon.g}</i>` : ''}</span>${ctx}</div>`;
     const names = spans.filter(sp => sp.start <= ds && sp.end >= ds).map(sp => sp.title);
     for (const e of allday) html += line(e, '', names);
@@ -959,7 +992,8 @@ function render() {
     app.innerHTML = renderWeek(fmt(mon));
     const mn = mon.getMonth() === sun.getMonth() ? L().months[mon.getMonth()]
       : L().months[mon.getMonth()].slice(0, 3) + ' – ' + L().months[sun.getMonth()].slice(0, 3);
-    $('#title').textContent = `${L().week.toUpperCase()} ${isoWeek(mon)} · ${mn}`;
+    // on the phone the week's number alone: the month is written on its days
+    $('#title').textContent = SPREAD.matches ? `${L().week.toUpperCase()} ${isoWeek(mon)} · ${mn}` : `${L().week.toUpperCase()} ${isoWeek(mon)}`;
   } else if (SPREAD.matches) {
     // THREE MONTHS IS THE ALMANAC on a desk: a fixed third of the year
     const q = Math.floor(state.month / 3) * 3;
@@ -974,6 +1008,7 @@ function render() {
   yr.textContent = state.year;
   yr.dataset.yr = String(((state.year - 2026) % 5 + 5) % 5);
   clipLines();
+  drawWeekRules();
   applyLang();
   clearTimeout(render._snap); render._snap = setTimeout(publishSnapshot, 300);
   document.querySelectorAll('#more-list [data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === state.view));
@@ -985,6 +1020,14 @@ function applyLang() {
   $('#print').textContent = L().print;
   $('#lang-chip').textContent = L().lang;
   $('#today').textContent = L().today;
+  $('#home').textContent = L().today;
+  $('#title').classList.toggle('toggle', state.view !== 'year');
+  const now = new Date();
+  const onToday = state.view === 'year' ? state.year === now.getFullYear()
+    : state.view === 'week' ? fmt(mondayOf(state.weekOf || fmt(now))) === fmt(mondayOf(fmt(now)))
+    : SPREAD.matches ? state.year === now.getFullYear() && Math.floor(state.month / 3) === Math.floor(now.getMonth() / 3)
+    : state.year === now.getFullYear() && state.month === now.getMonth();
+  $('#home').classList.toggle('here', onToday);
   $('#tour-chip').textContent = L().tour;
   $('#tour-chip').classList.toggle('active', state.wg);
   $('#signin').textContent = L().signin;
@@ -1010,10 +1053,12 @@ function barePlace(title) {
 }
 const mapLink = v => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(v);
 
+let openedAt = 0;
 function openDay(ds) {
-  const editing = state.editing;      // closeDay forgets it; a reopen must not
+  openedAt = Date.now();
+  const editing = state.editing, full = state.sheetFull;   // closeDay forgets both; a reopen must not
   closeDay(true);
-  state.open = ds; state.editing = editing;
+  state.open = ds; state.editing = editing; state.sheetFull = full;
   const date = parseDate(ds), wi = weekdayIdx(date);
   const h = holidays(date.getFullYear())[ds];
   const tour = new Set(tourCalIds());
@@ -1032,14 +1077,15 @@ function openDay(ds) {
   const sheet = document.createElement('div');
   sheet.id = 'daysheet';
   sheet.classList.toggle('editing', !!state.editing);
+  sheet.classList.toggle('full', !!state.sheetFull);   // a day stepped to keeps its height
   const draft = state.editing === 'new' ? form({ id: 'new', title: state.draft || '', start: ds, end: ds, time: '', endTime: '', location: '', notes: '', calId: tgt ? tgt.id : '', color: tgt ? tgt.color : '' }) : '';
-  sheet.innerHTML = `<header><span class="dn"><b>${date.getDate()}</b> ${L().wdLong[wi]}</span>`
+  sheet.innerHTML = `<i class="grab"></i><header><span class="dn"><b>${date.getDate()}</b> ${L().wdLong[wi]}</span>`
     + `<span>${here ? `<em class="cty ${here.tbc ? 'tbc' : ''}">${esc(here.name)}</em>` : ''}`
     + `${h ? `<em class="hn">${esc(h.name)}</em>` : ''}${L().week} ${isoWeek(date)}</span></header>`
     + `<div class="list">${spans.map(row).join('')}${allday.map(row).join('')}`
     + (timed.length && (spans.length || allday.length) ? '<hr>' : '') + `${timed.map(row).join('')}</div>`
     + draft
-    + (state.editing === 'new' ? '' : `<form class="qa" hidden><input type="text" placeholder="${L().newPh}" autocomplete="off" enterkeyhint="done"><button type="submit">${L().add}</button><button type="button" class="more">${L().more}</button></form>`
+    + (state.editing === 'new' ? '' : `<form class="qa"><input type="text" placeholder="${L().newLine}" autocomplete="off" enterkeyhint="done"><button type="submit">${L().add}</button><button type="button" class="more">${L().more}</button></form>`
     + (tgt ? `<p class="target"><i class="dot" style="background:${tgt.color}"></i>${L().goesTo} ${esc(tgt.name)}</p>` : ''));
   document.body.appendChild(sheet);
   document.querySelector(`.day[data-date="${ds}"], .wd[data-date="${ds}"]`)?.classList.add('open');
@@ -1156,6 +1202,10 @@ function wireSheet(sheet, ds) {
     // THE SHEET'S HEAD IS ITS WAY TO WRITE (DESIGN session, 08.10, item 4b): a tap on
     // the figure and the name unfolds the quick-add line, focused
     sheet.querySelector('header .dn').addEventListener('click', () => focusAdd());
+    // SKJEMA IS TAKEN ON THE PRESS, NOT THE CLICK (Alan, 08.10: "skjema button does
+    // not work"): it shows only while the line has focus, and the tap took the focus
+    // away first, so it vanished before the click could land
+    qa.querySelectorAll('button').forEach(btn => btn.addEventListener('pointerdown', ev => ev.preventDefault()));
     qa.querySelector('.more').addEventListener('click', () => {
       state.draft = qa.querySelector('input').value.trim();
       state.editing = 'new';
@@ -1202,13 +1252,43 @@ function wireSheet(sheet, ds) {
   let sx = null, sy = null;
   sheet.addEventListener('touchstart', e => { if (e.touches.length === 1 && !e.target.closest('input, textarea, select')) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } else sx = null; }, { passive: true });
   let topAtStart = 0;
-  sheet.addEventListener('touchstart', () => { topAtStart = sheet.scrollTop; }, { passive: true });
+  let fromTop = false;
+  sheet.addEventListener('touchstart', e => {
+    topAtStart = sheet.scrollTop;
+    fromTop = e.touches.length === 1 && e.touches[0].clientY - sheet.getBoundingClientRect().top < 64;
+  }, { passive: true });
+  // THE SHEET FOLLOWS THE FINGER DOWN (Alan, 08.10: "I'm still tugging at the whole
+  // month when trying to pull down"). The close used to be read only when the finger
+  // lifted, so meanwhile Safari scrolled and bounced the page under it. From the top of
+  // the sheet a downward drag now moves the sheet itself and holds the page still;
+  // released past 90px it goes, short of that it springs back.
+  // AND UP TO THE FULL DAY (Alan, 08.10: "then what is full day view?"): pulled up from
+  // its top, the sheet grows with the finger and settles at full height — the day's
+  // own page. From there a pull down returns it to half; from half, a pull down closes.
+  let dragging = false, h0 = 0;
+  sheet.addEventListener('touchmove', e => {
+    if (sx === null || !fromTop || sheet.querySelector('.edit') || e.touches.length !== 1) return;
+    const dy = e.touches[0].clientY - sy, dx = e.touches[0].clientX - sx;
+    if (!dragging && Math.abs(dy) > 6 && Math.abs(dy) > Math.abs(dx)) { dragging = true; h0 = sheet.getBoundingClientRect().height; }
+    if (!dragging) return;
+    e.preventDefault();
+    sheet.style.transition = 'none';
+    if (dy < 0) { sheet.style.transform = ''; sheet.style.height = Math.min(window.innerHeight, h0 - dy) + 'px'; }
+    else { sheet.style.height = ''; sheet.style.transform = `translateY(${dy}px)`; }
+  }, { passive: false });
   sheet.addEventListener('touchend', e => {
     if (sx === null) return;
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
-    // A SWIPE DOWN PUTS THE SHEET AWAY (DESIGN session, 08.10, item 4a) — not on a
-    // field, not with a form open, and not while the list itself is scrolled down
-    if (dy > 70 && dy > Math.abs(dx) * 1.5 && !sheet.querySelector('.edit') && topAtStart <= 0) { closeDay(); return; }
+    if (dragging) {
+      dragging = false;
+      sheet.style.transition = 'transform .18s ease-out';
+      sheet.style.height = '';
+      if (dy < -60) { state.sheetFull = true; sheet.classList.add('full'); sheet.style.transform = ''; }
+      else if (dy > 90 && state.sheetFull) { state.sheetFull = false; sheet.classList.remove('full'); sheet.style.transform = ''; }
+      else if (dy > 90) { sheet.style.transform = 'translateY(100%)'; setTimeout(() => closeDay(), 170); }
+      else sheet.style.transform = '';
+      return;
+    }
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || sheet.querySelector('.edit')) return;
     const d = parseDate(ds); d.setDate(d.getDate() + (dx < 0 ? 1 : -1));
     const nd = fmt(d);
@@ -1283,7 +1363,7 @@ function closeDay(force) {
   if (!force && s.querySelector('.edit')) return;    // a form open is not thrown away by a tap
   s.remove();
   document.querySelectorAll('.day.open, .wd.open').forEach(d => d.classList.remove('open'));
-  state.open = null; state.editing = null;
+  state.open = null; state.editing = null; state.sheetFull = false;
 }
 
 function tripTitle(form, title) {
@@ -1520,12 +1600,27 @@ function goToday() {
 $('#prev').addEventListener('click', () => step(-1));
 $('#next').addEventListener('click', () => step(1));
 $('#today').addEventListener('click', goToday);
-// THE TITLE CLIMBS: the month opens the year, the year and the week go back to the month
-$('#title').addEventListener('click', () => {
-  if (state.view === 'month') show('year');
-  else show('month', anchorDate());
-});
+$('#title').addEventListener('click', toggleMonthWeek);
 $('#yr').addEventListener('click', () => { if (state.view !== 'year') show('year'); });
+// HOME IS ONE TAP (Alan, 08.10: "there's no swift way to come home to today")
+$('#home').addEventListener('click', goToday);
+// THE TITLE IS THE MONTH/WEEK TOGGLE (Alan, 08.10, choosing it over a button: one job
+// per thing in the header — the title switches month and week, I DAG goes to today,
+// 2026 opens the year, ⋯ holds the settings). Month → the open day's week, else
+// today's week if today is in this month, else the month's first full week.
+// Week → that week's month. In the year the title goes back to the month.
+function toggleMonthWeek() {
+  if (state.view !== 'month') { show('month', anchorDate()); return; }
+  const now = new Date();
+  const inMonth = now.getFullYear() === state.year && (SPREAD.matches
+    ? Math.floor(now.getMonth() / 3) === Math.floor(state.month / 3) : now.getMonth() === state.month);
+  // the month's first full week: a 1st on a Saturday or Sunday belongs to the week before
+  const first = new Date(state.year, state.month, 1);
+  if (weekdayIdx(first) >= 5) first.setDate(first.getDate() + 7 - weekdayIdx(first));
+  const d = state.open ? parseDate(state.open) : inMonth ? now : first;
+  state.weekOf = fmt(mondayOf(fmt(d)));
+  show('week', d);
+}
 document.querySelectorAll('#more-list [data-view]').forEach(b => b.addEventListener('click', () => {
   const v = b.dataset.view;
   if (v === 'week' && !state.weekOf) state.weekOf = fmt(mondayOf(fmt(anchorDate())));
@@ -1561,29 +1656,32 @@ document.addEventListener('keydown', e => {
 let swipedAt = 0;
 $('#app').addEventListener('click', e => {
   if (Date.now() - swipedAt < 450) return;
-  if (!SPREAD.matches && !e.target.closest('.week')) {
-    const w = window.innerWidth, edge = Math.min(w * 0.14, 60);
-    if (e.clientX < edge) { step(-1); return; }
-    if (e.clientX > w - edge) { step(1); return; }
-  }
+  // NO EDGE TAPS ANY MORE (08.10). v2's rule — the outer 14% of the phone steps back
+  // and forward whatever is under the thumb — put the day numbers inside the left
+  // strip, so a tap on a day's figure jumped a month (the "double tap glitch" Alan
+  // saw). The figure now opens the week; a sideways swipe steps the month.
   // THE WEEK NUMBER IS THE WEEK'S HANDLE: tap "uke 7" and the week opens
   const uke = e.target.closest('.info.uke');
   if (uke) { const row = uke.closest('.day'); show('week', parseDate(row.dataset.date)); return; }
   // the year: any month opens that month
-  const peek = e.target.closest('#peek');
-  if (peek) { const d = parseDate(peek.dataset.date); closePeek(); show('month', d); openDay(peek.dataset.date); return; }
   const pc = e.target.closest('.poster .cell[data-date]');
   if (pc) { openPeek(pc); return; }
   const pm = e.target.closest('.poster [data-m]');
   if (pm) { show('month', new Date(state.year, Number(pm.dataset.m), 1)); return; }
   const ym = e.target.closest('.year12 .month');
   if (ym) { show('month', new Date(Number(ym.dataset.y), Number(ym.dataset.m), 1)); return; }
+  // THE DAY'S FIGURE OPENS ITS WEEK (Alan, 08.10: "if I want a quick touch, see the
+  // week, I'm not able to"). The number and the letter are the week's handle; the rest
+  // of the row opens the day.
+  const fig = e.target.closest('.day[data-date] .n, .day[data-date] .w');
+  if (fig) { show('week', parseDate(fig.closest('.day').dataset.date)); return; }
   // the week: a day opens its sheet
   const wd = e.target.closest('.wd[data-date]');
-  if (wd) { if (state.open === wd.dataset.date) focusAdd(); else openDay(wd.dataset.date); return; }
+  if (wd) { if (state.open === wd.dataset.date) { if (Date.now() - openedAt > 500) focusAdd(); } else openDay(wd.dataset.date); return; }
   const row = e.target.closest('.day[data-date]');
   if (!row) { closeDay(); return; }
-  if (state.open === row.dataset.date) { focusAdd(); return; }
+  // a double tap is one tap (Alan, 08.10: "double tapping a day glitches")
+  if (state.open === row.dataset.date) { if (Date.now() - openedAt > 500) focusAdd(); return; }
   openDay(row.dataset.date);
 });
 document.addEventListener('click', e => {
