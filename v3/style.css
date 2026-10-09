@@ -473,3 +473,19 @@ header.top #title { cursor: pointer; }
 @media (min-width: 1000px) {
   #daysheet.full { bottom: 24px; max-height: none; }
 }
+
+/* an entry opened to read (08.10): its line, then what it says, then Endre */
+#daysheet .evd { border-bottom: .5px solid var(--rule); padding-bottom: 10px; }
+#daysheet .evd .ev { border-bottom: 0; }
+#daysheet .evd dl { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 6px 10px; margin: 0 0 8px; font-size: 14px; }
+#daysheet .evd dt { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); padding-top: 3px; text-align: right; }
+#daysheet .evd dd { margin: 0; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+#daysheet .evd dd i { color: var(--ink-soft); font-style: normal; font-size: 12px; }
+#daysheet .evd dd.notes { white-space: normal; line-height: 1.45; }
+#daysheet .evd a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--muted); }
+#daysheet .evd .btns { display: flex; justify-content: flex-end; padding-left: 64px; }
+#daysheet .evd .btns button { font: inherit; font-size: 14px; padding: 5px 16px; border: 1px solid var(--rule-strong); border-radius: 3px; }
+/* the week's dotted lead from a name to the day its span begins */
+.week .wrule.lead { width: 0; background: none; opacity: .55; }
+/* with the keyboard up, the sheet stands on it */
+#daysheet.kb { top: auto; min-height: 0; transition: bottom .12s ease-out; }

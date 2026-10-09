@@ -30,7 +30,7 @@ const LANGS = {
     fColour: 'Farge', calColour: 'Kalenderens', fRepeat: 'Gjentas', fRemind: 'Varsel', fTz: 'Tidssone', fGuests: 'Gjester',
     rep: ['Aldri', 'Hver dag', 'Hver uke', 'Hver 2. uke', 'Hver måned', 'Hvert år'], repUntil: 'til',
     rem: ['Ingen', 'Standard', 'Ved start', '10 min før', '30 min før', '1 time før', '1 dag før'],
-    series: 'serie', newLine: 'Ny hendelse …', today: 'I dag', open: 'Åpne',
+    series: 'serie', fWhen: 'Når', edit: 'Endre', openMail: 'Åpne e-posten', newLine: 'Ny hendelse …', today: 'I dag', open: 'Åpne',
   },
   en: {
     months: ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'],
@@ -50,7 +50,7 @@ const LANGS = {
     fColour: 'Colour', calColour: 'Calendar\u2019s', fRepeat: 'Repeats', fRemind: 'Reminder', fTz: 'Time zone', fGuests: 'Guests',
     rep: ['Never', 'Daily', 'Weekly', 'Every 2 weeks', 'Monthly', 'Yearly'], repUntil: 'until',
     rem: ['None', 'Default', 'At start', '10 min before', '30 min before', '1 hour before', '1 day before'],
-    series: 'series', newLine: 'New event …', today: 'Today', open: 'Open',
+    series: 'series', fWhen: 'When', edit: 'Edit', openMail: 'Open the mail', newLine: 'New event …', today: 'Today', open: 'Open',
   },
 };
 const L = () => LANGS[state.lang] || LANGS.no;
@@ -860,12 +860,24 @@ function drawWeekRules() {
     const top = r.top + r.height / 2 - box.top;
     const end = days.filter(d => d.dataset.date <= row.dataset.end).pop();
     if (!end) return;
+    // A SPAN IS SOLID ONLY ON ITS OWN DAYS (Alan, 08.10: "Ellinor Oslo looks like it runs
+    // the whole week when in fact it is Wed–Sun"). From its name down to the day it
+    // begins it is a faint dotted lead; solid from that day's head to its last day.
+    const startDay = days.find(d => d.dataset.date >= row.dataset.start);
+    const startsLater = startDay && startDay !== days[0] && row.dataset.start > days[0].dataset.date;
     const endsHere = row.dataset.end <= days[days.length - 1].dataset.date;
     const er = end.getBoundingClientRect();
     const bottom = (endsHere ? er.top + 22 : er.bottom) - box.top;
     const c = row.dataset.color;
+    const solidTop = startsLater ? startDay.getBoundingClientRect().top + 14 - box.top : top;
+    if (startsLater) {
+      const lead = document.createElement('i');
+      lead.className = 'wrule lead';
+      lead.style.cssText = `left:${x}px;top:${top}px;height:${Math.max(0, solidTop - top)}px;border-left:1.5px dotted ${c}`;
+      wk.append(lead);
+    }
     const v = document.createElement('i');
-    v.className = 'wrule'; v.style.cssText = `left:${x}px;top:${top}px;width:1.5px;height:${Math.max(0, bottom - top)}px;background:${c}`;
+    v.className = 'wrule'; v.style.cssText = `left:${x}px;top:${solidTop}px;width:1.5px;height:${Math.max(0, bottom - solidTop)}px;background:${c}`;
     const t = document.createElement('i');
     t.className = 'wrule'; t.style.cssText = `left:${x}px;top:${top - 0.75}px;width:${22 - x}px;height:1.5px;background:${c}`;
     wk.append(v, t);
@@ -1056,9 +1068,9 @@ const mapLink = v => 'https://www.google.com/maps/search/?api=1&query=' + encode
 let openedAt = 0;
 function openDay(ds) {
   openedAt = Date.now();
-  const editing = state.editing, full = state.sheetFull;   // closeDay forgets both; a reopen must not
+  const editing = state.editing, full = state.sheetFull, viewing = state.viewing;   // closeDay forgets them; a reopen must not
   closeDay(true);
-  state.open = ds; state.editing = editing; state.sheetFull = full;
+  state.open = ds; state.editing = editing; state.sheetFull = full; state.viewing = viewing;
   const date = parseDate(ds), wi = weekdayIdx(date);
   const h = holidays(date.getFullYear())[ds];
   const tour = new Set(tourCalIds());
@@ -1069,6 +1081,7 @@ function openDay(ds) {
   const allday = all.filter(e => e.end === e.start && !effTime(e)).sort(byTour);
   const timed = all.filter(e => e.end === e.start && effTime(e)).sort((a, b) => effTime(a) < effTime(b) ? -1 : 1);
   const row = e => String(e.id) === String(state.editing) ? form(e)
+    : String(e.id) === String(state.viewing) ? details(e)
     : `<p class="ev ${isShow(e) ? 'show' : ''} ${isPencil(e) || isTbc(e) ? 'pencil' : ''} ${tour.has(e.calId) ? 'wg' : ''}" data-eid="${e.id}">`
     + `<i class="tm">${esc(effTime(e) || '')}</i><i class="dot" style="background:${evColor(e)}"></i>`
     + `<b${evInk(e) ? ` style="color:${evInk(e)}"` : ''}>${esc(effTime(e) ? stripClock(deco(e.title)) : deco(e.title))}${hasNote(e) ? ' <u>∗</u>' : ''}</b>`
@@ -1094,6 +1107,73 @@ function openDay(ds) {
   if (first && state.editing === 'new') { first.focus(); first.setSelectionRange(first.value.length, first.value.length); }
   sheet.querySelector('.edit')?.scrollIntoView({ block: 'nearest' });
 }
+
+// READ FIRST, EDIT WHEN ASKED (Alan, 08.10: "weird to open to see the end time of an
+// event and drop into edit mode — edit when you want, like Apple Calendar"). A tap on
+// an entry opens it in place: when it runs from and to, where (with the map), the notes
+// with their links live, the calendar, the repeat, the guests. Endre opens the form.
+function details(e) {
+  const t = effTime(e);
+  const when = e.end > e.start ? shortRange(e.start, e.end) + (t ? ` · ${t}${e.endTime ? '–' + e.endTime : ''}` : '')
+    : t ? `${t}${e.endTime && e.endTime !== t ? '–' + e.endTime : ''}` : L().fAllDay;
+  const zone = t && e.tz && e.tz !== 'Europe/Oslo' ? ` <i>${esc(e.tz.replace(/_/g, ' '))}</i>` : '';
+  const notes = withoutPencil(e.notes).trim();
+  const rep = repeatOf(e).kind;
+  const rows = [
+    `<dt>${L().fWhen}</dt><dd>${esc(when)}${zone}</dd>`,
+    e.location ? `<dt>${L().fWhere}</dt><dd>${linkify(e.location)} <a class="maplink" target="_blank" rel="noopener" href="${mapLink(e.location)}">${L().onMap}</a></dd>` : '',
+    notes ? `<dt>${L().fNotes}</dt><dd class="notes">${linkify(notes)}</dd>` : '',
+    rep ? `<dt>${L().fRepeat}</dt><dd>${esc(L().rep[rep])}</dd>` : '',
+    (e.attendees || []).length ? `<dt>${L().fGuests}</dt><dd>${esc(e.attendees.join(', '))}</dd>` : '',
+    `<dt>${L().fCal}</dt><dd>${esc(calName(e.calId))}${isPencil(e) ? ' · ' + L().pencil : ''}</dd>`,
+  ].join('');
+  return `<div class="evd" data-eid="${e.id}">`
+    + `<p class="ev open ${isShow(e) ? 'show' : ''}" data-eid="${e.id}"><i class="tm">${esc(t || '')}</i><i class="dot" style="background:${evColor(e)}"></i>`
+    + `<b${evInk(e) ? ` style="color:${evInk(e)}"` : ''}>${esc(t ? stripClock(deco(e.title)) : deco(e.title))}</b><small></small></p>`
+    + `<dl>${rows}</dl>`
+    + `<div class="btns"><button type="button" data-editev="${e.id}">${L().edit}</button></div></div>`;
+}
+// THE NOTES' LINKS ARE LINKS (Alan, 08.10: his mother's flight carries the Apple Mail
+// link to its booking mail — "I wanted to open the mail"). http, mailto, tel and
+// message: (Mail's own) become links; a Mail link reads as "Åpne e-posten". In the app
+// the wrapper hands them to the system, so Mail opens the very message.
+function linkify(raw) {
+  const re = /(https?:\/\/[^\s<>"]+|message:\/{0,2}[^\s"]+|mailto:[^\s<>"]+|tel:[+\d][\d\s-]*\d)/gi;
+  let out = '', last = 0, m;
+  while ((m = re.exec(raw))) {
+    out += esc(raw.slice(last, m.index)).replace(/\n/g, '<br>');
+    const url = m[0].replace(/[).,;:]+$/, '');
+    const label = /^message:/i.test(url) ? '✉ ' + L().openMail
+      : /^https?:/i.test(url) ? url.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/.*$/, '') + ' ↗'
+      : url.replace(/^(mailto|tel):/i, '');
+    out += `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`;
+    last = m.index + url.length; re.lastIndex = last;
+  }
+  return out + esc(raw.slice(last)).replace(/\n/g, '<br>');
+}
+
+// THE SHEET RISES ABOVE THE KEYBOARD (Alan, 08.10: "bug when 'ny hendelse'" — "the
+// field disappears behind the keyboard"). iOS does not shrink the page for the keyboard,
+// so a sheet fixed to the bottom stays under it. The visual viewport says how much of
+// the screen the keyboard took: the sheet's bottom is lifted by exactly that, and the
+// focused field is brought into view inside the sheet.
+(function keyboardLift() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const lift = () => {
+    const s = document.querySelector('#daysheet');
+    if (!s) return;
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    s.style.bottom = kb > 40 ? kb + 'px' : '';
+    s.style.maxHeight = kb > 40 ? (vv.height - 12) + 'px' : '';
+    if (kb > 40) s.classList.add('kb'); else s.classList.remove('kb');
+    const f = document.activeElement;
+    if (kb > 40 && f && s.contains(f)) f.scrollIntoView({ block: 'nearest' });
+  };
+  vv.addEventListener('resize', lift);
+  vv.addEventListener('scroll', lift);
+  document.addEventListener('focusin', () => setTimeout(lift, 300));
+})();
 
 // THE LINE IS THE FORM (E1): tap an entry and it opens in place — no buttons on
 // the rows. Title, the clock or Heldags, the dates, the place, the notes, the
@@ -1234,8 +1314,10 @@ function wireSheet(sheet, ds) {
       box.dataset.touched = '1';
       return;
     }
+    if (e.target.dataset.editev) { state.editing = e.target.dataset.editev; state.viewing = null; openDay(ds); return; }
+    if (e.target.closest('.evd') && !e.target.closest('.evd .ev')) return;   // reading the details
     const line = e.target.closest('.ev[data-eid]');
-    if (line) { state.editing = line.dataset.eid; openDay(ds); }
+    if (line) { state.viewing = String(state.viewing) === line.dataset.eid ? null : line.dataset.eid; openDay(ds); }
   });
   sheet.addEventListener('change', e => {
     const f = e.target.closest('.edit');
@@ -1363,7 +1445,7 @@ function closeDay(force) {
   if (!force && s.querySelector('.edit')) return;    // a form open is not thrown away by a tap
   s.remove();
   document.querySelectorAll('.day.open, .wd.open').forEach(d => d.classList.remove('open'));
-  state.open = null; state.editing = null; state.sheetFull = false;
+  state.open = null; state.editing = null; state.sheetFull = false; state.viewing = null;
 }
 
 function tripTitle(form, title) {
