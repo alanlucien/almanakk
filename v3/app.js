@@ -194,10 +194,16 @@ function effTime(e) {
 }
 const isTbc = ev => /\btbc\b/i.test(ev.title) || /^HOLD\b/.test(ev.title);
 const isHold = ev => /^HOLD\b/.test(ev.title);
-// pencilled: a line holding nothing but P, first in the notes (decided 03.09)
-const isPencil = ev => /^P[ \t]*(\n|$)/.test(ev.notes || '');
-const withoutPencil = n => (n || '').replace(/^P[ \t]*\r?\n?/, '').replace(/^\r?\n/, '');
-const withPencil = n => 'P' + (String(n || '').trim() ? '\n\n' + String(n).trim() : '');
+// PENCILLED = A "?" ENDING THE TITLE (Alan, 09.10: "perfect re pencil"). The 03.09 mark,
+// a lone P first in the notes, was a code only this app read: a stray letter in every
+// other client, and it ate the P of a note beginning "Paris…". The "?" is the mark he already typed by
+// habit, seen by everyone in every client, set and cleared anywhere. Old P notes still
+// read as pencilled until they are converted (listed for his yes, never automatically).
+const PENCIL_Q = /\s*\?\s*$/;
+const isPencil = ev => PENCIL_Q.test(ev.title || '') || /^P[ \t]*(\r?\n|$)/.test(ev.notes || '');
+// only a P alone on its line goes (and the blank line under it): a note beginning "Paris…"
+// lost its P to the old pattern, and Endre would have saved it without (Alan, 09.10)
+const withoutPencil = n => (n || '').replace(/^P[ \t]*(?:\r?\n(?:[ \t]*\r?\n)?|$)/, '');
 const hasNote = ev => !!withoutPencil(ev.notes).trim();
 
 // a flight leaving between midnight and 03:30 belongs to the evening before
@@ -506,20 +512,24 @@ function esc(s) {
 
 /* ---------- colour: his own, per event (Alan, 07.10) ---------- */
 
-// Stored as Google's colorId, so it survives in Google; DRAWN in his own wg palette
-// (Alan, 08.10, STATUS item 5: "go for the ones with the most contrast"). Eight, each
-// at least 4.5:1 as text on white, in Google's slots 1–8. Slots 9–11 are not offered;
-// an event that already carries one draws in its calendar's colour.
+// Stored as Google's colorId, so it survives in Google; DRAWN in his own palette.
+// 09.10 (Alan: "too similar … colors that stand apart: red, yellow, green, blue, pink,
+// orange"): eight hues round the wheel, still dusty, each in the Google slot whose own
+// colour is that hue (Tomato, Tangerine, Banana, Basil, Peacock, Blueberry, Grape,
+// Flamingo), so Google's web view agrees. Text on white: 4.4:1 (yellow) to 6.8:1.
+// Slots 1, 2 and 8 are not offered; an event carrying one draws in its calendar's colour.
 const DUSTY = {
-  1: '#1B1F26',   // Ink
-  2: '#6E2F3F',   // Wine
-  3: '#7A2E2B',   // Oxblood
-  4: '#2F5560',   // Deep sea
-  5: '#9E4A3C',   // Brick
-  6: '#3E6B74',   // Petrol
-  7: '#A7532F',   // Rust
-  8: '#5B7183',   // Slate
+  11: '#A8423A',  // Rød
+  6: '#B35A22',   // Oransje
+  5: '#94740F',   // Gul
+  10: '#467A38',  // Grønn
+  7: '#23716F',   // Petrol
+  9: '#2F5E9E',   // Blå
+  3: '#6A4A9C',   // Lilla
+  4: '#B0407A',   // Rosa
 };
+// the order the swatches stand in (an object's number keys would sort themselves)
+const DUSTY_ORDER = ['11', '6', '5', '10', '7', '9', '3', '4'];
 // the calendar's own colour, never Google's bright per-event one
 const calColor = e => (allCalendars().find(c => c.id === e.calId) || {}).color || e.color || '#26241f';
 // the colour an event is drawn in: its own, else its calendar's
@@ -1190,7 +1200,7 @@ function form(e) {
     + `</div>`
     + `<div class="colour"><span class="lbl">${L().fColour}</span><span class="swatches" data-cid="${esc(DUSTY[e.colorId] ? e.colorId : '')}" data-was="${esc(e.colorId || '')}">`
     + `<i class="sw ${DUSTY[e.colorId] ? '' : 'on'}" data-cid="" title="${L().calColour}" style="--c:${calColor(e)}"></i>`
-    + Object.entries(DUSTY).map(([id, c]) => `<i class="sw ${String(e.colorId) === id ? 'on' : ''}" data-cid="${id}" style="--c:${c}"></i>`).join('')
+    + DUSTY_ORDER.map(id => [id, DUSTY[id]]).map(([id, c]) => `<i class="sw ${String(e.colorId) === id ? 'on' : ''}" data-cid="${id}" style="--c:${c}"></i>`).join('')
     + `</span></div>`
     + `<div class="frow ticks">`
     + `<label class="tick"><input type="checkbox" name="pencil"${isPencil(e) || (cityMarker(e.title || '') && isTbc(e)) ? ' checked' : ''}><span>${L().pencil}</span></label>`
@@ -1276,6 +1286,9 @@ function wireSheet(sheet, ds) {
   }
   sheet.addEventListener('click', async e => {
     if (e.target.closest('a')) return;
+    // A TAP ON THE TOP CLOSES IT (Alan, 09.10): the handle and the date line. closeDay
+    // still keeps an open form or typed words, as it does for a tap outside.
+    if (e.target.closest('.grab') || e.target.closest('header') === sheet.querySelector('header')) { closeDay(); return; }
     const del = e.target.dataset.del;
     if (del) {
       const ev = state.events.find(x => String(x.id) === String(del));
@@ -1381,7 +1394,7 @@ function wireSheet(sheet, ds) {
     if (f.dataset.busy) return;
     const v = n => (f.querySelector(`[name="${n}"]`) || {}).value || '';
     const fields = {
-      title: tripTitle(f, v('title')), time: v('time').trim(), endTime: v('endtime').trim(),
+      title: pencilTitle(f, tripTitle(f, v('title'))), time: v('time').trim(), endTime: v('endtime').trim(),
       start: v('start'), end: v('end'), location: v('location').trim(),
       notes: pencilled(f, v('notes')), calId: v('cal'),
       // a colour he did not touch stays as it was in Google, even one of the three not offered
@@ -1439,10 +1452,15 @@ function tripTitle(form, title) {
   const tbc = form.querySelector('[name="pencil"]')?.checked ? ' tbc' : '';
   return arrowForm('-' + plain.replace(/\s*\btbc\b.*$/i, '').trim()) + tbc;
 }
+// the Blyant tick writes the "?" (a move keeps its own " tbc", set by tripTitle); saving
+// also drops an old P line from the notes, so an edited event carries the one mark only
+function pencilTitle(form, title) {
+  if (form.querySelector('[name="trip"]')?.checked) return title;
+  const plain = String(title).replace(PENCIL_Q, '');
+  return form.querySelector('[name="pencil"]')?.checked ? plain + '?' : plain;
+}
 function pencilled(form, notes) {
-  const on = form.querySelector('[name="pencil"]')?.checked;
-  const body = withoutPencil(notes).trim();
-  return on ? withPencil(body) : body;
+  return withoutPencil(notes).trim();
 }
 
 async function createEvent(f) {
