@@ -508,6 +508,168 @@ else the month's first full week (a 1st on a weekend belongs to the week before)
 SEPTEMBER fits at 375px with both buttons. The design session's answer on the title
 toggle and the phone year is still to come; this button does not wait for it.
 
+**10.10 night — NATIVE STAGES 4–6 built while Alan slept** (simulator, his real calendar
+unless marked demo; nothing deployed, no TestFlight, the only calendar write was the
+mask removal he asked for):
+- WEEK (`WeekView.swift`): opened from a day's figure, the month's "uke" cell, or the day
+  sheet's "uke N ›" (so a week that began last month is reachable); the phone's own back
+  button/swipe returns to the month; sideways = a week; spans on top with solid rules on
+  their own days and a dotted lead before; the tour's word or show number in each day's
+  head; wg | Schedule's calls on the lines; today in ink. Seen: uke 41 and 42.
+- YEAR (`YearView.swift`): "2026" in the month header opens it; two views, Måneder and
+  Plakat, remembered; the year in the bar is a menu of ±5 years; sideways = a year; show
+  days a red box with a white figure (his pick C); a tapped day opens its month with that
+  day outlined in ink and no sheet (seen: 19 September from the poster).
+- WEEKEND RUNS: pieces with the same title and calendar apart only by Saturday–Sunday
+  become one line, the weekends drawn faint (seen: a nine-week project with free weekends).
+- MAGNIFIER: hold a day in the month, the row lifts out at 1.5× with its date; slide;
+  let go and that day opens (seen: held, slid two days, the right day opened).
+- CHECK-IN: a flight's reference (first notes line, or "ref XXXXXX") shown under it, a
+  tap copies it; "Sjekk inn · Transavia" copies and opens the airline's page (SAS,
+  Norwegian, Widerøe, KLM, Air France, Lufthansa, Transavia — URLs NOT yet tried on his
+  phone). The reference was made smaller on his word.
+- CITY TIME: timed events show in the time of the city he is in that day; flights keep
+  their ticket time; the sheet names the event's own clock when it differs ("19:00
+  Oslo-tid"). Exposed on real data: an evening event abroad is saved in Oslo time
+  (reads an hour later there), and after 9.10 the destination stays his city (no return flight saved),
+  so home meetings read an hour later. Both are data, not the app.
+- END TIMES AND FLIGHT LENGTH in the day sheet (his ask): end under start; a flight reads
+  "Paris 11:20 → Roma 13:30 · 2 t 10 min", each end in its own city's time, whatever
+  zone the event was saved in.
+- REMINDERS (`Reminders.swift`): "⋯" in the month header → Påminnelser; iOS asks once;
+  the day sheet lists reminders due that day with a ring to tick off, and a line to add
+  one to that day. Tested on the DEMO simulator only (add, tick).
+- "⋯" also holds "Logg ut av Google".
+- Also tonight: an event's 🎭 removed on his yes; the almanac (web 20261010c,
+  local; native) shows no emoji; the no-emoji and local-time rules written into
+  ClaudeCode/CLAUDE.md, Desk/CLAUDE.md and the nightly task; an updated add-flight skill
+  (local times at each end, no noise in notes) handed to him to re-upload.
+- WAITING ON HIM: yes to one flight's new notes (shown in chat); re-upload of the
+  skill; "go" for web 20261010c; the no-emoji line in his claude.ai profile.
+
+**10.10 — FIRST REAL WRITES, on Alan's yes ("yes you may"): the test passed, the calendar is clean.**
+On wg | ALAN, Sunday 11.10, all-day "Almanakk test", checked in Google after each step:
+add ✓ · Endre + Blyant → "Almanakk test?" ✓ (Google's first read was stale; the second
+showed it, updated 23:27:37) · Slett ✓ (gone) · Angre ✗ the first time (the line vanished,
+nothing restored, no error shown) → the sequence was run once more from the start: add ✓ ·
+Slett ✓ · Angre ✓ (restored as a new event, "Gjenopprettet") · Slett ✓. End state, checked:
+no "Almanakk test" on 10–12.10, the day's own events untouched.
+- Found by the test and fixed: the keyboard autocorrected "Almanakk" to "Almanac" before
+  saving; autocorrect is now off in the add line, title and place (his titles are names).
+- NOT explained: the first failed Angre. Likeliest cause, not proven: the tap came as the
+  6-second window closed. The window is now 10 seconds; debug prints ("ALM …") stay in the
+  undo path until it has been seen to work on his phone. Remove them before TestFlight.
+
+**10.10 — NATIVE STAGE 3: EDITING, built and tested on the DEMO month only** (no write
+has reached Google yet; the first real write waits for Alan's yes on a named test event):
+- `Shared/Draft.swift`: the event as the form holds it; Google's body (all-day ↔ timed
+  nulls the other side, E4); the add-line reader by his rules (bare numbers = days; a
+  time needs a colon, "kl" or am/pm; "2-5pm" = 14–17, "8-12pm" = 08–12; a clock anywhere
+  makes it timed; "-Oslo" saved as "→ Oslo"; a trailing "?" = Blyant) — 14 cases pass;
+  a city → time-zone table, so a new event takes the zone of the city he will be in.
+- `Google.swift`: insert, patch, move (to another calendar), delete — each response
+  checked; Google's answer replaces the local copy, cache and widget snapshot rewritten.
+- `EditSheet.swift`: the add line quiet at the sheet's foot, its reading shown under it
+  before saving ("8.–12. okt · heldag"), one tap switches days ↔ clock; the full form
+  laid out like Apple Calendar's (title, place, all-day, dates, times, Tidssone, calendar,
+  Blyant, the eight colours, notes, delete), Norwegian dates; per entry Endre / Bekreft
+  (pencilled) / Slett; "Slettet · Angre" at the foot. Tour and schedule calendars are
+  read-only in the sheet.
+- Simulator, demo: add "8-12 …" (span drawn in a new lane), the reading switch, Endre
+  (title "Endre", fields filled), Blyant on → "?" and grey in month and sheet, Bekreft →
+  firm again, Slett → gone, Angre → back. Two faults found and fixed: "Endre" opened as
+  "Ny hendelse" (the form's event now travels with it), and "Angre" vanished unrun (an
+  interrupted timer cleared it).
+
+**10.10 night — NATIVE APP SIGNED IN, on Alan's real calendar** (simulator iPhone 17 Pro
+iOS 26.5, the one his panel shows; 1371 events, 5 calendars, five years each way):
+- Flight reader ported (`native/Shared/Places.swift`): the curated city table, the full
+  airport table as `airports.json` (7743 codes, generated from airports.js), the route
+  reader with the comma fix, night flights to the evening before. The 14 route cases
+  pass in Swift as in JS. His October's city column now follows his flights and moves.
+- "A. NAME" in his city column: a 2023 cast list "- A. Name" read as a move. A dash
+  must now TOUCH its city ("-Roma"); "- Name" is a list item. Fixed in the native engine
+  AND v3/app.js (14 marker cases pass). Web part waits for his go (bygg 20261010b).
+- Seen on his data and fixed: the line now takes the tour column on days outside a tour
+  (Performance 1 was hidden); a span's title starts after the last lane IN USE that day
+  (Vildanden's title stood far from its line, his question); the tour heading is the
+  band's cap (paper, tint, left rule) so a grey Sunday no longer cuts it off, and it runs
+  into an empty right-hand cell so "ANTIGONE Taichung" is whole; the city cell is one
+  line, shrinking a little ("FRANKFU / RT"); the month ignores drags while a sheet is up
+  (closing the sheet stepped back a year).
+- Noted for him: the destination stays his city after the 9th because no return flight is in the
+  calendar ("one way" booking). The nightly now adds his flights, so the next one will
+  move it.
+
+**10.10 — sign-in under way; his iPhone Mirroring notes**
+- iOS client ID in `GoogleConfig.clientID` (created by Alan, "Almanakk iPhone"). The
+  simulator reaches Apple's "Almanakk wants to use accounts.google.com" prompt; Alan signs
+  in himself (his account, his password).
+- Arrow keys in the native month (left/right a month, up/down a year), for iPhone
+  Mirroring where there is no swipe. The web wrapper's arrows never reached the page.
+- A week that began last month has no "uke" cell in this month. Native answer, to build
+  with the week view: the day sheet's "uke N" opens that day's week, for any day; the
+  day's figure does too.
+- His real-lines screenshot (current app, 2pt lines): dark wg | ALAN lanes and a pink
+  one read as hairlines, the pink barely visible — confirms the 4pt pick. The same
+  screenshot still had the old flight title and the old city: his app had not yet
+  loaded the corrected title or bygg 20261010a.
+
+**10.10 — Alan's picks from the pictures, BUILT in the native month** (seen in the simulator):
+- Span lines 4pt, 6pt apart, square ends; the LONGEST span takes the leftmost lane
+  (lanes are now given longest first, checking overlap against every span in a lane).
+- Today is the whole row in ink, words in paper (pick B).
+- The tour's first row: name and city side by side, band column 70 → 96pt.
+- Show days in the year as a red box with a white figure (pick C): for the native year view.
+- His screenshot of realistic lines did not arrive; asked again.
+- DECIDED 10.10 ("rest agree"): his city column follows ONLY his own travel (flights,
+  moves). Until now whereOn fell back to the tour leg he was "inside", so a tour he did
+  not join put its city in his column; that rule came in with the tour calendar and was
+  never put to him plainly. Removed in the native engine and in v3/app.js (bygg
+  20261010b, LOCAL, waits for his go): checked in the web demo, the leg city (Paris) is
+  gone and the flight cities (Bergen, Bangkok) remain, no console errors. In the web
+  month the tour's city is not in the band yet (native only).
+- Native: loads five years back and five ahead; signed out shows only "Logg inn med
+  Google" (the demo month needs the "-demo" launch argument). Name stays Almanakk.
+- Nightly: its top rule now carves out his own flights, and each added flight is
+  announced as an unticked "ADDED BY THE NIGHTLY" line at the top of scan-and-bin.
+
+**10.10 — NATIVE STAGE 2 BUILT, waiting on one thing from Alan: the iOS OAuth client.**
+- `native/Almanakk/Google.swift`: sign-in through the phone's own web-authentication
+  sheet with PKCE (Google's flow for iOS clients, no secret), refresh token in the
+  Keychain, the Calendar API read directly (calendar list; every visible calendar a year
+  back to a year ahead, recurring expanded). Google's event is read as gcal.js reads it:
+  all-day end made inclusive, a timed event at its own zone's clock on its first day.
+- `Store.swift`: signed in = Google, kept on the phone (Application Support, file
+  protection) for an instant next start; refreshed on open and whenever the app comes
+  forward; a failure keeps the last good copy and says why in red under the header.
+  Signed out = the demo month, labelled "Eksempeldata, ikke din kalender." with a
+  "Logg inn med Google" button. After each load the app writes the widgets' snapshot
+  itself (a port of snapshot() in v3/app.js), so the web page's job moves into the app.
+- `GoogleConfig.clientID` is EMPTY until Alan creates the iOS client in Google Cloud
+  (project ALMANAKK, type iOS, bundle id com.winterguests.almanakk). Builds for iPhone
+  and Mac both succeed; the signed-out header seen in the simulator.
+- The nightly task (~/.claude/scheduled-tasks/nightly-sift-triage/SKILL.md) now WRITES
+  Alan's own flights itself in the add-flight form, then labels, archives, marks read
+  (Alan, 10.10); anything not plainly his flight is still proposed.
+- Pictures shown 10.10, waiting on his picks: span lines (now / 3pt / 4pt), today
+  (box / ink row / red rule), show days in the year (dot / red bold / red box), tour
+  first day (the 8 December case).
+
+**10.10 — bygg `20261010a`, IN PRODUCTION on Alan's "go"** (deployment `2ecb26ab`; undo:
+Cloudflare Rollback to `12b2af90`, 20261009f):
+- **A flight moved no city.** The title carried the airline and flight number
+  after a comma, and `flightLegs` read the last leg as "CAI, Transavia" — no place, so
+  the parser fell back to Orly. A comma or semicolon now ends a route; each piece is
+  read on its own and the longest route wins. 14 cases pass (that title and the
+  B1 table: "Osl - Beijing", "YLHNAI Oslo - Bergen", "Meet Ellen - afternoon"…).
+  v2/app.js, retired, still has the old copy.
+- **The event's title was corrected** to "Flight AAA-BBB" on his yes.
+- **Flights now have one form: the `add-flight` skill**, uploaded by Alan to claude.ai
+  (10.10) so every Claude has it; the local Claude Code copy was removed so there is one
+  version. See CONVENTIONS.md 17–19 for the form, the day sheet's check-in, and the tour
+  band's first day.
+
 **09.10 — NATIVE iPHONE APP, STAGE 1: the month and a reading day sheet, in SwiftUI**
 (development builds only; TestFlight and the Mac still run the web almanac):
 - `native/Shared/Engine.swift` ports the rules from v3/app.js: dates, ISO weeks, Norwegian
@@ -619,7 +781,7 @@ compliance question:
   mailto, tel and Apple Mail's `message:` links in notes and places are live; a Mail
   link reads "✉ Åpne e-posten". In the app the wrapper hands them to iOS/macOS, which
   opens Mail on that message.
-- *"Ellinor Oslo looks like it runs the whole week when it is Wed–Sun"* — in the week a
+- *"a span looks like it runs the whole week when it is Wed–Sun"* — in the week a
   span that begins mid-week is a faint dotted lead from its name to its first day, and
   solid only on its own days.
 - *"Font on the week widget is too small"* — the Uke widget writes at 12pt (medium) and
@@ -942,7 +1104,7 @@ same paper as the row where the name stands. **A name is a wall; a tint is not**
 clearing the walls leaves under 8em to write in, the line moves back left over the tints
 until it has room — never past a band that is saying something.
 Verified on the iPhone and iPad simulators against his own September: the 15th-20th now
-sit on the same stop as Møte Pekka, and "Kåre Gyldendal (?!)", "Maria 50 år Bergen" and
+sit on the same stop as Møte Pekka, and some all-day entries and
 "Prøve Vildanden" read whole where they were cut.
 
 ## THE ALIGNMENT SPEC — Alan's rules, 17.09.2026

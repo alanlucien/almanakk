@@ -6,6 +6,11 @@ to get exactly that version back (`git checkout <commit>` then `python3 publiser
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
 
+## 10.10.2026 — LIVE: bygg 20261010a
+- A comma ends a flight's route: "Flight AAA-BBB, Airline XX 123" moved the city
+  nowhere, because its last leg read as "CAI, Transavia". 14-case route test passes.
+- TO UNDO: Cloudflare → almanakk-v2 → Deployments → Rollback to 12b2af90 (20261009f).
+
 ## 09.10.2026 — LIVE: bygg 20261009f
 - Pencilled is a "?" ending the title; the Blyant tick writes and clears it, and saving
   drops an old P line from the notes. Old P notes still read as pencilled.
