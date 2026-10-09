@@ -508,6 +508,35 @@ else the month's first full week (a 1st on a weekend belongs to the week before)
 SEPTEMBER fits at 375px with both buttons. The design session's answer on the title
 toggle and the phone year is still to come; this button does not wait for it.
 
+**09.10 later — bygg `20261009d`, IN PRODUCTION on Alan's "go"** (undo: Cloudflare
+Rollback to `0a0b8b3f`, 20261009a):
+- **The phone's year is twelve small months again** (*"prefer the old year view on
+  phone with months"*): `renderMiniYear`, three across, four down, one screen; Sundays
+  and holidays red, a tour's days on its tint (a tbc/hold leg underlined), a show day
+  with a red mark under its figure, today framed. A tap on a day opens the month with
+  that day's sheet; a tap elsewhere in a month opens the month. The poster and its
+  peek are removed (code and styles). The desk keeps six over six.
+- **Up and down is a year** (*"scrolling between years doesn't work", "in month view
+  scrolling freezes"* — "seiling" read as scrolling): the month fits the screen and the
+  page no longer bounces, so a vertical drag did nothing at all. Where nothing is left
+  to scroll, a drag up is next year, down the year before, in the month and the year.
+  Also `touch-action: pan-y pinch-zoom` on `#app` so iOS does not take a sideways swipe
+  as a pan. The sideways swipe was checked with synthetic touches (month and year both
+  step, no errors); the iPhone simulator never delivers a drag to Safari's page (taps
+  arrive, drags leave no trace even in a capture listener), so the phone is the test.
+- **Writing takes the whole sheet** (*"Ny hendelse — click to add doesn't work,
+  glitches when bringing up the editor"*): the old lift moved the sheet's bottom while
+  iOS also scrolled the page. Now a focused field puts the sheet at full height, still;
+  the keyboard's height is padding at its foot, and the sheet scrolls only as far as the
+  field needs to clear the keyboard. **Seen in the iPhone simulator's Safari:** the
+  keyboard up, the line and Legg til / Skjema visible above it. The add line's buttons
+  also stand whenever it holds words, and Enter is "send".
+- **Mail links are words** (*"not the whole URL, only 'open mail'"*): a note's HTML is
+  read for its links and its tags dropped; Gmail, Outlook and iCloud mail addresses read
+  "✉ Åpne e-posten" like Apple Mail's own.
+- *"Edit when you want like Apple Calendar?"* — answered by 20261009a (read first,
+  Endre to edit); asked him whether he means something more.
+
 **09.10 — Alan's next list, bygg `20261009a`, IN PRODUCTION since 09.10 02:4x** (Alan:
 *"build"*; deployment `0a0b8b3f`; undo: Cloudflare Rollback to `67397cd0`, 20261008h).
 **TestFlight build 4** uploaded for iPhone and Mac with the larger week widget; it

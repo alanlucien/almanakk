@@ -6,6 +6,15 @@ to get exactly that version back (`git checkout <commit>` then `python3 publiser
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
 
+## 09.10.2026 — LIVE: bygg 20261009d
+- The phone's year is twelve small months again: tours tinted, shows marked, today
+  framed; a tap on a day opens its month with that day.
+- A vertical drag steps the year in the month and the year; sideways swipes are the
+  app's, not the browser's.
+- Writing in the day sheet takes the whole sheet and holds it still above the keyboard.
+- Mail links in notes read only "✉ Åpne e-posten", including Gmail and HTML links.
+- TO UNDO: Cloudflare → almanakk-v2 → Deployments → Rollback to 0a0b8b3f (20261009a).
+
 ## 09.10.2026 — LIVE: bygg 20261009a, and TestFlight build 4
 - The day sheet rises above the iPhone keyboard. A tap on an event opens it to read
   (from–to, place, notes, repeat, guests, calendar); Endre opens the form. Links in
