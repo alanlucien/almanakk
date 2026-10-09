@@ -249,26 +249,31 @@ struct Stale: View {
 // ---------- UKE: seven rows, the week's own page compressed ----------
 struct WeekView: View {
     let e: Entry
+    @Environment(\.widgetFamily) var family
     var body: some View {
         if let snap = e.snap, let today = e.day {
             let days = snap.week(of: e.key)
+            // LARGER TYPE (Alan, 08.10: "font on week widget is too small"): the medium
+            // widget writes at 12pt, the large at 14, figures a size above
+            let big = family == .systemLarge
+            let f: CGFloat = big ? 14 : 12
             VStack(spacing: 0) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("UKE \(today.week)").font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundStyle(Color.ink)
+                    Text("UKE \(today.week)").font(.system(size: big ? 14 : 12, weight: .bold)).tracking(1.5).foregroundStyle(Color.ink)
                     Spacer()
-                    Text(monthName(snap, days)).font(.system(size: 8, weight: .medium)).tracking(1).foregroundStyle(Color.muted)
+                    Text(monthName(snap, days)).font(.system(size: big ? 11 : 10, weight: .medium)).tracking(1).foregroundStyle(Color.muted)
                 }
                 .padding(.bottom, 3)
                 Rectangle().fill(Color.ruleStrong).frame(height: 1)
                 ForEach(0..<7, id: \.self) { i in
                     if let d = days[i] {
-                        HStack(alignment: .center, spacing: 5) {
-                            DayFigure(day: d, size: 10).frame(width: 30, alignment: .leading)
+                        HStack(alignment: .center, spacing: 6) {
+                            DayFigure(day: d, size: f + 0.5).frame(width: f * 3, alignment: .leading)
                             Text(d.parts.map { ($0.time.isEmpty ? "" : $0.time + " ") + $0.text }.joined(separator: "  ·  "))
-                                .font(.system(size: 9.5)).foregroundStyle(d.parts.first.map { Color.ink($0) } ?? .ink).lineLimit(1)
+                                .font(.system(size: f)).foregroundStyle(d.parts.first.map { Color.ink($0) } ?? .ink).lineLimit(1)
                             Spacer(minLength: 2)
-                            if let t = d.tour { TourCell(t: t, size: 8.5) }
-                            else if !d.hol.isEmpty { Text(d.hol).font(.system(size: 8)).italic().foregroundStyle(Color.red).lineLimit(1) }
+                            if let t = d.tour { TourCell(t: t, size: f - 1) }
+                            else if !d.hol.isEmpty { Text(d.hol).font(.system(size: f - 2)).italic().foregroundStyle(Color.red).lineLimit(1) }
                         }
                         .padding(.horizontal, 3)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
