@@ -6,6 +6,19 @@ to get exactly that version back (`git checkout <commit>` then `python3 publiser
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
 
+## 09.10.2026 — LIVE: bygg 20261009f
+- Pencilled is a "?" ending the title; the Blyant tick writes and clears it, and saving
+  drops an old P line from the notes. Old P notes still read as pencilled.
+- Eight event colours that stand apart: red, orange, yellow, green, petrol, blue,
+  violet, pink, each in Google's slot of that hue.
+- TO UNDO: Cloudflare → almanakk-v2 → Deployments → Rollback to aac3849e (20261009e).
+
+## 09.10.2026 — LIVE: bygg 20261009e
+- A note beginning with a capital P keeps it ("Paris…" showed as "aris…", and
+  Endre would have saved it without): only a P alone on its line is the pencil mark.
+- A tap on the day sheet's top (the handle and the date line) closes it.
+- TO UNDO: Cloudflare → almanakk-v2 → Deployments → Rollback to 093a0fdf (20261009d).
+
 ## 09.10.2026 — LIVE: bygg 20261009d
 - The phone's year is twelve small months again: tours tinted, shows marked, today
   framed; a tap on a day opens its month with that day.

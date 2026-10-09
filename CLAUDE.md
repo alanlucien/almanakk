@@ -476,6 +476,11 @@ Creating calendar events from mail still needs Alan's yes.
 
 ## Pencilled events — the `P` convention (decided 03.09.2026)
 
+> **SUPERSEDED 09.10.2026.** Pencilled is now a `?` ending the title, one mark, set by
+> the Blyant tick (web bygg 20261009f). Old `P` notes still read as pencilled until
+> Alan approves converting them. See [CONVENTIONS.md](CONVENTIONS.md), item 1. The text
+> below is the history, kept so the rejected options are not tried again.
+
 Alan needs to distinguish a thing that is agreed from a thing that is only proposed. The
 almanac should eventually render pencilled entries differently — light grey, the way you would
 pencil something into a paper wall calendar — and offer a one-click "confirm" that removes the

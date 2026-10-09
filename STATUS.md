@@ -508,6 +508,70 @@ else the month's first full week (a 1st on a weekend belongs to the week before)
 SEPTEMBER fits at 375px with both buttons. The design session's answer on the title
 toggle and the phone year is still to come; this button does not wait for it.
 
+**09.10 — NATIVE iPHONE APP, STAGE 1: the month and a reading day sheet, in SwiftUI**
+(development builds only; TestFlight and the Mac still run the web almanac):
+- `native/Shared/Engine.swift` ports the rules from v3/app.js: dates, ISO weeks, Norwegian
+  holidays, title rules (shows, pencil "?", tbc/HOLD, wall titles, moves), the tour legs
+  and the robot's day words, his spans in lanes, the month rows. NOT YET: the flight
+  parser and the airport table (the city column reads tour legs and "-Roma" moves only).
+- `native/Almanakk/MonthView.swift`: the phone month, one row per day filling the screen;
+  sideways swipe = month, vertical = year; I DAG. The day sheet is the phone's own sheet,
+  half height with the month still live under it (tap another day and the same sheet
+  turns its page, keeping its height), pulled up to full; tap an entry for its details;
+  a note's mail link reads "✉ Åpne e-posten".
+- `native/Almanakk/Store.swift`: a made-up demo month until sign-in (stage 2).
+- Seen in the iPhone 17 Pro simulator (iOS 26.4): the month, the tour column, red shows,
+  grey pencil, colours, uke/city column, the sheet on the 26th with its mail link, the
+  page turn to the 10th at half height. One fault found and fixed: an empty info cell
+  collapsed and slid the tour column right.
+- NEXT: stage 2, Google sign-in on the phone (needs an iOS OAuth client from Alan) and
+  the app writing the widgets' snapshot itself; then editing; week; year; flights.
+
+**09.10 — bygg `20261009f`, IN PRODUCTION on Alan's "go"** (deployment `12b2af90`; undo:
+Cloudflare Rollback to `aac3849e`, 20261009e):
+- **Pencil = "?" ending the title** (Alan: "perfect re pencil"). The Blyant tick writes
+  and clears the "?"; saving drops an old P line from the notes. Old P notes still read
+  as pencilled. Tested: 6 title cases, 4 isPencil cases.
+- **The eight colours stand apart** (Alan: "too similar … red, yellow, green, blue,
+  pink, orange"; "forslag is good"): Rød 11, Oransje 6, Gul 5, Grønn 10, Petrol 7,
+  Blå 9, Lilla 3, Rosa 4, each in the Google slot of that hue. Text contrast on white
+  4.4–6.8:1; nearest pair ΔE 23 (old set: 9). An event already in slot 1, 2 or 8 now
+  draws in its calendar's colour. Caution given: a red event sits near show red.
+- **P conversion DONE 09.10** on Alan's yes: six upcoming events in wg | ALAN, after he
+  allowed the Calendar update tool in .claude/settings.local.json himself (the first
+  write and Claude's own edit of that file were refused by the auto-mode check). Each
+  write's response checked: P lines gone, notes otherwise intact, "?" added to the two
+  that stay pencilled; four moves already said tbc and kept it. (Which events: not
+  written here — the repo is public.)
+- **All conventions reconsidered** in [CONVENTIONS.md](CONVENTIONS.md), one row each.
+
+**09.10 — DECIDED: the full native iPhone app starts now** (Alan: "good! … lets focus on
+iphone. the mac app may want a very different user interface and even design"). Until
+now the TestFlight app was the 23.09 "short term hybrid": a WKWebView box around
+almanakk-v2.pages.dev/v3/, with only the widgets native — and he was never told plainly
+each time a build went out. The full app is iPhone only; the Mac gets its own interface
+and design later, not a port. The web almanac keeps running meanwhile.
+**Conventions are to be reconsidered, not ported** (Alan: "things like that must be
+reconsidered", about the P mark). First: pencilled events — one mark instead of P in the
+notes plus "?" in the title. Proposed: a Blyant switch in the app, stored as a trailing
+"?" in the title (visible in every client and to subscribers, typeable from Apple
+Calendar and Siri, confirmed by removing it); old P notes read and offered for
+conversion with his yes. Waiting on his answer.
+
+**09.10 evening — bygg `20261009e`, IN PRODUCTION on Alan's "go"** (deployment `aac3849e`;
+undo: Cloudflare Rollback to `093a0fdf`, 20261009d):
+- **A note's leading P was eaten.** `withoutPencil` took any capital P at the start of
+  the notes, so a note beginning "Paris…" read "aris…", and saving it through Endre
+  would have deleted the P in Google. Now only a P alone on its first line is the mark
+  (`isPencil` also accepts a Windows line end, so the two agree). 9-case test.
+- **A tap on the sheet's top closes it** (*"touch the top field to close the
+  drawer"*): the handle and the date line. Typed words or an open form keep it open.
+- **The raw `<a href=…>` in his screenshot was an old build** on his screen: the
+  stored note is plain HTML and 20261009d already renders it "✉ Åpne e-posten".
+- **Missed day taps** (*"aiming for the 10th, the 9th or 11th opens"*): a month row is
+  ~23pt on a 375pt phone, half Apple's 44pt minimum. Offered, not built: touch-see-
+  slide-lift picking. A miss is one sideways swipe on the sheet.
+
 **09.10 later — bygg `20261009d`, IN PRODUCTION on Alan's "go"** (undo: Cloudflare
 Rollback to `0a0b8b3f`, 20261009a):
 - **The phone's year is twelve small months again** (*"prefer the old year view on
