@@ -17,6 +17,9 @@ enum Ink {
     static let wash = Color(red: 0xf1 / 255, green: 0xf1 / 255, blue: 0xee / 255)
     static let red = Color(red: 0xc0 / 255, green: 0x22 / 255, blue: 0x1b / 255)
     static let tour = Color(red: 0xb0 / 255, green: 0x65 / 255, blue: 0x2a / 255)
+    static let tourInk = Color(red: 0x8a / 255, green: 0x4a / 255, blue: 0x1c / 255)  // the tour's colour, dark enough to read
+    static let onInkSoft = Color(red: 0xc8 / 255, green: 0xc8 / 255, blue: 0xc2 / 255)   // muted words on today's ink
+    static let onInkRed = Color(red: 0xff / 255, green: 0x8a / 255, blue: 0x7a / 255)    // red that reads on ink
     static func hex(_ h: String) -> Color {
         if h == "red" { return red }
         var s = h; if s.hasPrefix("#") { s.removeFirst() }
@@ -31,16 +34,47 @@ let WD_LONG = ["MANDAG", "TIRSDAG", "ONSDAG", "TORSDAG", "FREDAG", "LØRDAG", "S
 
 struct NativeRoot: View {
     @StateObject private var store = Store()
+    @StateObject private var rem = RemindersStore()
+    @Environment(\.scenePhase) private var phase
     @State private var open: String? = nil
     @State private var detent: PresentationDetent = .medium
+    @State private var path: [Route] = []
+    @State private var selected: String? = nil      // a day picked in the year: marked, no sheet
+
+    /// to a day's week, from anywhere: the sheet steps aside, the week slides in
+    private func toWeek(_ ds: String) {
+        open = nil
+        path = [.week(Almanac.monday(ds))]
+    }
+    private func toYear() { open = nil; path = [.year(store.year)] }
+    /// from the year back to a month, with the tapped day marked (Alan, 10.10: "I land on
+    /// September 19 … highlighted as a selected day … not the drawer open")
+    private func pick(_ day: String?, _ y: Int, _ m: Int) {
+        store.year = y; store.month = m
+        if store.demo { store.loadDemo() }
+        selected = day
+        path = []
+    }
 
     var body: some View {
+        // THE MONTH IS HOME; THE WEEK IS PUSHED ON IT, with the phone's own back button and
+        // back swipe, "‹ Oktober" (Alan, 10.10: "opening a week from month view has no back")
+        NavigationStack(path: $path) {
+            MonthScreen(store: store, rem: rem, open: $open, selected: $selected, toWeek: toWeek, toYear: toYear)
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationTitle(MONTHS[store.month].capitalized)
+                .navigationDestination(for: Route.self) { r in
+                    switch r {
+                    case .week(let mon): WeekScreen(store: store, monday: mon, open: $open)
+                    case .year(let y): YearScreen(store: store, year: y, pick: pick)
+                    }
+                }
+        }
         // ONE SHEET, ITS PAGE TURNED: tapping another day changes the day inside the
         // sheet that is already up, so it keeps its height instead of being re-presented
-        MonthScreen(store: store, open: $open)
             .sheet(isPresented: Binding(get: { open != nil }, set: { if !$0 { open = nil } }),
                    onDismiss: { detent = .medium }) {
-                DaySheet(store: store, date: open ?? Day.today)
+                DaySheet(store: store, rem: rem, date: open ?? Day.today, toWeek: toWeek)
                     .presentationDetents([.medium, .large], selection: $detent)
                     .presentationDragIndicator(.visible)
                     .presentationBackground(Ink.paper)
@@ -48,13 +82,21 @@ struct NativeRoot: View {
                     // sheet turns to it, as a page under the hand
                     .presentationBackgroundInteraction(.enabled(upThrough: .medium))
             }
+            // fresh from Google when the app opens and whenever it comes forward again
+            .task { await store.refresh() }
+            .onChange(of: phase) { if phase == .active { Task { await store.refresh(); await rem.load() } } }
     }
 }
 
 struct MonthScreen: View {
     @ObservedObject var store: Store
+    @ObservedObject var rem: RemindersStore
     @Binding var open: String?
+    @Binding var selected: String?
+    var toWeek: (String) -> Void = { _ in }
+    var toYear: () -> Void = {}
     @State private var drag: CGFloat = 0
+    @State private var scrub: Int? = nil            // the row under a held thumb
 
     var body: some View {
         let data = store.almanac.month(store.year, store.month)
@@ -65,24 +107,72 @@ struct MonthScreen: View {
                 let rowH = geo.size.height / CGFloat(data.rows.count)
                 VStack(spacing: 0) {
                     ForEach(data.rows) { r in
-                        DayRow(row: r, nLanes: data.nLanes, hasTour: hasTour, height: rowH, open: open == r.date)
+                        DayRow(row: r, nLanes: data.nLanes, hasTour: hasTour, height: rowH, open: open == r.date, toWeek: toWeek)
+                            // A DAY PICKED IN THE YEAR is outlined in ink, unmistakable, no sheet
+                            .overlay(selected == r.date ? Rectangle().stroke(Ink.ink, lineWidth: 2).padding(1) : nil)
                             .contentShape(Rectangle())
-                            .onTapGesture { open = r.date }
+                            .onTapGesture { selected = nil; open = r.date }
                     }
                 }
                 .background(Ink.paper)
                 .overlay(Rectangle().stroke(Ink.ink, lineWidth: 1))
+                // THE MAGNIFIER (Alan, 10.10: "holding my thumb and then making the day I am
+                // selecting bigger"): hold, the row under the thumb lifts out at half again
+                // its size above the finger; slide to the right day; let go and it opens.
+                // A plain tap still opens at once; this is for the half-fingertip rows.
+                .overlay(alignment: .topLeading) {
+                    if let i = scrub, data.rows.indices.contains(i) {
+                        let r = data.rows[i]
+                        // drawn at two thirds of the width, then enlarged from its left edge, so
+                        // at half again the size it fills the width exactly: the date stays in view
+                        DayRow(row: r, nLanes: data.nLanes, hasTour: hasTour, height: rowH, open: true)
+                            .frame(width: geo.size.width / 1.5)
+                            .background(Ink.paper)
+                            .overlay(Rectangle().stroke(Ink.ink, lineWidth: 1))
+                            .scaleEffect(1.5, anchor: .topLeading)
+                            .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
+                            .offset(y: max(0, CGFloat(i) * rowH - rowH * 2.4))
+                            .allowsHitTesting(false)
+                    }
+                }
+                .gesture(LongPressGesture(minimumDuration: 0.35)
+                    .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+                    .onChanged { v in
+                        if case .second(true, let d?) = v {
+                            let i = min(data.rows.count - 1, max(0, Int(d.location.y / rowH)))
+                            if i != scrub { scrub = i; UISelectionFeedbackGenerator().selectionChanged() }
+                        } else if case .second(true, nil) = v, scrub == nil {
+                            scrub = 0
+                        }
+                    }
+                    .onEnded { _ in
+                        if let i = scrub, data.rows.indices.contains(i) { selected = nil; open = data.rows[i].date }
+                        scrub = nil
+                    })
                 .offset(x: drag)
             }
             .padding(.horizontal, 10)
             .padding(.bottom, 6)
         }
         .background(Ink.ground.ignoresSafeArea())
+        // ARROW KEYS, for a keyboard and for iPhone Mirroring on the Mac, where there is no
+        // swipe (Alan, 10.10): left and right are a month, up and down a year
+        .background {
+            Group {
+                Button("") { withAnimation { store.step(-1) } }.keyboardShortcut(.leftArrow, modifiers: [])
+                Button("") { withAnimation { store.step(1) } }.keyboardShortcut(.rightArrow, modifiers: [])
+                Button("") { withAnimation { store.step(-12) } }.keyboardShortcut(.upArrow, modifiers: [])
+                Button("") { withAnimation { store.step(12) } }.keyboardShortcut(.downArrow, modifiers: [])
+            }
+            .opacity(0).accessibilityHidden(true)
+        }
         // A SIDEWAYS SWIPE IS A MONTH, the phone's own gesture: the page follows the
         // finger and lets go into the next month or back
         .gesture(DragGesture(minimumDistance: 20)
-            .onChanged { v in if abs(v.translation.width) > abs(v.translation.height) { drag = v.translation.width * 0.6 } }
+            // while a sheet is up its own drags belong to it: closing it must not step the month
+            .onChanged { v in if open == nil && abs(v.translation.width) > abs(v.translation.height) { drag = v.translation.width * 0.6 } }
             .onEnded { v in
+                guard open == nil else { drag = 0; return }
                 let dx = v.translation.width, dy = v.translation.height
                 withAnimation(.easeOut(duration: 0.18)) { drag = 0 }
                 if abs(dx) > 60 && abs(dx) > abs(dy) { store.step(dx < 0 ? 1 : -1) }
@@ -91,16 +181,43 @@ struct MonthScreen: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(MONTHS[store.month]).font(.system(size: 26, weight: .semibold)).tracking(1.5).foregroundStyle(Ink.ink)
-            Text(String(store.year)).font(.system(size: 15, weight: .regular)).tracking(1).foregroundStyle(Ink.muted)
-            Spacer()
-            Button { withAnimation { store.goToday() } } label: {
-                Text("I DAG").font(.system(size: 12, weight: .semibold)).tracking(1.2)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(Ink.ink, lineWidth: 1))
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(MONTHS[store.month]).font(.system(size: 26, weight: .semibold)).tracking(1.5).foregroundStyle(Ink.ink)
+                    // the year opens the year
+                Button { toYear() } label: {
+                    Text(String(store.year)).font(.system(size: 15, weight: .regular)).tracking(1).foregroundStyle(Ink.muted)
+                }
+                if store.loading { ProgressView().controlSize(.mini) }
+                Spacer()
+                // the quiet menu: the few switches, out of the way (L3)
+                Menu {
+                    Toggle("Påminnelser", isOn: Binding(get: { rem.enabled }, set: { on in Task { await rem.setEnabled(on) } }))
+                    if !store.demo { Button("Logg ut av Google", role: .destructive) { store.signOut() } }
+                } label: {
+                    Image(systemName: "ellipsis").font(.system(size: 17, weight: .semibold)).foregroundStyle(Ink.ink)
+                        .frame(width: 34, height: 30).contentShape(Rectangle())
+                }
+                .accessibilityLabel("Mer")
+                Button { withAnimation { store.goToday() } } label: {
+                    Text("I DAG").font(.system(size: 12, weight: .semibold)).tracking(1.2)
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(Ink.ink, lineWidth: 1))
+                }
+                .foregroundStyle(Ink.ink)
             }
-            .foregroundStyle(Ink.ink)
+            // SIGNED OUT: ONE BUTTON, nothing else (Alan, 10.10)
+            if store.demo && !Store.demoWanted {
+                Button { Task { await store.signIn() } } label: {
+                    Text("Logg inn med Google").font(.system(size: 15, weight: .semibold))
+                        .frame(maxWidth: .infinity).padding(.vertical, 10)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Ink.ink, lineWidth: 1))
+                }
+                .foregroundStyle(Ink.ink).padding(.top, 6)
+            }
+            if let p = store.problem {
+                Text(p).font(.system(size: 12)).foregroundStyle(Ink.red).lineLimit(2)
+            }
         }
         .padding(.horizontal, 14).padding(.top, 6).padding(.bottom, 8)
     }
@@ -114,19 +231,28 @@ struct DayRow: View {
     let hasTour: Bool
     let height: CGFloat
     let open: Bool
+    var toWeek: (String) -> Void = { _ in }
 
     var body: some View {
         HStack(spacing: 0) {
-            figure.frame(width: 28, alignment: .trailing)
-            Text(WD[row.wi]).font(.system(size: 10)).foregroundStyle(row.red ? Ink.red : Ink.muted)
-                .frame(width: 20, alignment: .leading).padding(.leading, 4)
+            // THE DAY'S FIGURE OPENS ITS WEEK (as in the web month, 08.10); the rest of the row opens the day
+            HStack(spacing: 0) {
+                figure.frame(width: 28, alignment: .trailing)
+                Text(WD[row.wi]).font(.system(size: 10)).foregroundStyle(row.today ? Ink.onInkSoft : (row.red ? Ink.red : Ink.muted))
+                    .frame(width: 20, alignment: .leading).padding(.leading, 4)
+            }
+            .frame(maxHeight: .infinity).contentShape(Rectangle())
+            .onTapGesture { toWeek(row.date) }
             gutter
-            DayLine(parts: row.parts).frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 4)
-            if hasTour { tourCell.frame(width: 70) }
-            info.frame(width: 58, alignment: .trailing).padding(.trailing, 6)
+            DayLine(parts: row.parts, inverted: row.today).frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 4)
+            // a day outside any tour gives the tour column to its line (.day.notour in the web)
+            if hasTour && (row.tour != nil || row.head != nil) { tourCell.frame(width: 96).background(row.today && row.tour != nil ? Ink.paper : .clear) }
+            info.frame(width: 52, alignment: .trailing).padding(.trailing, 6)
         }
         .frame(height: height)
-        .background(open ? Ink.wash : (row.sun || !row.hol.isEmpty ? Ink.wash : Ink.paper))
+        // TODAY IS THE WHOLE ROW IN INK (Alan's pick B, 10.10: the box round the figure
+        // was not enough)
+        .background(row.today ? Ink.ink : (open ? Ink.wash : (row.sun || !row.hol.isEmpty ? Ink.wash : Ink.paper)))
         .overlay(alignment: .bottom) {
             Rectangle().fill(row.sun ? Ink.ink : Ink.rule).frame(height: row.sun ? 1 : 0.5)
         }
@@ -135,21 +261,25 @@ struct DayRow: View {
     private var figure: some View {
         Text("\(row.d)")
             .font(.system(size: 13, weight: .medium).monospacedDigit())
-            .foregroundStyle(row.today ? Ink.paper : (row.red ? Ink.red : Ink.ink))
-            .padding(.horizontal, row.today ? 3 : 0)
-            .background(row.today ? RoundedRectangle(cornerRadius: 3).fill(Ink.ink) : nil)
+            .foregroundStyle(row.today ? (row.red ? Ink.onInkRed : Ink.paper) : (row.red ? Ink.red : Ink.ink))
     }
 
     private var gutter: some View {
-        HStack(spacing: 3) {
-            ForEach(0..<nLanes, id: \.self) { l in
+        // FOUR POINTS, SIX APART, SQUARE ENDS (Alan's pick, 10.10: the 2pt lines were too
+        // thin and too close to tell apart on the phone)
+        // THE LINE STARTS AFTER THE LAST LANE IN USE THAT DAY (Alan, 10.10: Vildanden's
+        // title stood far from its line, wedged off by an empty lane for a span that only
+        // began on the 14th). Empty lanes to the right of the last one are not drawn.
+        let used = (row.lanes.lastIndex { $0 != nil } ?? -1) + 1
+        return HStack(spacing: 6) {
+            ForEach(0..<used, id: \.self) { l in
                 if let lane = row.lanes[l] {
-                    Rectangle().fill(Ink.hex(lane.color)).frame(width: 2)
+                    Rectangle().fill(Ink.hex(lane.color).opacity(lane.faint ? 0.35 : 1)).frame(width: 4)
                         .padding(.top, lane.a ? 3 : 0).padding(.bottom, lane.z ? 3 : 0)
-                } else { Color.clear.frame(width: 2) }
+                } else { Color.clear.frame(width: 4) }
             }
         }
-        .padding(.horizontal, nLanes > 0 ? 2 : 0)
+        .padding(.horizontal, used > 0 ? 2 : 0)
     }
 
     @ViewBuilder private var tourCell: some View {
@@ -158,23 +288,63 @@ struct DayRow: View {
                 Ink.tour.opacity(t.tbc ? 0 : 0.10)
                 Rectangle().fill(Ink.tour).frame(width: 2)
                 Group {
-                    if t.open { Text(t.name).font(.system(size: 10, weight: .bold)).tracking(0.4).foregroundStyle(Ink.ink) }
+                    // a tour running on from last month: its name only; his own city column says the rest
+                    if t.open { nameAndCity(t.name, t.continues ? "" : t.city) }
                     else if !t.perf.isEmpty { Text(t.perf).font(.system(size: 13, weight: .bold)).foregroundStyle(Ink.red) }
                     else if !t.word.isEmpty { Text(t.word).font(.system(size: 10)).foregroundStyle(Ink.soft) }
                 }
                 .italic(t.tbc).lineLimit(1).padding(.leading, 6)
             }
             .overlay(alignment: .top) { if t.open { Rectangle().fill(Ink.tour).frame(height: 1) } }
+        } else if let h = row.head {
+            // THE HEADING (Alan's option 2, 10.10): the day keeps its own ground — the band
+            // does not start here — and the name and city stand in the tour's colour. Full size, never shrunk (his eyesight): a
+            // long name runs on to the right over an empty cell; with something there, the
+            // city is cut before the name.
+            // (Alan, 10.10, second look: no underline — it only ran under half the words —
+            // but the band's own left rule climbs into the heading row, with no tint, so
+            // the name hangs on the band without claiming the day)
+            Color.clear
+                .overlay(alignment: .leading) { Rectangle().fill(Ink.tour).frame(width: 2) }
+                .overlay(alignment: .bottomLeading) {
+                    let free = row.info == nil
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(h.name).font(.system(size: 11, weight: .bold)).tracking(0.4).fixedSize()
+                        if !h.city.isEmpty {
+                            Text(h.city).font(.system(size: 11)).lineLimit(1)
+                                .fixedSize(horizontal: free, vertical: false)
+                        }
+                    }
+                    .italic(h.tbc)
+                    // BLACK INK (Alan, 10.10): the brown read as red beside the shows, and black
+                    // reads better; the climbing rule already ties it to its band
+                    .foregroundStyle(Ink.ink)
+                    .padding(.leading, 6).padding(.bottom, 4)
+                    .frame(width: free ? nil : 96, alignment: .leading)
+                }
         } else { Color.clear }
     }
 
-    @ViewBuilder private var info: some View {
+    /// THE NAME AND ITS CITY side by side (Alan, 10.10: "city name next to title")
+    private func nameAndCity(_ name: String, _ city: String) -> some View {
+        (Text(name).font(.system(size: 10, weight: .bold)).tracking(0.4)
+         + Text(city.isEmpty ? "" : " " + city).font(.system(size: 10)))
+            .foregroundStyle(Ink.ink).truncationMode(.tail)
+    }
+
+    private var info: some View {
+        // ONE LINE, ALWAYS: a long city shrinks a little rather than break ("FRANKFU / RT")
+        infoText.lineLimit(1).minimumScaleFactor(0.7)
+    }
+    @ViewBuilder private var infoText: some View {
         if let i = row.info {
             switch i.kind {
-            case .uke: Text(i.text).font(.system(size: 10)).tracking(0.4).foregroundStyle(Ink.muted)
-            case .hn: Text(i.text).font(.system(size: i.text.count > 9 ? 9 : 10)).italic().foregroundStyle(row.red ? Ink.red : Ink.soft)
+            case .uke: Text(i.text).font(.system(size: 10)).tracking(0.4).foregroundStyle(row.today ? Ink.onInkSoft : Ink.muted)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing).contentShape(Rectangle())
+                    .onTapGesture { toWeek(row.date) }   // THE WEEK NUMBER IS THE WEEK'S HANDLE
+            case .hn: Text(i.text).font(.system(size: i.text.count > 9 ? 9 : 10)).italic().foregroundStyle(row.today ? Ink.onInkSoft : (row.red ? Ink.red : Ink.soft))
             case .cty: Text(i.text.uppercased()).font(.system(size: i.text.count > 6 ? 9 : 10, weight: i.tbc ? .regular : .semibold))
-                    .italic(i.tbc).tracking(0.8).foregroundStyle(Ink.soft)
+                    .italic(i.tbc).tracking(0.8).foregroundStyle(row.today ? Ink.paper : Ink.soft)
             }
         } else { Color.clear }   // an empty cell keeps its width, or the tour column slides
     }
@@ -183,6 +353,7 @@ struct DayRow: View {
 // WHOLE ENTRIES, THEN +n (clipLines): the first entry always stands, cut short if it must
 struct DayLine: View {
     let parts: [MonthRow.Part]
+    var inverted = false       // today's row: words in paper on ink
 
     var body: some View {
         GeometryReader { geo in
@@ -191,15 +362,16 @@ struct DayLine: View {
                 ForEach(Array(parts.prefix(shown).enumerated()), id: \.offset) { i, p in
                     entry(p).lineLimit(1).layoutPriority(i == 0 ? 0 : 1).fixedSize(horizontal: i > 0, vertical: false)
                 }
-                if hidden > 0 { Text("+\(hidden)").font(.system(size: 11)).foregroundStyle(Ink.muted).fixedSize() }
+                if hidden > 0 { Text("+\(hidden)").font(.system(size: 11)).foregroundStyle(inverted ? Ink.onInkSoft : Ink.muted).fixedSize() }
             }
             .frame(height: geo.size.height)
         }
     }
 
     private func entry(_ p: MonthRow.Part) -> Text {
-        let colour: Color = p.show ? Ink.red : (p.pencil ? Ink.muted : (p.ink.isEmpty ? Ink.ink : Ink.hex(p.ink)))
-        let clock = p.kind == .timed ? Text(p.time + " ").font(.system(size: 10)).foregroundColor(Ink.muted) : Text("")
+        let colour: Color = inverted ? (p.show ? Ink.onInkRed : (p.pencil ? Ink.onInkSoft : Ink.paper))
+            : (p.show ? Ink.red : (p.pencil ? Ink.muted : (p.ink.isEmpty ? Ink.ink : Ink.hex(p.ink))))
+        let clock = p.kind == .timed ? Text(p.time + " ").font(.system(size: 10)).foregroundColor(inverted ? Ink.onInkSoft : Ink.muted) : Text("")
         if p.kind == .span {
             return Text(p.text.uppercased()).font(.system(size: 10.5, weight: .semibold)).tracking(0.8).foregroundColor(colour)
         }
@@ -230,22 +402,42 @@ struct DayLine: View {
     }
 }
 
-// ---------- the day sheet: the phone's own sheet, read first (stage 1: reading only) ----------
+// ---------- the day sheet: the phone's own sheet, read first, written from ----------
 
 struct DaySheet: View {
     @ObservedObject var store: Store
+    @ObservedObject var rem: RemindersStore
     let date: String
+    var toWeek: (String) -> Void = { _ in }
     @State private var viewing: String? = nil
+    /// the form's job travels as ONE value, so the event being edited cannot be lost
+    /// between two state changes (it was: "Endre" opened as "Ny hendelse")
+    struct FormJob: Identifiable { let id = UUID(); var draft: Draft; var editing: CalEvent? }
+    @State private var form: FormJob? = nil
 
     var body: some View {
-        content.onChange(of: date) { viewing = nil }
+        content
+            .onChange(of: date) { viewing = nil }
+            .overlay(alignment: .bottom) { ToastBar(store: store) }
+            .sheet(item: $form) { job in
+                EventForm(store: store, draft: job.draft, editing: job.editing, cityZone: cityZone, city: city)
+                    .presentationDetents([.large])
+                    .environment(\.locale, Locale(identifier: "nb_NO"))
+            }
     }
+
+    private var row: MonthRow? {
+        store.almanac.month(Int(date.prefix(4))!, Int(date.dropFirst(5).prefix(2))! - 1).rows.first { $0.date == date }
+    }
+    private var city: String { row?.city ?? "" }
+    /// a new event's clock is the time where he will be that day (CONVENTIONS 16)
+    private var cityZone: String { Places.zone(for: city) }
 
     @ViewBuilder private var content: some View {
         let alm = store.almanac
         let wi = Day.weekdayIdx(date)
         let hol = Holidays.of(Int(date.prefix(4))!)[date]
-        let row = alm.month(Int(date.prefix(4))!, Int(date.dropFirst(5).prefix(2))! - 1).rows.first { $0.date == date }
+        let row = self.row
         let list = alm.day(date)
         let tour = alm.tourCalIds
         ScrollView {
@@ -256,7 +448,11 @@ struct DaySheet: View {
                     Spacer()
                     if let c = row?.city, !c.isEmpty { Text(c.uppercased()).font(.system(size: 12, weight: .semibold)).tracking(1.2).foregroundStyle(Ink.soft) }
                     if let h = hol { Text(h.name).font(.system(size: 12)).italic().foregroundStyle(h.red ? Ink.red : Ink.soft) }
-                    Text("uke \(Day.isoWeek(date))").font(.system(size: 12)).foregroundStyle(Ink.muted)
+                    // the sheet's week number opens that day's week: any day, also a week that
+                    // began last month and has no "uke" cell in this one (Alan, 10.10)
+                    Button { toWeek(date) } label: {
+                        Text("uke \(Day.isoWeek(date)) ›").font(.system(size: 12)).foregroundStyle(Ink.soft)
+                    }
                 }
                 .padding(.top, 22).padding(.bottom, 10)
                 Rectangle().fill(Ink.ink).frame(height: 1)
@@ -267,23 +463,59 @@ struct DaySheet: View {
                     eventRow(e, alm: alm, wg: tour.contains(e.calId))
                     Rectangle().fill(Ink.rule).frame(height: 0.5)
                 }
+                if let p = store.problem { Text(p).font(.system(size: 13)).foregroundStyle(Ink.red).padding(.top, 10) }
+                DayReminders(rem: rem, date: date)
+                // THE ADD LINE, quiet at the foot: the keyboard comes only when it is tapped
+                AddLine(store: store, date: date, zone: cityZone) { d in
+                    var d = d; if d.calId.isEmpty { d.calId = store.defaultCal }
+                    form = FormJob(draft: d, editing: nil)
+                }
+                Color.clear.frame(height: 40)
             }
             .padding(.horizontal, 20)
         }
     }
 
     @ViewBuilder private func eventRow(_ e: CalEvent, alm: Almanac, wg: Bool) -> some View {
-        let t = Rules.effTime(e)
+        let t = alm.clock(e, cityZone: Places.zones[city])
+        let ownT = Rules.effTime(e)
         let pencil = Rules.isPencil(e) || Rules.isTbc(e)
         let colour: Color = Rules.isShow(e) ? Ink.red : (pencil ? Ink.muted : Ink.ink)
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(t).font(.system(size: 12).monospacedDigit()).foregroundStyle(Ink.muted).frame(width: 40, alignment: .leading)
+                // START AND END (Alan, 10.10: "I wanted to know how long the flight was and had
+                // to click edit to see it"): the end stands under the start
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(t).font(.system(size: 12).monospacedDigit()).foregroundStyle(Ink.muted)
+                    let endShown: String = {
+                        if e.minutes > 0, let r = Places.route(e.title), let z = Places.zones[r.components(separatedBy: " → ").last ?? ""],
+                           let c = alm.clock(e, plus: e.minutes, in: z) { return c }
+                        if e.minutes > 0, let z = Places.zones[city], let c = alm.clock(e, plus: e.minutes, in: z), t != ownT { return c }
+                        return e.endTime
+                    }()
+                    if !endShown.isEmpty && endShown != t {
+                        Text(endShown).font(.system(size: 11).monospacedDigit()).foregroundStyle(Ink.muted.opacity(0.8))
+                    }
+                }
+                .frame(width: 40, alignment: .leading)
                 Circle().fill(Ink.hex(alm.color(e))).frame(width: 7, height: 7)
                 Text(t.isEmpty ? e.title.deco : Rules.stripClock(e.title.deco)).font(.system(size: 17)).foregroundStyle(colour)
                 Spacer(minLength: 4)
                 Text(e.isSpan ? range(e) : (alm.calendars.first { $0.id == e.calId }?.name ?? ""))
                     .font(.system(size: 11)).foregroundStyle(Ink.muted)
+            }
+            // a flight says how long it is, and where each clock belongs
+            if e.minutes > 0, let r = Places.route(e.title) {
+                let parts = r.components(separatedBy: " → ")
+                let a = parts.first ?? "", b = parts.last ?? ""
+                let dep = Places.zones[a].flatMap { alm.clock(e, plus: 0, in: $0) } ?? ownT
+                let arr = Places.zones[b].flatMap { alm.clock(e, plus: e.minutes, in: $0) } ?? e.endTime
+                Text("\(a) \(dep) → \(b) \(arr) · \(e.minutes / 60) t \(String(format: "%02d", e.minutes % 60)) min")
+                    .font(.system(size: 12)).foregroundStyle(Ink.soft).padding(.leading, 48)
+            }
+            // shown in the day's city time: the event's own clock is named beneath it
+            if t != ownT && !ownT.isEmpty {
+                Text("\(ownT) \(Places.zoneLabel(e.zone))").font(.system(size: 11)).foregroundStyle(Ink.muted).padding(.leading, 48)
             }
             if viewing == e.id { details(e, alm: alm).padding(.leading, 48) }
         }
@@ -296,9 +528,42 @@ struct DaySheet: View {
     @ViewBuilder private func details(_ e: CalEvent, alm: Almanac) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             if !e.location.isEmpty { Text(e.location).font(.system(size: 14)).foregroundStyle(Ink.soft) }
+            // A FLIGHT: the booking reference large, a tap copies it; "Sjekk inn" copies it and
+            // opens the airline's check-in (CONVENTIONS 18)
+            if Places.dest(e.title) != nil, let ref = CheckIn.reference(e.notes) {
+                HStack(spacing: 14) {
+                    Button { UIPasteboard.general.string = ref; store.toast = .init(text: "\(ref) kopiert") } label: {
+                        Text(ref).font(.system(size: 16, weight: .semibold).monospaced()).tracking(1).foregroundStyle(Ink.ink)
+                    }
+                    if let a = CheckIn.airline(e), let url = URL(string: a.url) {
+                        Button {
+                            UIPasteboard.general.string = ref
+                            UIApplication.shared.open(url)
+                        } label: {
+                            Text("Sjekk inn · \(a.name)").font(.system(size: 14, weight: .semibold))
+                                .padding(.horizontal, 10).padding(.vertical, 6)
+                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Ink.ink, lineWidth: 1))
+                        }
+                        .foregroundStyle(Ink.ink)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
             let notes = RX.sub("^P[ \\t]*(?:\\r?\\n(?:[ \\t]*\\r?\\n)?|$)", e.notes, "")
             if !notes.isEmpty { NoteText(raw: notes) }
             Text(alm.calendars.first { $0.id == e.calId }?.name ?? "").font(.system(size: 12)).foregroundStyle(Ink.muted)
+            // the robot's tour and the schedule are read here, never written
+            if store.writable.contains(where: { $0.id == e.calId }) {
+                HStack(spacing: 18) {
+                    Button("Endre") {
+                        form = FormJob(draft: Draft(e, zone: e.zone.isEmpty ? cityZone : e.zone), editing: e)
+                    }
+                    if Rules.isPencil(e) { Button("Bekreft") { Task { await store.confirm(e) } } }
+                    Button("Slett", role: .destructive) { Task { await store.delete(e); viewing = nil } }
+                }
+                .font(.system(size: 15, weight: .semibold)).foregroundStyle(Ink.ink)
+                .padding(.top, 6)
+            }
         }
     }
 

@@ -1,7 +1,9 @@
-// The native app's data: the events and calendars the engine reads. Stage 1 runs on a
-// made-up demo month (no real names, no real schedule — the repo is public); stage 2
-// replaces `load()` with Google sign-in and the Calendar API.
+// The native app's data: the events and calendars the engine reads. Signed in, they come
+// from Google (Google.swift) and are kept on the phone so the next start is instant;
+// signed out, a made-up demo month (no real names, no real schedule — the repo is public).
+// After every load the app writes the widgets' snapshot, the job the web page did before.
 import SwiftUI
+import WidgetKit
 
 @MainActor
 final class Store: ObservableObject {
@@ -10,32 +12,232 @@ final class Store: ObservableObject {
     @Published var year: Int
     @Published var month: Int          // 0-based, as the engine
     @Published var demo = true
+    @Published var loading = false
+    @Published var problem: String? = nil
+    /// the line at the foot of the screen after a write: what happened, and how to undo it
+    @Published var toast: Toast? = nil
+    struct Toast: Identifiable { let id = UUID(); var text: String; var undo: (() async -> Void)? = nil }
 
     init() {
         let c = Day.greg.dateComponents([.year, .month], from: Date())
         year = c.year!; month = c.month! - 1
-        load()
+        #if os(iOS)
+        if GoogleAuth.shared.hasAccount, let cached = Cache.read() {
+            demo = false; calendars = cached.calendars; events = cached.events
+        } else if GoogleAuth.shared.hasAccount {
+            demo = false
+        } else if Store.demoWanted { loadDemo() }
+        #else
+        loadDemo()
+        #endif
     }
 
     var almanac: Almanac { Almanac(events: events, calendars: calendars) }
+
+    /// SIGNED OUT IS EMPTY, WITH ONE BUTTON (Alan, 10.10: "do we need 'eksempeldata'? just
+    /// log in"). The demo month is only for testing, started with the "-demo" argument.
+    static var demoWanted: Bool { ProcessInfo.processInfo.arguments.contains("-demo") }
 
     func step(_ n: Int) {
         var m = month + n, y = year
         while m < 0 { m += 12; y -= 1 }
         while m > 11 { m -= 12; y += 1 }
         year = y; month = m
-        if demo { load() }
+        if demo { loadDemo() }
     }
     func goToday() {
         let c = Day.greg.dateComponents([.year, .month], from: Date())
         year = c.year!; month = c.month! - 1
-        if demo { load() }
+        if demo { loadDemo() }
     }
 
-    func load() {
+    func loadDemo() {
+        guard Store.demoWanted else { calendars = []; events = []; return }
         calendars = Demo.calendars
         events = Demo.events(year: year, month: month)
     }
+
+    #if os(iOS)
+    func signIn() async {
+        problem = nil
+        do {
+            try await GoogleAuth.shared.signIn()
+            demo = false
+            await refresh()
+        } catch GoogleError.cancelled {
+        } catch { problem = error.localizedDescription }
+    }
+
+    func signOut() {
+        GoogleAuth.shared.signOut()
+        Cache.clear()
+        demo = true
+        loadDemo()
+    }
+
+    /// FIVE YEARS BACK AND FIVE AHEAD (Alan, 10.10), all visible calendars at once.
+    func refresh() async {
+        guard !demo, !loading else { return }
+        loading = true; defer { loading = false }
+        let now = Day.greg.component(.year, from: Date())
+        let from = "\(now - 5)-01-01", to = "\(now + 5)-12-31"
+        do {
+            let cals = try await GCal.calendars()
+            let all = try await withThrowingTaskGroup(of: [CalEvent].self) { group in
+                for c in cals { group.addTask { try await GCal.events(cal: c.id, from: from, to: to) } }
+                var out: [CalEvent] = []
+                for try await chunk in group { out += chunk }
+                return out
+            }
+            calendars = cals; events = all; problem = nil
+            Cache.write(.init(calendars: cals, events: all))
+            writeSnapshot()
+        } catch GoogleError.noToken {
+            demo = true; loadDemo()
+        } catch {
+            // the last good copy stays on screen; the reason is said, not swallowed
+            problem = "Kunne ikke oppdatere: " + error.localizedDescription
+        }
+    }
+
+    // ---------- writing (stage 3) ----------
+    // Every write is checked: Google's answer replaces the local copy, an error is said in
+    // red and nothing is shown as saved. Signed out (the demo), writes stay on the phone.
+
+    /// the calendars he may write to: never the robot's tour, never the schedule
+    var writable: [CalInfo] {
+        let alm = almanac
+        return calendars.filter { !alm.tourCalIds.contains($0.id) && !alm.scheduleCalIds.contains($0.id) }
+    }
+    var defaultCal: String {
+        writable.first { $0.name.lowercased() == "wg | alan" }?.id ?? writable.first?.id ?? ""
+    }
+
+    @discardableResult
+    func save(_ d: Draft, editing old: CalEvent?) async -> Bool {
+        problem = nil
+        if demo {
+            var e = CalEvent(id: old?.id ?? "demo-" + d.id, calId: d.calId.isEmpty ? defaultCal : d.calId, title: d.finalTitle,
+                             start: d.start, end: d.allDay ? max(d.end, d.start) : d.start, time: d.allDay ? "" : d.time,
+                             endTime: d.allDay ? "" : d.endTime, location: d.location, notes: d.notes, colorId: d.colorId)
+            if e.calId.isEmpty { e.calId = "own" }
+            events.removeAll { $0.id == old?.id }
+            events.append(e)
+            toast = .init(text: old == nil ? "Lagt til" : "Lagret")
+            return true
+        }
+        do {
+            let cal = d.calId.isEmpty ? defaultCal : d.calId
+            var saved: CalEvent?
+            if let old {
+                var target = old
+                if cal != old.calId, let moved = try await GCal.move(old, to: cal) { target = moved }
+                saved = try await GCal.patch(target, body: d.googleBody())
+            } else {
+                saved = try await GCal.insert(cal: cal, body: d.googleBody())
+            }
+            guard let e = saved else { problem = "Google svarte uten hendelsen. Sjekk i Google Kalender."; return false }
+            events.removeAll { $0.id == old?.id }
+            events.append(e)
+            Cache.write(.init(calendars: calendars, events: events)); writeSnapshot()
+            toast = .init(text: old == nil ? "Lagt til i \(calendars.first { $0.id == cal }?.name ?? "kalenderen")" : "Lagret")
+            return true
+        } catch {
+            print("ALM save failed", error)
+            problem = "Ble ikke lagret: " + error.localizedDescription
+            return false
+        }
+    }
+
+    /// deleted, with "Angre" for a moment: undo writes it back as it was
+    func delete(_ e: CalEvent) async {
+        problem = nil
+        let back = Draft(e, zone: TimeZone.current.identifier)
+        if !demo {
+            do { try await GCal.delete(e) } catch { problem = "Ble ikke slettet: " + error.localizedDescription; return }
+        }
+        events.removeAll { $0.id == e.id }
+        if !demo { Cache.write(.init(calendars: calendars, events: events)); writeSnapshot() }
+        toast = .init(text: "Slettet") { [weak self] in
+            print("ALM undo start", self == nil ? "no store" : "store")
+            guard let self else { return }
+            var d = back; d.calId = e.calId
+            if self.demo { self.events.append(e) } else { let ok = await self.save(d, editing: nil); print("ALM undo save", ok) }
+            self.toast = .init(text: "Gjenopprettet")
+        }
+    }
+
+    /// a pencilled event made firm: the "?" comes off the title, an old P line off the notes
+    func confirm(_ e: CalEvent) async {
+        var d = Draft(e, zone: e.time.isEmpty ? TimeZone.current.identifier : (zoneOf(e) ?? TimeZone.current.identifier))
+        d.pencil = false
+        if await save(d, editing: e) { toast = .init(text: "Bekreftet") }
+    }
+    /// the zone a timed event was written in (kept on the event since stage 2)
+    func zoneOf(_ e: CalEvent) -> String? { e.zone.isEmpty ? nil : e.zone }
+
+    /// THE WIDGETS ARE FED (snapshot() in v3/app.js): a week back to two months ahead,
+    /// the month rows exactly as drawn, the schedule's calls joining each day's lines.
+    func writeSnapshot() {
+        let alm = almanac
+        let now = Date()
+        let comps = Day.greg.dateComponents([.year, .month], from: now)
+        let from = Day.add(Day.key(comps.year!, comps.month! - 1, 1), -7)
+        let to = Day.key(Day.greg.date(byAdding: .day, value: 62, to: now)!)
+        let sched = alm.scheduleCalIds
+        func hex(_ c: String) -> String { RX.test("^#[0-9a-fA-F]{6}$", c) ? c : "" }
+        var days: [Snapshot.Day] = []
+        var y = Int(from.prefix(4))!, m = Int(from.dropFirst(5).prefix(2))! - 1
+        while Day.key(y, m, 1) <= to {
+            let (rows, nLanes) = alm.month(y, m)
+            for r in rows where r.date >= from && r.date <= to {
+                let calls = alm.events.filter { !$0.isSpan && $0.start == r.date && sched.contains($0.calId) }.map {
+                    Snapshot.Part(kind: "timed", time: Rules.effTime($0), text: Rules.stripClock($0.title.deco), color: hex(alm.color($0)),
+                                  ink: "", show: Rules.isShow($0), pencil: false)
+                }
+                let parts = r.parts.map { p -> Snapshot.Part in
+                    let kind = p.kind == .span ? "span" : (p.kind == .allday ? "allday" : "timed")
+                    return Snapshot.Part(kind: kind, time: p.time, text: p.text, color: hex(p.color), ink: hex(p.ink), show: p.show, pencil: p.pencil)
+                } + calls
+                let sorted = parts.enumerated().sorted { a, b in
+                    let ta = a.element.kind == "timed" ? 1 : 0, tb = b.element.kind == "timed" ? 1 : 0
+                    if ta != tb { return ta < tb }
+                    if a.element.time != b.element.time { return a.element.time < b.element.time }
+                    return a.offset < b.offset
+                }.map(\.element)
+                let info = r.info.map { i -> Snapshot.Info in
+                    Snapshot.Info(kind: i.kind == .uke ? "uke" : (i.kind == .cty ? "cty" : "hn"), text: i.text, tbc: i.tbc)
+                }
+                // the widget keeps its own rule: the name on the leg's first day
+                let tour = r.tour.map { Snapshot.Tour(name: $0.name, word: $0.start ? "" : $0.word, perf: $0.start ? "" : $0.perf, city: $0.city, tbc: $0.tbc, open: $0.start) }
+                days.append(Snapshot.Day(date: r.date, d: r.d, wi: r.wi, wd: WD_LONG_ALL[r.wi], wl: WD_ALL[r.wi], week: r.week, hol: r.hol,
+                                         red: r.red, sun: r.sun, city: r.city, tbc: r.tbc, show: r.show, nLanes: nLanes,
+                                         lanes: r.lanes.map { $0.map { Snapshot.Lane(color: $0.color, a: $0.a, z: $0.z) } ?? Snapshot.Lane(color: "", a: false, z: false) },
+                                         info: info, tour: tour, parts: sorted))
+            }
+            m += 1; if m > 11 { m = 0; y += 1 }
+        }
+        let snap = Snapshot(generated: ISO8601DateFormatter().string(from: now), lang: "no", months: MONTHS_ALL, days: days)
+        guard let data = try? JSONEncoder().encode(snap), let json = String(data: data, encoding: .utf8) else { return }
+        if Snapshot.write(json) { WidgetCenter.shared.reloadAllTimelines() }
+    }
+    #endif
+}
+
+let MONTHS_ALL = ["JANUAR", "FEBRUAR", "MARS", "APRIL", "MAI", "JUNI", "JULI", "AUGUST", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"]
+let WD_ALL = ["M", "Ti", "O", "To", "F", "L", "S"]
+let WD_LONG_ALL = ["MANDAG", "TIRSDAG", "ONSDAG", "TORSDAG", "FREDAG", "LØRDAG", "SØNDAG"]
+
+// The last good copy of the calendars, on the phone only (Application Support).
+enum Cache {
+    struct Body: Codable { var calendars: [CalInfo]; var events: [CalEvent] }
+    static var url: URL? {
+        try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent("calendar-cache.json")
+    }
+    static func read() -> Body? { url.flatMap { try? Data(contentsOf: $0) }.flatMap { try? JSONDecoder().decode(Body.self, from: $0) } }
+    static func write(_ b: Body) { if let u = url, let d = try? JSONEncoder().encode(b) { try? d.write(to: u, options: [.atomic, .completeFileProtection]) } }
+    static func clear() { if let u = url { try? FileManager.default.removeItem(at: u) } }
 }
 
 // A month that exercises every rule the sheet draws: a tour leg with its day words and
@@ -61,6 +263,8 @@ enum Demo {
         for (d, w) in words { add("touring", w, d) }
         // his own
         add("own", "Prøver Vinterlys", 3, 9, color: "9")
+        add("own", "Vinterlys sesong", 1, 29, color: "10")
+        add("private", "Kurs", 20, 22, color: "4")
         add("own", "Konseptmøte", 2, time: "10:00")
         add("own", "Lunsj med produsent", 2, time: "12:30", color: "4")
         add("own", "Kaffe?", 5, time: "09:00")

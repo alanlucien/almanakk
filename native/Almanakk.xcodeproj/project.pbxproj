@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1000001000000000000B111 /* Reminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F111 /* Reminders.swift */; };
+		A1000001000000000000B110 /* YearView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F110 /* YearView.swift */; };
+		A1000001000000000000B109 /* WeekView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F109 /* WeekView.swift */; };
+		A1000001000000000000B107 /* Draft.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F107 /* Draft.swift */; };
+		A1000001000000000000B108 /* EditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F108 /* EditSheet.swift */; };
+		A1000001000000000000B105 /* Places.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F105 /* Places.swift */; };
+		A1000001000000000000B106 /* airports.json in Resources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F106 /* airports.json */; };
+		A1000001000000000000B104 /* Google.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F104 /* Google.swift */; };
 		A1000001000000000000B103 /* MonthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F103 /* MonthView.swift */; };
 		A1000001000000000000B102 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F102 /* Store.swift */; };
 		A1000001000000000000B101 /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000F101 /* Engine.swift */; };
@@ -28,6 +36,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A1000001000000000000F111 /* Reminders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reminders.swift; sourceTree = "<group>"; };
+		A1000001000000000000F110 /* YearView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearView.swift; sourceTree = "<group>"; };
+		A1000001000000000000F109 /* WeekView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekView.swift; sourceTree = "<group>"; };
+		A1000001000000000000F107 /* Draft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Draft.swift; sourceTree = "<group>"; };
+		A1000001000000000000F108 /* EditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditSheet.swift; sourceTree = "<group>"; };
+		A1000001000000000000F105 /* Places.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Places.swift; sourceTree = "<group>"; };
+		A1000001000000000000F106 /* airports.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = airports.json; sourceTree = "<group>"; };
+		A1000001000000000000F104 /* Google.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Google.swift; sourceTree = "<group>"; };
 		A1000001000000000000F103 /* MonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthView.swift; sourceTree = "<group>"; };
 		A1000001000000000000F102 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		A1000001000000000000F101 /* Engine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine.swift; sourceTree = "<group>"; };
@@ -52,9 +68,9 @@
 
 /* Begin PBXGroup section */
 		A1000001000000000000G001 = {isa = PBXGroup; children = (A1000001000000000000G002 /* Almanakk */, A1000001000000000000G004 /* Shared */, A1000001000000000000G005 /* Widget */, A1000001000000000000G003 /* Products */, ); sourceTree = "<group>"; };
-		A1000001000000000000G002 /* Almanakk */ = {isa = PBXGroup; children = (A1000001000000000000F001 /* AlmanakkApp.swift */, A1000001000000000000F002 /* WebView.swift */, A1000001000000000000F102 /* Store.swift */, A1000001000000000000F103 /* MonthView.swift */, A1000001000000000000F003 /* Assets.xcassets */, A1000001000000000000F004 /* Almanakk.entitlements */, A1000001000000000000F011 /* Almanakk-iOS.entitlements */, ); path = Almanakk; sourceTree = "<group>"; };
+		A1000001000000000000G002 /* Almanakk */ = {isa = PBXGroup; children = (A1000001000000000000F001 /* AlmanakkApp.swift */, A1000001000000000000F002 /* WebView.swift */, A1000001000000000000F102 /* Store.swift */, A1000001000000000000F103 /* MonthView.swift */, A1000001000000000000F104 /* Google.swift */, A1000001000000000000F108 /* EditSheet.swift */, A1000001000000000000F109 /* WeekView.swift */, A1000001000000000000F110 /* YearView.swift */, A1000001000000000000F111 /* Reminders.swift */, A1000001000000000000F003 /* Assets.xcassets */, A1000001000000000000F004 /* Almanakk.entitlements */, A1000001000000000000F011 /* Almanakk-iOS.entitlements */, ); path = Almanakk; sourceTree = "<group>"; };
 		A1000001000000000000G003 /* Products */ = {isa = PBXGroup; children = (A1000001000000000000F005 /* Almanakk.app */, A1000001000000000000F012 /* AlmanakkWidget.appex */, ); name = Products; sourceTree = "<group>"; };
-		A1000001000000000000G004 /* Shared */ = {isa = PBXGroup; children = (A1000001000000000000F006 /* Snapshot.swift */, A1000001000000000000F101 /* Engine.swift */, ); path = Shared; sourceTree = "<group>"; };
+		A1000001000000000000G004 /* Shared */ = {isa = PBXGroup; children = (A1000001000000000000F006 /* Snapshot.swift */, A1000001000000000000F101 /* Engine.swift */, A1000001000000000000F105 /* Places.swift */, A1000001000000000000F107 /* Draft.swift */, A1000001000000000000F106 /* airports.json */, ); path = Shared; sourceTree = "<group>"; };
 		A1000001000000000000G005 /* Widget */ = {isa = PBXGroup; children = (A1000001000000000000F007 /* AlmanakkWidget.swift */, A1000001000000000000F008 /* Info.plist */, A1000001000000000000F009 /* Widget-macOS.entitlements */, A1000001000000000000F010 /* Widget-iOS.entitlements */, ); path = Widget; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
@@ -101,12 +117,12 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A1000001000000000000P003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A1000001000000000000B003 /* Assets.xcassets in Resources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		A1000001000000000000P003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A1000001000000000000B003 /* Assets.xcassets in Resources */, A1000001000000000000B106 /* airports.json in Resources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		A1000001000000000000P006 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A1000001000000000000P001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000001000000000000B001 /* AlmanakkApp.swift in Sources */, A1000001000000000000B002 /* WebView.swift in Sources */, A1000001000000000000B004 /* Snapshot.swift in Sources */, A1000001000000000000B101 /* Engine.swift in Sources */, A1000001000000000000B102 /* Store.swift in Sources */, A1000001000000000000B103 /* MonthView.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		A1000001000000000000P001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000001000000000000B001 /* AlmanakkApp.swift in Sources */, A1000001000000000000B002 /* WebView.swift in Sources */, A1000001000000000000B004 /* Snapshot.swift in Sources */, A1000001000000000000B101 /* Engine.swift in Sources */, A1000001000000000000B102 /* Store.swift in Sources */, A1000001000000000000B103 /* MonthView.swift in Sources */, A1000001000000000000B104 /* Google.swift in Sources */, A1000001000000000000B105 /* Places.swift in Sources */, A1000001000000000000B107 /* Draft.swift in Sources */, A1000001000000000000B108 /* EditSheet.swift in Sources */, A1000001000000000000B109 /* WeekView.swift in Sources */, A1000001000000000000B110 /* YearView.swift in Sources */, A1000001000000000000B111 /* Reminders.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		A1000001000000000000P004 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000001000000000000B006 /* AlmanakkWidget.swift in Sources */, A1000001000000000000B005 /* Snapshot.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
@@ -152,6 +168,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Almanakk;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Almanakk viser påminnelsene dine på dagene de hører til, og lar deg huke dem av og legge til nye.";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "winter guests";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -186,6 +203,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Almanakk;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Almanakk viser påminnelsene dine på dagene de hører til, og lar deg huke dem av og legge til nye.";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "winter guests";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

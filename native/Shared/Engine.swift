@@ -21,6 +21,8 @@ struct CalEvent: Codable, Identifiable, Hashable {
     var notes: String = ""
     var colorId: String = ""
     var fromGmail: Bool = false
+    var zone: String = ""       // a timed event's own time zone, as Google keeps it
+    var minutes: Int = 0        // how long a timed event lasts, start to end instant (zones counted)
     var isSpan: Bool { end > start }
 }
 
@@ -56,13 +58,16 @@ enum RX {
 
 extension String {
     var squeezed: String { RX.sub("\\s+", self, " ").trimmingCharacters(in: .whitespaces) }
-    /// deco(): Google sometimes hands titles back with HTML entities
+    /// deco(): Google sometimes hands titles back with HTML entities. And NO EMOJI: a wall
+    /// calendar has no pictograms (Alan, 10.10: "I do NOT like the theatre mask"); a title
+    /// is shown in plain words whatever another client wrote into it.
     var deco: String {
         var s = self
         for (k, v) in ["&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": "\"", "&#39;": "'", "&#039;": "'", "&apos;": "'", "&nbsp;": " "] {
             s = s.replacingOccurrences(of: k, with: v)
         }
-        return s
+        let plain = RX.sub("[\\p{Extended_Pictographic}\\x{FE0F}\\x{200D}\\x{20E3}]", s, "").squeezed
+        return plain.isEmpty ? s : plain
     }
 }
 
@@ -183,13 +188,19 @@ enum Rules {
     }
     /// cityMarker(): "-Roma", "→ Roma", "14:00 -Voss", "-Roma tbc" — a move, not a span ("-8 Antigone")
     static func cityMarker(_ title: String) -> String? {
-        guard let g = RX.groups("^\\s*(?:\\d{1,2}[:.]\\d{2}\\s+)?(?:-+\\s*>?|→|=>)\\s*([^,(]+?)\\s*(?:\\btbc\\b.*)?$", title, ci: true),
+        // a dash touches its city ("-Roma"); "- A. Name" is a list item, not a move (10.10)
+        guard let g = RX.groups("^\\s*(?:\\d{1,2}[:.]\\d{2}\\s+)?(?:-+>\\s*|-+(?=\\S)|→\\s*|=>\\s*)([^,(]+?)\\s*(?:\\btbc\\b.*)?$", title, ci: true),
               !g[1].isEmpty, !RX.test("^\\d", g[1]) else { return nil }
         let name = RX.sub("\\b\\d{1,2}[:.]\\d{2}\\b", g[1], " ").squeezed
         return name.isEmpty ? nil : name
     }
     static func lineTitle(_ e: CalEvent, covers: [String]) -> String {
         if let mark = cityMarker(e.title) { return "→ " + mark }
+        if let r = Places.route(e.title) { return r }
+        if Places.hasFlightWord(e.title) {
+            let named = Places.placesIn(e.title)
+            if named.count == 1 { return "→ " + Places.name(named[0]) }
+        }
         return stripParens(wallTitle(stripClock(e.title.deco), covers: covers))
     }
 
@@ -237,12 +248,17 @@ enum Palette {
 // ---------- the month (laneSpans, whereOn, monthData) ----------
 
 struct MonthRow: Identifiable {
-    struct Lane { var color: String; var a: Bool; var z: Bool }
+    struct Lane { var color: String; var a: Bool; var z: Bool; var faint = false }   // faint: a weekend inside a run
     struct Part: Identifiable { var id: String; var kind: Kind; var time = ""; var text: String; var show = false; var pencil = false; var ink = ""; var color = ""
         enum Kind { case span, allday, timed } }
     struct Info { var kind: Kind; var text: String; var tbc = false
         enum Kind { case uke, cty, hn } }
-    struct Tour { var id: String; var name: String; var word: String; var perf: String; var city: String; var tbc: Bool; var open: Bool }
+    /// open = the name stands on this row (the fallback); start = the leg's first day
+    struct Tour { var id: String; var name: String; var word: String; var perf: String; var city: String; var tbc: Bool; var open: Bool; var start: Bool
+        var continues = false   // the leg began last month: the 1st names it, without its city
+    }
+    /// THE TOUR'S HEADING, on the free row above its band (Alan, 10.10: "above tour = good")
+    struct Head { var id: String; var name: String; var city: String; var tbc: Bool }
     var id: String { date }
     var date: String
     var d: Int
@@ -256,7 +272,9 @@ struct MonthRow: Identifiable {
     var parts: [Part]
     var info: Info?
     var tour: Tour?
+    var head: Head? = nil
     var city: String
+    var tbc: Bool              // the city is planned, not booked
     var show: Bool
 }
 
@@ -273,39 +291,93 @@ struct Almanac {
     var own: [CalEvent] { let out = tourCalIds.union(scheduleCalIds); return events.filter { !out.contains($0.calId) } }
     var tour: [CalEvent] { let t = tourCalIds; return events.filter { t.contains($0.calId) && $0.time.isEmpty } }
 
+    /// TIMES FOLLOW THE CITY HE IS IN THAT DAY (CONVENTIONS 16, Alan 10.10): a timed event
+    /// shows at that city's clock — dinner in Asia reads 19:00 from anywhere, a call reads
+    /// at the time where he takes it. A flight keeps its ticket time (his yes). No city, or
+    /// an event with no zone of its own: its own clock, as before.
+    func clock(_ e: CalEvent, cityZone: String?) -> String {
+        let own = Rules.effTime(e)
+        guard !e.time.isEmpty, !e.zone.isEmpty, let z = cityZone, z != e.zone, Places.dest(e.title) == nil,
+              let from = TimeZone(identifier: e.zone), let to = TimeZone(identifier: z) else { return own }
+        let p = e.time.split(separator: ":").compactMap { Int($0) }
+        var c = Day.greg.dateComponents([.year, .month, .day], from: Day.date(e.start))
+        c.hour = p.first; c.minute = p.count > 1 ? p[1] : 0
+        var g = Calendar(identifier: .gregorian); g.timeZone = from
+        guard let instant = g.date(from: c) else { return own }
+        var h = Calendar(identifier: .gregorian); h.timeZone = to
+        let t = h.dateComponents([.hour, .minute], from: instant)
+        return String(format: "%02d:%02d", t.hour ?? 0, t.minute ?? 0)
+    }
+    /// a timed event's clock `after` minutes past its start, read in another zone — a
+    /// flight's departure in its origin's time and arrival in its destination's, whatever
+    /// zone the event was saved in (the Cairo flight was saved in Oslo time at both ends)
+    func clock(_ e: CalEvent, plus after: Int, in zoneID: String) -> String? {
+        guard !e.time.isEmpty, let from = TimeZone(identifier: e.zone.isEmpty ? "Europe/Oslo" : e.zone),
+              let to = TimeZone(identifier: zoneID) else { return nil }
+        let p = e.time.split(separator: ":").compactMap { Int($0) }
+        var c = Day.greg.dateComponents([.year, .month, .day], from: Day.date(e.start))
+        c.hour = p.first; c.minute = p.count > 1 ? p[1] : 0
+        var g = Calendar(identifier: .gregorian); g.timeZone = from
+        guard let start = g.date(from: c) else { return nil }
+        var h = Calendar(identifier: .gregorian); h.timeZone = to
+        let t = h.dateComponents([.hour, .minute], from: start.addingTimeInterval(TimeInterval(after * 60)))
+        return String(format: "%02d:%02d", t.hour ?? 0, t.minute ?? 0)
+    }
+
+    /// the zone of the city he is in on a day, if the almanac knows it
+    func zoneOn(_ ds: String, moves mv: [(date: String, time: String, dest: String, tbc: Bool)]) -> String? {
+        whereOn(ds, moves: mv, legs: []).flatMap { Places.zones[$0.name] }
+    }
+
     func calColor(_ e: CalEvent) -> String { calendars.first { $0.id == e.calId }?.color ?? "#26241f" }
     func color(_ e: CalEvent) -> String { Palette.dusty[e.colorId] ?? calColor(e) }
     /// the ink a title takes: red for a show, else only a colour he chose himself
     func ink(_ e: CalEvent) -> String { Rules.isShow(e) ? "red" : (Palette.dusty[e.colorId] ?? "") }
 
-    /// the moves he typed ("-Roma"), date first; a booked flight will join these in stage 1b
+    /// HIS FLIGHTS AND MOVES (buildFlightIndex): from every calendar, never one Gmail
+    /// scraped (a cc'd itinerary is often someone else's). Date first; within a day a
+    /// booking outranks a plan (tbc or pencilled), then by time, so the winner sorts last.
     func moves() -> [(date: String, time: String, dest: String, tbc: Bool)] {
-        own.compactMap { e in Rules.cityMarker(e.title).map { (e.start, Rules.effTime(e).isEmpty ? "99" : Rules.effTime(e), $0, Rules.isTbc(e)) } }
-            .sorted { ($0.date, $0.time) < ($1.date, $1.time) }
+        events.compactMap { e -> (date: String, time: String, dest: String, tbc: Bool)? in
+            if e.fromGmail { return nil }
+            guard let d = Rules.cityMarker(e.title) ?? Places.dest(e.title) else { return nil }
+            return (e.start, e.time.isEmpty ? "99" : e.time, Places.name(d), Rules.isTbc(e) || Rules.isPencil(e))
+        }
+        .sorted { a, b in
+            if a.date != b.date { return a.date < b.date }
+            if a.tbc != b.tbc { return a.tbc }
+            return a.time < b.time
+        }
     }
     func whereOn(_ ds: String, moves: [(date: String, time: String, dest: String, tbc: Bool)], legs: [CalEvent]) -> (name: String, tbc: Bool)? {
-        let last = moves.last { $0.date <= ds }
-        if let l = last, l.date == ds { return (l.dest, l.tbc) }
-        if let leg = legs.first(where: { $0.start <= ds && $0.end >= ds && !Rules.isHold($0) && !Rules.legCity($0).isEmpty }) {
-            return (Rules.legCity(leg), Rules.isTbc(leg))
-        }
-        return last.map { ($0.dest, $0.tbc) }
+        // HIS CITY FOLLOWS ONLY HIS OWN TRAVEL (Alan, 10.10): a tour he does not join must
+        // not move him to Roma. The tour's city stands in its band; his flights and moves
+        // say where he is.
+        _ = legs
+        return moves.last { $0.date <= ds }.map { ($0.dest, $0.tbc) }
     }
 
     func month(_ y: Int, _ m: Int) -> (rows: [MonthRow], nLanes: Int) {
         let n = Day.daysInMonth(y, m), first = Day.key(y, m, 1), last = Day.key(y, m, n)
         let hol = Holidays.of(y), today = Day.today
-        // laneSpans: his spans, each given a lane for the month
-        var spans = own.filter { $0.isSpan && $0.start <= last && $0.end >= first }
-            .sorted { $0.start != $1.start ? $0.start < $1.start : $0.end > $1.end }
-        var laneOf: [String: Int] = [:], laneEnd: [String] = []
+        // laneSpans: his spans, each given a lane for the month. LONGEST ON THE LEFT
+        // (Alan, 10.10: "they look so good when you do the longest to the left and the
+        // shortest to the right"): the long runs take the inner lanes first, so a season
+        // reads as one straight line and the short ones step out beside it.
+        var gapDays: [String: Set<String>] = [:]
+        func length(_ e: CalEvent) -> Int { Day.greg.dateComponents([.day], from: Day.date(e.start), to: Day.date(e.end)).day ?? 0 }
+        var spans = Almanac.runs(own.filter { $0.isSpan && $0.start <= last && $0.end >= first }, gaps: &gapDays)
+            .sorted { length($0) != length($1) ? length($0) > length($1) : $0.start < $1.start }
+        var laneOf: [String: Int] = [:], inLane: [[CalEvent]] = []
         for s in spans {
             var l = 0
-            while l < Almanac.maxLanes && l < laneEnd.count && laneEnd[l] >= s.start { l += 1 }
+            while l < Almanac.maxLanes && l < inLane.count && inLane[l].contains(where: { $0.start <= s.end && $0.end >= s.start }) { l += 1 }
             if l >= Almanac.maxLanes { laneOf[s.id] = -1; continue }
-            if l == laneEnd.count { laneEnd.append(s.end) } else { laneEnd[l] = s.end }
+            if l == inLane.count { inLane.append([s]) } else { inLane[l].append(s) }
             laneOf[s.id] = l
         }
+        let laneEnd = inLane
+        spans.sort { $0.start != $1.start ? $0.start < $1.start : $0.end > $1.end }
         spans = spans.filter { (laneOf[$0.id] ?? -1) >= 0 }
         let nLanes = min(Almanac.maxLanes, laneEnd.count)
         let ownDays = own.filter { !$0.isSpan && $0.start >= first && $0.start <= last }
@@ -313,7 +385,11 @@ struct Almanac {
         let words = tour.filter { !$0.isSpan }
         let mv = moves()
         var rows: [MonthRow] = []
-        var shownCity: String? = nil, ukeOn: String? = nil
+        var shownCity: String? = nil
+        // EACH TAKEN ROW SENDS THE NEXT ITEM ONE ROW DOWN (Alan, 10.10): a Monday holding a
+        // holiday or a tour heading gives the week number to Tuesday, and the weekly city
+        // then stands on Wednesday
+        var mondayYielded = false, cityLate = false
         for d in 1...n {
             let ds = Day.key(y, m, d), wi = Day.weekdayIdx(ds), h = hol[ds]
             let leg = legs.first { $0.start <= ds && $0.end >= ds }
@@ -323,41 +399,149 @@ struct Almanac {
             let perf = word.flatMap { Rules.perfNo($0.title) }
             let names = covering.map(\.title)
             let lanes: [MonthRow.Lane?] = (0..<nLanes).map { l in
-                covering.first { laneOf[$0.id] == l }.map { MonthRow.Lane(color: color($0), a: $0.start == ds, z: $0.end == ds) }
+                covering.first { laneOf[$0.id] == l }.map { MonthRow.Lane(color: color($0), a: $0.start == ds, z: $0.end == ds,
+                                                                           faint: gapDays[$0.id]?.contains(ds) ?? false) }
             }
             var parts: [MonthRow.Part] = []
             for sp in spans where sp.start == ds || (d == 1 && sp.start < ds && sp.end >= ds) {
                 parts.append(.init(id: sp.id, kind: .span, text: Rules.stripParens(sp.title.deco), pencil: Rules.isPencil(sp), ink: ink(sp)))
             }
             let allday = dayOwn.filter { Rules.effTime($0).isEmpty }
-            let timed = dayOwn.filter { !Rules.effTime($0).isEmpty }.sorted { Rules.effTime($0) < Rules.effTime($1) }
+            let here0 = whereOn(ds, moves: mv, legs: legs)
+            let dz = here0.flatMap { Places.zones[$0.name] }
+            let timed = dayOwn.filter { !Rules.effTime($0).isEmpty }.sorted { clock($0, cityZone: dz) < clock($1, cityZone: dz) }
             for e in allday {
                 parts.append(.init(id: e.id, kind: .allday, text: Rules.lineTitle(e, covers: names), show: Rules.isShow(e),
                                    pencil: Rules.isPencil(e) || Rules.isTbc(e), ink: ink(e), color: color(e)))
             }
             for e in timed {
-                parts.append(.init(id: e.id, kind: .timed, time: Rules.effTime(e), text: Rules.lineTitle(e, covers: names), show: Rules.isShow(e),
+                parts.append(.init(id: e.id, kind: .timed, time: clock(e, cityZone: dz), text: Rules.lineTitle(e, covers: names), show: Rules.isShow(e),
                                    pencil: Rules.isPencil(e) || Rules.isTbc(e), ink: ink(e), color: color(e)))
             }
             let here = whereOn(ds, moves: mv, legs: legs)
+            let next = Day.add(ds, 1)
+            let headLeg = (leg == nil && d < n) ? legs.first { $0.start == next } : nil
+            if wi == 0 { mondayYielded = false; cityLate = false }
             var info: MonthRow.Info? = nil
-            if let h = h { info = .init(kind: .hn, text: h.name) }
-            else if wi == 0 || (ukeOn == nil && wi == 1 && hol[Day.add(ds, -1)] != nil) {
-                info = .init(kind: .uke, text: "uke \(Day.isoWeek(ds))"); ukeOn = ds
-            } else if let c = here?.name, c != shownCity || wi == 1 || d == 1 {
+            if let h = h {
+                info = .init(kind: .hn, text: h.name)
+                if wi == 0 { mondayYielded = true }
+            } else if wi == 0 && headLeg != nil {
+                mondayYielded = true                     // the heading has the whole row
+            } else if wi == 0 || (wi == 1 && mondayYielded) {
+                info = .init(kind: .uke, text: "uke \(Day.isoWeek(ds))")
+                if wi == 1 { cityLate = true }
+            } else if let c = here?.name, c != shownCity || (wi == 1 && !cityLate) || (wi == 2 && cityLate) || d == 1 {
                 info = .init(kind: .cty, text: c, tbc: here!.tbc); shownCity = c
             }
+            // The name and city go ABOVE the band, on the day before it starts, whenever that
+            // row is free of tours and in this month; then every tour day keeps its word.
+            // Otherwise (a leg on the 1st, or right after another) the name takes the first row.
+            let prevFree = d > 1 && !legs.contains { $0.start <= Day.add(ds, -1) && $0.end >= Day.add(ds, -1) }
             let tourRow = leg.map { leg -> MonthRow.Tour in
                 let w = word.map { Rules.short[$0.title.deco.trimmingCharacters(in: .whitespaces).lowercased()] ?? $0.title.deco } ?? ""
+                let first = leg.start == ds
                 return .init(id: leg.id, name: Rules.legName(leg), word: perf == nil ? w : "", perf: perf ?? "",
-                             city: Rules.legCity(leg), tbc: Rules.isTbc(leg), open: leg.start == ds || d == 1)
+                             city: Rules.legCity(leg), tbc: Rules.isTbc(leg), open: (first && !prevFree) || d == 1, start: first || d == 1,
+                             continues: d == 1 && leg.start < ds)
             }
+            let head = headLeg.map { MonthRow.Head(id: $0.id, name: Rules.legName($0), city: Rules.legCity($0), tbc: Rules.isTbc($0)) }
             rows.append(MonthRow(date: ds, d: d, wi: wi, week: Day.isoWeek(ds), hol: h?.name ?? "", red: wi == 6 || (h?.red ?? false),
-                                 sun: wi == 6, today: ds == today, lanes: lanes, parts: parts, info: info, tour: tourRow,
-                                 city: here?.name ?? "", show: dayOwn.contains(where: Rules.isShow) || perf != nil))
+                                 sun: wi == 6, today: ds == today, lanes: lanes, parts: parts, info: info, tour: tourRow, head: head,
+                                 city: here?.name ?? "", tbc: here?.tbc ?? false, show: dayOwn.contains(where: Rules.isShow) || perf != nil))
         }
         return (rows, nLanes)
     }
+
+    // ---------- the week (renderWeek): the schedule page ----------
+
+    struct WeekDay: Identifiable {
+        struct Line: Identifiable { var id: String; var time: String; var text: String; var color: String; var ink: String; var show: Bool; var pencil: Bool; var note: Bool }
+        var id: String { date }
+        var date: String; var d: Int; var wi: Int
+        var hol: String; var red: Bool; var sun: Bool; var today: Bool; var show: Bool
+        var ctx: String; var ctxKind: String          // tour · perf · hn · '' ; tbc in ctxTbc
+        var ctxTbc: Bool
+        var lines: [Line]
+        var spanOn: [Bool]                            // per span of the week: does it cover this day
+    }
+    struct WeekSpan: Identifiable { var id: String; var title: String; var color: String; var start: String; var end: String; var pencil: Bool }
+
+    /// a week from its Monday: up to three of his spans on top, then seven days. The day's
+    /// single things are his and the schedule's (wg | Schedule lives here, D1) — never the
+    /// tour's words, which stand in the day's head instead.
+    func week(_ mon: String) -> (spans: [WeekSpan], days: [WeekDay]) {
+        let keys = (0..<7).map { Day.add(mon, $0) }
+        let first = keys[0], last = keys[6], today = Day.today
+        let tourIds = tourCalIds
+        let legs = tour.filter(\.isSpan).sorted { $0.start > $1.start }
+        let words = tour.filter { !$0.isSpan }
+        let spans = own.filter { $0.isSpan && $0.start <= last && $0.end >= first }.sorted { $0.start < $1.start }.prefix(3)
+        let singles = events.filter { !$0.isSpan && $0.start >= first && $0.start <= last && !tourIds.contains($0.calId) }
+        let mv = moves()
+        let wspans = spans.map { WeekSpan(id: $0.id, title: Rules.stripParens($0.title.deco), color: color($0), start: $0.start, end: $0.end, pencil: Rules.isPencil($0)) }
+        let days = keys.map { ds -> WeekDay in
+            let wi = Day.weekdayIdx(ds), h = Holidays.of(Int(ds.prefix(4))!)[ds]
+            let leg = legs.first { $0.start <= ds && $0.end >= ds }
+            let word = leg == nil ? nil : words.first { $0.start == ds }
+            let perf = word.flatMap { Rules.perfNo($0.title) }
+            let dayEv = singles.filter { $0.start == ds }
+            let names = spans.filter { $0.start <= ds && $0.end >= ds }.map(\.title)
+            let allday = dayEv.filter { Rules.effTime($0).isEmpty }
+            let dz = zoneOn(ds, moves: mv)
+            let timed = dayEv.filter { !Rules.effTime($0).isEmpty }.sorted { clock($0, cityZone: dz) < clock($1, cityZone: dz) }
+            func line(_ e: CalEvent) -> WeekDay.Line {
+                let t = clock(e, cityZone: dz)
+                let text = t.isEmpty ? Rules.lineTitle(e, covers: names) : Rules.stripClock(Rules.wallTitle(e.title.deco, covers: names))
+                return .init(id: e.id, time: t, text: text, color: color(e), ink: ink(e), show: Rules.isShow(e),
+                             pencil: Rules.isPencil(e) || Rules.isTbc(e), note: !RX.sub("^P[ \\t]*(?:\\r?\\n(?:[ \\t]*\\r?\\n)?|$)", e.notes, "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            var ctx = "", kind = "", tbc = false
+            if let leg {
+                let w = perf.map { Rules.legName(leg) + " " + $0 }
+                    ?? word.map { Rules.short[$0.title.deco.trimmingCharacters(in: .whitespaces).lowercased()] ?? $0.title.deco }
+                    ?? Rules.legName(leg)
+                let city = Rules.legCity(leg)
+                ctx = w + (city.isEmpty ? "" : " · " + city); kind = perf == nil ? "tour" : "perf"; tbc = Rules.isTbc(leg)
+            } else if let h { ctx = h.name; kind = "hn" }
+            return WeekDay(date: ds, d: Int(ds.suffix(2))!, wi: wi, hol: h?.name ?? "", red: wi == 6 || (h?.red ?? false), sun: wi == 6,
+                           today: ds == today, show: perf != nil || dayEv.contains(where: Rules.isShow), ctx: ctx, ctxKind: kind, ctxTbc: tbc,
+                           lines: allday.map(line) + timed.map(line), spanOn: spans.map { $0.start <= ds && $0.end >= ds })
+        }
+        return (Array(wspans), days)
+    }
+
+    /// A PROJECT WITH ITS WEEKENDS OFF IS ONE RUN (Alan, 10.10: nine weeks entered without
+    /// Saturdays and Sundays drew "choppy" lines, so a year ahead did not show it ran two
+    /// months). Pieces with the same title and calendar, apart only by a weekend, become one
+    /// span; the weekend days are noted so the line can be drawn faint there.
+    static func runs(_ spans: [CalEvent], gaps: inout [String: Set<String>]) -> [CalEvent] {
+        var out: [CalEvent] = []
+        let groups = Dictionary(grouping: spans) { $0.calId + "\u{1}" + $0.title.deco.lowercased().squeezed }
+        for (_, pieces) in groups {
+            var run: CalEvent? = nil
+            var gap: Set<String> = []
+            for p in pieces.sorted(by: { $0.start < $1.start }) {
+                if var r = run {
+                    // the days between this piece and the last: all Saturday or Sunday?
+                    var between: [String] = []
+                    var k = Day.add(r.end, 1)
+                    while k < p.start && between.count < 4 { between.append(k); k = Day.add(k, 1) }
+                    if k == p.start && !between.isEmpty && between.allSatisfy({ Day.weekdayIdx($0) >= 5 }) {
+                        r.end = max(r.end, p.end); gap.formUnion(between); run = r; continue
+                    }
+                    if !gap.isEmpty { gaps[r.id] = gap }
+                    out.append(r)
+                }
+                run = p; gap = []
+            }
+            if let r = run { if !gap.isEmpty { gaps[r.id] = gap }; out.append(r) }
+        }
+        return out
+    }
+
+    /// the Monday of the week holding a day
+    static func monday(_ ds: String) -> String { Day.add(ds, -Day.weekdayIdx(ds)) }
 
     /// the day sheet's list: spans, then all-day, then timed (openDay)
     func day(_ ds: String) -> [CalEvent] {
