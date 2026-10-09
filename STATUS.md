@@ -508,6 +508,35 @@ else the month's first full week (a 1st on a weekend belongs to the week before)
 SEPTEMBER fits at 375px with both buttons. The design session's answer on the title
 toggle and the phone year is still to come; this button does not wait for it.
 
+**09.10 — Alan's next list, bygg `20261009a`, IN PRODUCTION since 09.10 02:4x** (Alan:
+*"build"*; deployment `0a0b8b3f`; undo: Cloudflare Rollback to `67397cd0`, 20261008h).
+**TestFlight build 4** uploaded for iPhone and Mac with the larger week widget; it
+declares `ITSAppUsesNonExemptEncryption = NO`, so it should reach testers without the
+compliance question:
+- *"Bug when 'ny hendelse'" / "the field disappears behind the keyboard"* — one bug: iOS
+  does not shrink the page for the keyboard, so the bottom-fixed sheet stayed under it.
+  `keyboardLift` reads `visualViewport` and lifts the sheet's bottom by the keyboard's
+  height, caps its height to what is left, and brings the focused field into view.
+  Not testable in a desktop browser; his phone is the test.
+- *"Weird to see the end time and drop into edit mode — edit when you want, like Apple
+  Calendar"* — a tap on an entry now opens it to READ in place (`details`): when, from
+  and to (and its zone if not Oslo), where with the map, the notes, repeat, guests,
+  calendar; **Endre** opens the form. A second tap folds it.
+- *"Open the mail — my mother's flight has the URL in its note"* — `linkify`: http,
+  mailto, tel and Apple Mail's `message:` links in notes and places are live; a Mail
+  link reads "✉ Åpne e-posten". In the app the wrapper hands them to iOS/macOS, which
+  opens Mail on that message.
+- *"Ellinor Oslo looks like it runs the whole week when it is Wed–Sun"* — in the week a
+  span that begins mid-week is a faint dotted lead from its name to its first day, and
+  solid only on its own days.
+- *"Font on the week widget is too small"* — the Uke widget writes at 12pt (medium) and
+  14pt (large), up from 9.5. Native: reaches him only with TestFlight build 4. Compiles;
+  not seen in a picture (the simulator's widget gallery would not cooperate).
+
+**TestFlight build 3 is on both devices (08.10 evening):** Alan answered the compliance
+question; iOS build 3 installed and used on his phone, macOS build 3 installed on the
+Mac. Both carry icon E, the #EBEBE7 ground and the production address.
+
 **PRODUCTION is bygg `20261008h` since 08.10 evening** (Alan: *"go"*): everything from
 20261008d to h below is live at https://almanakk-v2.pages.dev/ (deployment
 `67397cd0`). The app opens production, so it has it on next launch — no TestFlight build

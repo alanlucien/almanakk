@@ -6,6 +6,14 @@ to get exactly that version back (`git checkout <commit>` then `python3 publiser
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
 
+## 09.10.2026 — LIVE: bygg 20261009a, and TestFlight build 4
+- The day sheet rises above the iPhone keyboard. A tap on an event opens it to read
+  (from–to, place, notes, repeat, guests, calendar); Endre opens the form. Links in
+  notes are live, Apple Mail's own as "✉ Åpne e-posten". In the week, a span that
+  starts mid-week is dotted from its name to its first day, solid only on its own days.
+- TestFlight build 4 (iPhone and Mac): the week widget in 12/14pt.
+- TO UNDO: Cloudflare → almanakk-v2 → Deployments → Rollback to 67397cd0 (20261008h).
+
 ## 08.10.2026 — LIVE: bygg 20261008h
 - Production takes the day's preview work: one-stroke month rules, the first entry
   always standing, the widget-like header and day sheet, I DAG, the title as the
