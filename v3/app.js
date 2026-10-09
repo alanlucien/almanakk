@@ -297,13 +297,19 @@ function legPlace(part) {
   return m ? placeOf(m[1]) : null;
 }
 function flightLegs(title) {
-  let best = [], run = [];
+  let best = [];
   // "BGO-OSL tbc" is the same route as "BGO-OSL", just not booked yet
   const bare = title.replace(/\btbc\b/gi, ' ').trim();
-  for (const part of bare.split(/\s*(?:[-–—]+|[>→]+)\s*/)) {
-    const place = legPlace(part);
-    if (place) { run.push(place); if (run.length > best.length) best = run.slice(); }
-    else run = [];
+  // A COMMA ENDS A ROUTE (10.10): "Flight AAA-BBB, Airline XX 123" read its last
+  // leg as "CAI, Transavia", which is no place, so the flight to Cairo moved nothing.
+  // Each comma-separated piece is read on its own; the longest route wins.
+  for (const piece of bare.split(/[,;]/)) {
+    let run = [];
+    for (const part of piece.split(/\s*(?:[-–—]+|[>→]+)\s*/)) {
+      const place = legPlace(part);
+      if (place) { run.push(place); if (run.length > best.length) best = run.slice(); }
+      else run = [];
+    }
   }
   return best.length >= 2 ? best : [];
 }
@@ -327,7 +333,9 @@ const hasFlightWord = t => /\b(?:fly|flight)\b/i.test(t);
 function cityMarker(title) {
   // an optional clock time may lead or trail: "14:00 -Voss" / "-Voss 14:00",
   // which is how you say a move happened AFTER a flight the same day
-  const m = title.match(/^\s*(?:\d{1,2}[:.]\d{2}\s+)?(?:-+\s*>?|→|=>)\s*([^,(]+?)\s*(?:\btbc\b.*)?$/i);
+  // A DASH TOUCHES ITS CITY ("-Roma"); "- A. Name" is a list item, not a move (10.10:
+  // a 2023 cast list put "A. NAME" in his city column). Arrows may take a space.
+  const m = title.match(/^\s*(?:\d{1,2}[:.]\d{2}\s+)?(?:-+>\s*|-+(?=\S)|→\s*|=>\s*)([^,(]+?)\s*(?:\btbc\b.*)?$/i);
   if (!m || !m[1] || /^\d/.test(m[1])) return null;   // "-8 Antigone" is a span, not a move
   const name = m[1].replace(/\b\d{1,2}[:.]\d{2}\b/g, ' ').replace(/\s+/g, ' ').trim();
   return name || null;
@@ -501,10 +509,14 @@ function cityLabel(place) {
 }
 
 
+// NO EMOJI ON THE WALL (Alan, 10.10: "I do NOT like the theatre mask"): titles and notes are
+// shown in plain words whatever another client wrote into them
 function deco(s) {
-  return String(s).replace(/&(amp|lt|gt|quot|#0?39|apos|nbsp);/g, (m, e) => ({
+  const t = String(s).replace(/&(amp|lt|gt|quot|#0?39|apos|nbsp);/g, (m, e) => ({
     amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", '#039': "'", apos: "'", nbsp: ' ',
   })[e] || m);
+  const plain = t.replace(/[\p{Extended_Pictographic}\uFE0F\u200D\u20E3]/gu, '').replace(/[ \t]{2,}/g, ' ').trim();
+  return plain || t;
 }
 function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -581,13 +593,12 @@ function legName(leg) {
 
 /* ---------- where he is ---------- */
 
-// a booking that day wins; else the leg he is inside; else the last move
+// HIS CITY FOLLOWS ONLY HIS OWN TRAVEL (Alan, 10.10): the last flight or move on or
+// before the day. A tour leg no longer moves him — a tour to Roma he does not join put
+// ROMA in his column. The tour's city belongs to the tour.
 function whereOn(ds, flights, legs) {
   let last = null;
   for (const f of flights) { if (f.date <= ds) last = f; else break; }
-  if (last && last.date === ds) return { name: cityName(last.dest), tbc: last.tbc };
-  const leg = legs.find(l => l.start <= ds && l.end >= ds && !isHold(l) && legCity(l));
-  if (leg) return { name: legCity(leg), tbc: isTbc(leg) };
   return last ? { name: cityName(last.dest), tbc: last.tbc } : null;
 }
 
@@ -825,7 +836,7 @@ function drawWeekRules() {
     const top = r.top + r.height / 2 - box.top;
     const end = days.filter(d => d.dataset.date <= row.dataset.end).pop();
     if (!end) return;
-    // A SPAN IS SOLID ONLY ON ITS OWN DAYS (Alan, 08.10: "Ellinor Oslo looks like it runs
+    // A SPAN IS SOLID ONLY ON ITS OWN DAYS (Alan, 08.10: "a span looks like it runs
     // the whole week when in fact it is Wed–Sun"). From its name down to the day it
     // begins it is a faint dotted lead; solid from that day's head to its last day.
     const startDay = days.find(d => d.dataset.date >= row.dataset.start);
