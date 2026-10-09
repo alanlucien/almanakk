@@ -184,26 +184,11 @@ header.top #signin { font-size: 12px; border: 1px solid var(--rule-strong); bord
 #more-list .views button.active { font-weight: 700; }
 #more-list .views button.active::after { content: ""; }
 
-/* ---------- the year: the planner poster (phone) ---------- */
-#app.posterwrap { height: 100%; }
-.poster {
   height: 100%; background: var(--paper);
   display: grid; grid-template-columns: 22px repeat(12, minmax(0, 1fr));
   grid-template-rows: 22px repeat(31, minmax(0, 1fr));
   font-size: 9px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
 }
-.poster .ph { text-align: center; font-weight: 600; letter-spacing: .04em; border-bottom: 1px solid var(--rule-strong); display: flex; align-items: center; justify-content: center; }
-.poster .pn { text-align: right; padding-right: 3px; color: var(--ink-soft); border-bottom: 1px solid var(--rule); font-weight: 600; display: flex; align-items: center; justify-content: flex-end; }
-.poster .cell { position: relative; border-bottom: 1px solid var(--rule); border-left: 1px solid var(--rule); overflow: hidden; }
-.poster .cell.sun, .poster .cell.hol { background: var(--wash); }
-.poster .cell.none { background: repeating-linear-gradient(135deg, transparent 0 3px, var(--rule) 3px 4px); }
-.poster .cell.today::after { content: ""; position: absolute; inset: 1px; border: 1.5px solid var(--ink); pointer-events: none; }
-.poster .cell .rl { position: absolute; left: 3px; top: 0; bottom: 0; width: 2px; }
-.poster .cell .rl.l1 { left: 8px; }
-.poster .cell .tr { position: absolute; left: 45%; right: 0; top: 0; bottom: 0; background: var(--tour-wash); border-left: 2px solid var(--tour); }
-.poster .cell .tr.tbc { background: none; border-left-style: dashed; }
-.poster .cell .tr.open { border-top: 1px solid var(--tour); }
-.poster .cell .dot { position: absolute; right: 3px; top: 50%; margin-top: -2.5px; width: 5px; height: 5px; border-radius: 50%; background: var(--red); }
 
 /* ---------- the year: six over six (desk) ---------- */
 #app.year12 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 10px; align-items: start; }
@@ -315,15 +300,6 @@ header.top #signin { font-size: 12px; border: 1px solid var(--rule-strong); bord
 #daysheet header .dn { cursor: pointer; }
 #daysheet .qa[hidden] { display: none; }   /* the sheet's grid must not outrank the fold */
 
-/* the poster's peek: what a dot is */
-#peek { position: fixed; z-index: 25; background: var(--paper); border: 1px solid var(--rule-strong); padding: 8px 12px 6px; max-width: min(300px, 92vw); font-size: 13px; box-shadow: 0 4px 16px rgba(0, 0, 0, .10); cursor: pointer; }
-#peek b { font-weight: 700; letter-spacing: .04em; }
-#peek > span { color: var(--muted); font-size: 11px; margin-left: 4px; }
-#peek p { margin: 4px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
-#peek p.red { color: var(--red); }
-#peek .rl { width: 2px; height: 12px; display: inline-block; flex: none; }
-#peek small { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
-.poster .cell.peeked { outline: 1.5px solid var(--ink); outline-offset: -1px; }
 
 /* THE PHONE'S SHEETS LIE ON THE DESK, AND SPEAK QUIETLY (Alan, 08.10: "it fills too
    close to the edge of the screen" and "just like the widget design has elegance and
@@ -337,9 +313,9 @@ header.top #signin { font-size: 12px; border: 1px solid var(--rule-strong); bord
   header.top #title { font-size: 12px; letter-spacing: .16em; font-weight: 700; }
   header.top #yr { font-size: 11px; letter-spacing: .12em; font-weight: 500; }
   #more summary { font-size: 15px; }
-  #app.strip, #app.weekview, #app.posterwrap { padding: 0 10px calc(env(safe-area-inset-bottom, 0px) + 10px); background: var(--bg); }
-  #app.strip .month, #app.weekview .week, #app.posterwrap .poster { border: 1px solid var(--rule-strong); }
-  #app.strip .month, #app.posterwrap .poster { padding-bottom: 0; }
+  #app.strip, #app.weekview { padding: 0 10px calc(env(safe-area-inset-bottom, 0px) + 10px); background: var(--bg); }
+  #app.strip .month, #app.weekview .week { border: 1px solid var(--rule-strong); }
+  #app.strip .month { padding-bottom: 0; }
   /* the month */
   #app.strip .month { --tourw: 64px; --infw: 56px; }
   #app.strip .day { border-bottom: .5px solid var(--rule); font-size: 12px; }
@@ -369,10 +345,6 @@ header.top #signin { font-size: 12px; border: 1px solid var(--rule-strong); bord
   .week .ln .tm { font-size: 11px; }
   .week .wd .rl { width: 1.5px; }
   .week .spans { border-bottom: .5px solid var(--rule); font-size: 10px; }
-  /* the poster */
-  .poster .pn { font-weight: 500; color: var(--muted); }
-  .poster .ph { font-weight: 600; }
-  .poster .cell .rl { width: 1.5px; }
 }
 
 /* ---------- 08.10, Alan's list from his phone ---------- */
@@ -438,7 +410,7 @@ html, body { touch-action: manipulation; }
   header.top { border-bottom: 0; box-shadow: inset 0 -1px 0 transparent; margin: 0 10px; padding-left: 6px; padding-right: 6px; border-bottom: 1px solid var(--rule-strong); }
   header.top #title { font-size: 22px; letter-spacing: .06em; font-weight: 700; }
   header.top #yr { font-size: 13px; letter-spacing: .1em; font-weight: 500; color: var(--ink-soft); }
-  #app.strip, #app.weekview, #app.posterwrap { padding-top: 8px; }
+  #app.strip, #app.weekview { padding-top: 8px; }
   #banner { margin: 0 10px; }
 }
 
@@ -446,8 +418,8 @@ html, body { touch-action: manipulation; }
    name IS the sheet's top edge: the sheets drop their own top border and the gap above
    it, so the title stands on the frame instead of above a second rule. */
 @media (max-width: 999px) {
-  #app.strip, #app.weekview, #app.posterwrap { padding-top: 0; }
-  #app.strip .month, #app.weekview .week, #app.posterwrap .poster { border-top: 0; }
+  #app.strip, #app.weekview { padding-top: 0; }
+  #app.strip .month, #app.weekview .week { border-top: 0; }
   #banner { border-bottom: 0; }
 }
 /* the resting add line is the quietest thing on the sheet: muted words on one hairline,
@@ -488,4 +460,33 @@ header.top #title { cursor: pointer; }
 /* the week's dotted lead from a name to the day its span begins */
 .week .wrule.lead { width: 0; background: none; opacity: .55; }
 /* with the keyboard up, the sheet stands on it */
-#daysheet.kb { top: auto; min-height: 0; transition: bottom .12s ease-out; }
+
+/* SIDEWAYS IS THE APP'S, UP AND DOWN IS THE PAGE'S (Alan, 09.10: "swiping between years
+   doesn't work", "in month view swiping freezes"). iOS took a sideways drag as a pan and
+   cancelled the touch, so the swipe was never seen. The browser keeps vertical scrolling
+   and pinch; a sideways swipe now reaches the almanac. */
+#app { touch-action: pan-y pinch-zoom; }
+
+/* THE PHONE'S YEAR: twelve small months, three across (Alan, 09.10) */
+#app.miniwrap { padding: 0 10px calc(env(safe-area-inset-bottom, 0px) + 10px); background: var(--bg); height: 100%; }
+.miniyear { height: 100%; background: var(--paper); border: 1px solid var(--rule-strong); border-top: 0;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 0 10px; padding: 8px 10px 6px; }
+.mini { min-height: 0; display: flex; flex-direction: column; cursor: pointer; }
+.mini h3 { margin: 0 0 3px; font-size: 10px; letter-spacing: .14em; font-weight: 700; border-bottom: .5px solid var(--rule-strong); padding-bottom: 2px; }
+.mini .mg { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); align-items: center; justify-items: center; }
+.mini .mg i { font-style: normal; font-size: 7.5px; color: var(--muted); }
+.mini .mg i.red { color: var(--red); }
+.mini .mg b { font-weight: 500; font-size: 10px; width: 100%; text-align: center; line-height: 1.5; position: relative; font-variant-numeric: tabular-nums; }
+.mini .mg b.red { color: var(--red); }
+.mini .mg b.tour { background: var(--tour-wash); color: var(--tour); }
+.mini .mg b.tour.red { color: var(--red); }
+.mini .mg b.tour.tbc { background: none; box-shadow: inset 0 -1px 0 var(--tour); }
+.mini .mg b.show::after { content: ""; position: absolute; left: 50%; bottom: 0; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: var(--red); }
+.mini .mg b.today { outline: 1.5px solid var(--ink); outline-offset: -1px; border-radius: 2px; }
+
+/* writing: the sheet at full height, still; the keyboard's room is padding at its foot */
+@media (max-width: 999px) {
+  #daysheet.writing { top: env(safe-area-inset-top, 0px); bottom: 0; max-height: none; min-height: 0; box-shadow: none; transform: none !important; }
+}
+/* the add line's buttons stand whenever it holds words, not only while it has focus */
+#daysheet .qa.typed button[type="submit"], #daysheet .qa.typed .more { display: inline-block; }

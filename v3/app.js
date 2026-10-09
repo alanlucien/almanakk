@@ -30,7 +30,7 @@ const LANGS = {
     fColour: 'Farge', calColour: 'Kalenderens', fRepeat: 'Gjentas', fRemind: 'Varsel', fTz: 'Tidssone', fGuests: 'Gjester',
     rep: ['Aldri', 'Hver dag', 'Hver uke', 'Hver 2. uke', 'Hver måned', 'Hvert år'], repUntil: 'til',
     rem: ['Ingen', 'Standard', 'Ved start', '10 min før', '30 min før', '1 time før', '1 dag før'],
-    series: 'serie', fWhen: 'Når', edit: 'Endre', openMail: 'Åpne e-posten', newLine: 'Ny hendelse …', today: 'I dag', open: 'Åpne',
+    series: 'serie', fWhen: 'Når', edit: 'Endre', openMail: 'Åpne e-posten', newLine: 'Ny hendelse …', today: 'I dag',
   },
   en: {
     months: ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'],
@@ -50,7 +50,7 @@ const LANGS = {
     fColour: 'Colour', calColour: 'Calendar\u2019s', fRepeat: 'Repeats', fRemind: 'Reminder', fTz: 'Time zone', fGuests: 'Guests',
     rep: ['Never', 'Daily', 'Weekly', 'Every 2 weeks', 'Monthly', 'Yearly'], repUntil: 'until',
     rem: ['None', 'Default', 'At start', '10 min before', '30 min before', '1 hour before', '1 day before'],
-    series: 'series', fWhen: 'When', edit: 'Edit', openMail: 'Open the mail', newLine: 'New event …', today: 'Today', open: 'Open',
+    series: 'series', fWhen: 'When', edit: 'Edit', openMail: 'Open the mail', newLine: 'New event …', today: 'Today',
   },
 };
 const L = () => LANGS[state.lang] || LANGS.no;
@@ -769,79 +769,34 @@ function moonTurn(ds) { return moonYear(Number(ds.slice(0, 4)))[ds] || null; }
 
 function mondayOf(ds) { const d = parseDate(ds); d.setDate(d.getDate() - weekdayIdx(d)); return d; }
 
-// THE PLANNER POSTER (D5): 12 columns, 31 rows, marks only. A tour leg is a
-// tinted column, a show a red dot, his span a thin rule. Fits one phone screen.
-function renderPoster(y) {
+// THE PHONE'S YEAR IS TWELVE SMALL MONTHS AGAIN (Alan, 09.10: "prefer the old year
+// view on phone with months"; the poster was beautiful and unreadable without a tap).
+// Each month a small grid, Monday first: Sundays and holidays red, a tour's days on
+// the tour's tint, a show day with a red mark under its figure, today framed. A tap on
+// a month's name opens the month; a tap on a day opens the month with that day.
+function renderMiniYear(y) {
   const hol = holidays(y);
-  const own = ownEvents();
-  const spans = own.filter(e => e.end > e.start).sort((a, b) => a.start < b.start ? -1 : 1);
-  const laneEnd = [];
-  for (const sp of spans) { let l = 0; while (l < 2 && laneEnd[l] && laneEnd[l] >= sp.start) l++; sp._pl = l < 2 ? l : -1; if (l < 2) laneEnd[l] = sp.end; }
+  const todayStr = fmt(new Date());
   const tour = tourEvents();
   const legs = tour.filter(e => e.end > e.start);
-  const shows = new Set(own.filter(e => e.end === e.start && isShow(e)).map(e => e.start));
+  const shows = new Set(ownEvents().filter(e => e.end === e.start && isShow(e)).map(e => e.start));
   tour.filter(e => e.end === e.start && perfNo(e.title)).forEach(e => shows.add(e.start));
-  const todayStr = fmt(new Date());
-  let html = `<section class="poster"><div class="ph"></div>`;
-  for (let m = 0; m < 12; m++) html += `<div class="ph" data-m="${m}">${L().months[m].slice(0, 3)}</div>`;
-  for (let d = 1; d <= 31; d++) {
-    html += `<div class="pn">${d}</div>`;
-    for (let m = 0; m < 12; m++) {
-      if (d > daysInMonth(y, m)) { html += '<div class="cell none"></div>'; continue; }
-      const date = new Date(y, m, d), ds = fmt(date), wi = weekdayIdx(date), h = hol[ds];
+  let html = '<section class="miniyear">';
+  for (let m = 0; m < 12; m++) {
+    html += `<div class="mini" data-m="${m}"><h3 data-m="${m}">${L().months[m]}</h3><div class="mg">`;
+    html += L().wd.map((w, i) => `<i class="wl${i === 6 ? ' red' : ''}">${w.slice(0, 1)}</i>`).join('');
+    const first = weekdayIdx(new Date(y, m, 1));
+    for (let k = 0; k < first; k++) html += '<i></i>';
+    for (let d = 1; d <= daysInMonth(y, m); d++) {
+      const ds = key3(y, m, d), wi = (first + d - 1) % 7, h = hol[ds];
       const leg = legs.find(l => l.start <= ds && l.end >= ds);
-      let c = `<div class="cell ${wi === 6 ? 'sun' : ''} ${h && h.red ? 'hol' : ''} ${ds === todayStr ? 'today' : ''}" data-m="${m}" data-date="${ds}">`;
-      for (const sp of spans) if (sp._pl >= 0 && sp.start <= ds && sp.end >= ds) c += `<i class="rl l${sp._pl}" style="background:${evColor(sp)}"></i>`;
-      if (leg) c += `<i class="tr ${isTbc(leg) ? 'tbc' : ''} ${leg.start === ds ? 'open' : ''}"></i>`;
-      if (shows.has(ds)) c += '<i class="dot"></i>';
-      html += c + '</div>';
+      html += `<b data-date="${ds}" class="${wi === 6 || (h && h.red) ? 'red' : ''} ${leg ? (isTbc(leg) ? 'tour tbc' : 'tour') : ''} ${shows.has(ds) ? 'show' : ''} ${ds === todayStr ? 'today' : ''}">${d}</b>`;
     }
+    html += '</div></div>';
   }
   return html + '</section>';
 }
-
-// what a day on the poster holds, in a line or three
-function peekLines(ds) {
-  const out = [];
-  const tour = tourEvents();
-  const leg = tour.filter(e => e.end > e.start).sort((a, b) => (a.start < b.start ? 1 : -1)).find(l => l.start <= ds && l.end >= ds);
-  const word = leg ? tour.find(w => w.end === w.start && w.start === ds) : null;
-  if (leg) {
-    const n = word && perfNo(word.title);
-    out.push({ t: (n ? `${legName(leg)} ${n}` : (word ? (SHORT[deco(word.title).trim().toLowerCase()] || deco(word.title)) : legName(leg))) + (legCity(leg) ? ' · ' + legCity(leg) : ''), red: !!n, wg: true });
-  }
-  const own = ownEvents().filter(e => e.start <= ds && e.end >= ds);
-  for (const e of own.filter(e => e.end > e.start)) out.push({ t: stripParens(deco(e.title)), c: evInk(e), rl: evColor(e), sp: true });
-  const names = own.filter(e => e.end > e.start).map(e => e.title);
-  for (const e of own.filter(e => e.end === e.start).sort((a, b) => (effTime(a) || '') < (effTime(b) || '') ? -1 : 1))
-    out.push({ t: (effTime(e) ? effTime(e) + ' ' : '') + lineTitle(e, names), c: evInk(e), red: isShow(e) });
-  return out;
-}
-function openPeek(cell) {
-  closePeek();
-  const ds = cell.dataset.date, d = parseDate(ds);
-  const lines = peekLines(ds);
-  const box = document.createElement('div');
-  box.id = 'peek'; box.dataset.date = ds;
-  box.innerHTML = `<b>${d.getDate()}. ${L().months[d.getMonth()].toLowerCase()}</b> <span>${L().wdLong[weekdayIdx(d)].toLowerCase()} · ${L().week} ${isoWeek(d)}</span>`
-    + (lines.length ? lines.map(l => `<p${l.red ? ' class="red"' : ''}${l.c && !l.red ? ` style="color:${l.c}"` : ''}>${l.sp ? '<i class="rl" style="background:' + l.rl + '"></i>' : ''}${esc(l.t)}</p>`).join('') : '')
-    + `<small>${L().open} ›</small>`;
-  document.body.appendChild(box);
-  // A TAP ON THE PEEK OPENS ITS DAY (Alan, 08.10: "nothing happens when I clicked that")
-  box.addEventListener('click', ev => { ev.stopPropagation(); closePeek(); show('month', d); openDay(ds); });
-  const r = cell.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight;
-  box.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 8)) + 'px';
-  box.style.top = (r.top - h - 8 > 60 ? r.top - h - 8 : r.bottom + 8) + 'px';
-  cell.classList.add('peeked');
-}
-function closePeek() { $('#peek')?.remove(); document.querySelectorAll('.cell.peeked').forEach(c => c.classList.remove('peeked')); }
-// on a desk, hovering is enough
-$('#app').addEventListener('mouseover', e => {
-  if (!window.matchMedia('(hover: hover)').matches) return;
-  const cell = e.target.closest('.poster .cell[data-date]');
-  if (cell && !cell.classList.contains('peeked')) openPeek(cell);
-});
-$('#app').addEventListener('mouseleave', () => { if (window.matchMedia('(hover: hover)').matches) closePeek(); });
+const key3 = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
 // THE WEEK'S RULES HANG FROM THEIR NAMES (Alan, 08.10: "the line from the multi day
 // should connect to the multi day at the top"). One rule per span, measured after the
@@ -982,7 +937,7 @@ function publishSnapshot() {
 
 const SPREAD = window.matchMedia('(min-width: 1000px)');
 function render() {
-  closeDay(); closePeek();
+  closeDay();
   const app = $('#app');
   const yr = $('#yr');
   yr.hidden = false;
@@ -994,8 +949,8 @@ function render() {
     app.innerHTML = html;
     $('#title').textContent = state.year; yr.hidden = true;
   } else if (state.view === 'year') {
-    app.className = 'posterwrap';
-    app.innerHTML = renderPoster(state.year);
+    app.className = 'miniwrap';
+    app.innerHTML = renderMiniYear(state.year);
     $('#title').textContent = state.year; yr.hidden = true;
   } else if (state.view === 'week') {
     const mon = mondayOf(state.weekOf || fmt(new Date()));
@@ -1098,7 +1053,7 @@ function openDay(ds) {
     + `<div class="list">${spans.map(row).join('')}${allday.map(row).join('')}`
     + (timed.length && (spans.length || allday.length) ? '<hr>' : '') + `${timed.map(row).join('')}</div>`
     + draft
-    + (state.editing === 'new' ? '' : `<form class="qa"><input type="text" placeholder="${L().newLine}" autocomplete="off" enterkeyhint="done"><button type="submit">${L().add}</button><button type="button" class="more">${L().more}</button></form>`
+    + (state.editing === 'new' ? '' : `<form class="qa"><input type="text" placeholder="${L().newLine}" autocomplete="off" enterkeyhint="send"><button type="submit">${L().add}</button><button type="button" class="more">${L().more}</button></form>`
     + (tgt ? `<p class="target"><i class="dot" style="background:${tgt.color}"></i>${L().goesTo} ${esc(tgt.name)}</p>` : ''));
   document.body.appendChild(sheet);
   document.querySelector(`.day[data-date="${ds}"], .wd[data-date="${ds}"]`)?.classList.add('open');
@@ -1138,12 +1093,22 @@ function details(e) {
 // message: (Mail's own) become links; a Mail link reads as "Åpne e-posten". In the app
 // the wrapper hands them to the system, so Mail opens the very message.
 function linkify(raw) {
+  // A NOTE MAY ARRIVE AS HTML (Google stores links that way, and so does a note pasted
+  // from Mail): its links are taken by their address and their markup dropped, so the
+  // reader sees words and "Åpne e-posten", never a tag or a raw address (Alan, 09.10:
+  // "less technical — not the whole URL, only 'open mail'").
+  raw = String(raw)
+    .replace(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>[\s\S]*?<\/a>/gi, ' $1 ')
+    .replace(/<br\s*\/?>|<\/p>|<\/div>/gi, '\n')
+    .replace(/<[^>]+>/g, '');
+  raw = deco(raw);
   const re = /(https?:\/\/[^\s<>"]+|message:\/{0,2}[^\s"]+|mailto:[^\s<>"]+|tel:[+\d][\d\s-]*\d)/gi;
   let out = '', last = 0, m;
   while ((m = re.exec(raw))) {
     out += esc(raw.slice(last, m.index)).replace(/\n/g, '<br>');
     const url = m[0].replace(/[).,;:]+$/, '');
-    const label = /^message:/i.test(url) ? '✉ ' + L().openMail
+    const mail = /^message:/i.test(url) || /^https?:\/\/(mail\.google\.com|outlook\.(live|office|office365)\.com\/mail|www\.icloud\.com\/mail)/i.test(url);
+    const label = mail ? '✉ ' + L().openMail
       : /^https?:/i.test(url) ? url.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/.*$/, '') + ' ↗'
       : url.replace(/^(mailto|tel):/i, '');
     out += `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`;
@@ -1152,27 +1117,42 @@ function linkify(raw) {
   return out + esc(raw.slice(last)).replace(/\n/g, '<br>');
 }
 
-// THE SHEET RISES ABOVE THE KEYBOARD (Alan, 08.10: "bug when 'ny hendelse'" — "the
-// field disappears behind the keyboard"). iOS does not shrink the page for the keyboard,
-// so a sheet fixed to the bottom stays under it. The visual viewport says how much of
-// the screen the keyboard took: the sheet's bottom is lifted by exactly that, and the
-// focused field is brought into view inside the sheet.
-(function keyboardLift() {
+// WRITING TAKES THE WHOLE SHEET (Alan, 09.10: "Ny hendelse — click to add doesn't
+// work, glitches when bringing up the editor"). Lifting the sheet's bottom above the
+// keyboard moved it while iOS was also scrolling the page, and the line jumped out from
+// under the finger. Now, the moment a field in the sheet takes focus, the sheet stands
+// at full height and does not move again; the keyboard's height (from the visual
+// viewport) becomes padding at its foot, and the field is scrolled into the part of the
+// sheet the keyboard leaves visible. The page itself is held at the top.
+(function writingMode() {
   const vv = window.visualViewport;
-  if (!vv) return;
-  const lift = () => {
+  const fit = () => {
     const s = document.querySelector('#daysheet');
-    if (!s) return;
-    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    s.style.bottom = kb > 40 ? kb + 'px' : '';
-    s.style.maxHeight = kb > 40 ? (vv.height - 12) + 'px' : '';
-    if (kb > 40) s.classList.add('kb'); else s.classList.remove('kb');
+    if (!s || !s.classList.contains('writing')) return;
+    const kb = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+    s.style.paddingBottom = (kb + 24) + 'px';
     const f = document.activeElement;
-    if (kb > 40 && f && s.contains(f)) f.scrollIntoView({ block: 'nearest' });
+    if (f && s.contains(f)) {
+      // scroll only as far as it takes to clear the keyboard, so the day's head stays
+      const sr = s.getBoundingClientRect(), fr = f.getBoundingClientRect();
+      const visibleBottom = (vv ? vv.height + vv.offsetTop : window.innerHeight) - 16;
+      if (fr.bottom > visibleBottom) s.scrollTop += fr.bottom - visibleBottom;
+      else if (fr.top < sr.top + 8) s.scrollTop -= (sr.top + 8) - fr.top;
+    }
+    window.scrollTo(0, 0);
   };
-  vv.addEventListener('resize', lift);
-  vv.addEventListener('scroll', lift);
-  document.addEventListener('focusin', () => setTimeout(lift, 300));
+  document.addEventListener('focusin', e => {
+    const s = document.querySelector('#daysheet');
+    if (!s || !s.contains(e.target) || !e.target.matches('input, textarea, select')) return;
+    s.classList.add('writing');
+    fit(); setTimeout(fit, 120); setTimeout(fit, 400);
+  });
+  document.addEventListener('focusout', () => setTimeout(() => {
+    const s = document.querySelector('#daysheet');
+    if (!s || s.contains(document.activeElement)) return;
+    s.classList.remove('writing'); s.style.paddingBottom = '';
+  }, 150));
+  if (vv) { vv.addEventListener('resize', fit); }
 })();
 
 // THE LINE IS THE FORM (E1): tap an entry and it opens in place — no buttons on
@@ -1286,6 +1266,8 @@ function wireSheet(sheet, ds) {
     // not work"): it shows only while the line has focus, and the tap took the focus
     // away first, so it vanished before the click could land
     qa.querySelectorAll('button').forEach(btn => btn.addEventListener('pointerdown', ev => ev.preventDefault()));
+    const inp = qa.querySelector('input');
+    inp.addEventListener('input', () => qa.classList.toggle('typed', !!inp.value.trim()));
     qa.querySelector('.more').addEventListener('click', () => {
       state.draft = qa.querySelector('input').value.trim();
       state.editing = 'new';
@@ -1745,10 +1727,10 @@ $('#app').addEventListener('click', e => {
   // THE WEEK NUMBER IS THE WEEK'S HANDLE: tap "uke 7" and the week opens
   const uke = e.target.closest('.info.uke');
   if (uke) { const row = uke.closest('.day'); show('week', parseDate(row.dataset.date)); return; }
-  // the year: any month opens that month
-  const pc = e.target.closest('.poster .cell[data-date]');
-  if (pc) { openPeek(pc); return; }
-  const pm = e.target.closest('.poster [data-m]');
+  // the year: a day opens the month with that day; anywhere else in a month opens it
+  const md = e.target.closest('.mini b[data-date]');
+  if (md) { show('month', parseDate(md.dataset.date)); openDay(md.dataset.date); return; }
+  const pm = e.target.closest('.mini[data-m]');
   if (pm) { show('month', new Date(state.year, Number(pm.dataset.m), 1)); return; }
   const ym = e.target.closest('.year12 .month');
   if (ym) { show('month', new Date(Number(ym.dataset.y), Number(ym.dataset.m), 1)); return; }
@@ -1768,7 +1750,6 @@ $('#app').addEventListener('click', e => {
 });
 document.addEventListener('click', e => {
   if (!e.target.closest('#daysheet, #app, header')) closeDay();
-  if (!e.target.closest('#peek, .poster .cell')) closePeek();
 });
 
 let touchX = null, touchY = null;
@@ -1776,13 +1757,28 @@ $('#app').addEventListener('touchstart', e => {
   if (e.touches.length > 1) { touchX = null; return; }
   touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
 }, { passive: true });
+$('#app').addEventListener('touchcancel', () => { touchX = null; }, { passive: true });
 $('#app').addEventListener('touchend', e => {
   if (touchX === null) return;
   const vv = window.visualViewport;
   if (vv && vv.scale > 1.02) { touchX = null; return; }
   const dx = e.changedTouches[0].clientX - touchX, dy = e.changedTouches[0].clientY - touchY;
   touchX = null;
-  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { step(dx < 0 ? 1 : -1); swipedAt = Date.now(); }
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { step(dx < 0 ? 1 : -1); swipedAt = Date.now(); return; }
+  // UP AND DOWN IS A YEAR (Alan, 09.10: "scrolling between years doesn't work", "in
+  // month view scrolling freezes"). The month fits the screen, so a vertical drag did
+  // nothing at all. Where nothing is left to scroll, a drag up is next year and a drag
+  // down the year before: the same month a year away, or the next year's months.
+  if (Math.abs(dy) > 80 && Math.abs(dy) > Math.abs(dx) * 2 && (state.view === 'month' || state.view === 'year')) {
+    const main = document.querySelector('main');
+    const room = main.scrollHeight - main.clientHeight;
+    const atEdge = room < 4 || (dy < 0 ? main.scrollTop >= room - 2 : main.scrollTop <= 2);
+    if (!atEdge) return;
+    const dir = dy < 0 ? 1 : -1;
+    if (state.view === 'year') step(dir);
+    else { state.year += dir; if (state.mode === 'google') window.gcalEnsureYear(state.year); render(); }
+    swipedAt = Date.now();
+  }
 }, { passive: true });
 
 /* ---------- boot ---------- */
