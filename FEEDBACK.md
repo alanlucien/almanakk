@@ -116,7 +116,7 @@ comes here first, then to the phone. His points go below as he gives them.
 | D6 | "Not 'October–November' but a proper, standout headline for each month" | OPEN |
 | D7 | "Clicking a city in month view brings up travel to and travel from (the two dates and event names), clickable to go to either. Or the events ping bold in a standout colour?" | OPEN — two options |
 | D8 | "The way the day opens when clicking a day line — perhaps open in place a more thorough almanac page?" | OPEN |
-| D9 | "What else could there be on an almanac 'home'? A list of projects — clickable strips with key info taking you to the period (Fanny og Alexander → the month it starts), wg tours/productions" | OPEN — design question |
+| D9 | "What else could there be on an almanac 'home'? A list of projects — clickable strips with key info taking you to the period (a production → the month it starts), wg tours/productions" | OPEN — design question |
 | D10 | "List of holidays? Easter and merkedager — imitate and brainstorm almanac standards, with customs for me" | OPEN |
 | D11 | "To-do list? How is it previewed and maintained?" | OPEN |
 | D12 | "My shared to-do with Ornella? Or does that overlap with wg workspace?" | OPEN — with 49 |
