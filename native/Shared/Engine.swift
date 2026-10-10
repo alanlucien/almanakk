@@ -201,6 +201,26 @@ enum Rules {
         let name = RX.sub("\\b\\d{1,2}[:.]\\d{2}\\b", g[1], " ").squeezed
         return name.isEmpty ? nil : name
     }
+    /// A SHOW READS AS ITS PRODUCTION AND NUMBER (Alan, 11.10: "would it be better if it said
+    /// Vildanden 1 instead of Performance 1"): a bare "Performance 3" under a project span
+    /// takes the span's name without its city — "Vildanden OSLO" → "Vildanden 3". The span
+    /// is the one in the show's own calendar; with none, or two, the title stays as written.
+    static func showTitle(_ e: CalEvent, spans: [CalEvent]) -> String? {
+        let bare = stripParens(stripClock(e.title.deco))
+        guard let g = RX.groups("^(.*?)\\s*(?:performance|forestilling|show|visning|vorstellung)\\s*(\\d+)$", bare, ci: true) else { return nil }
+        // the title names it itself: "Vildanden Performance 3" → "Vildanden 3"
+        let own = g[1].trimmingCharacters(in: CharacterSet(charactersIn: " -–—:·"))
+        if !own.isEmpty && own.count <= 24 { return own + " " + g[2] }
+        let mine = spans.filter { $0.calId == e.calId }
+        let pool = mine.count == 1 ? mine : (mine.isEmpty && spans.count == 1 ? spans : [])
+        guard let sp = pool.first else { return nil }
+        var words = RX.sub("\\btbc\\b", sp.title.deco, " ", ci: true).squeezed.split(separator: " ").map(String.init)
+        while words.count > 1, Places.placeOf(words.last!) != nil || Places.placeOf(words.last!.capitalized) != nil { words.removeLast() }
+        let name = words.joined(separator: " ")
+        guard !name.isEmpty, name.count <= 24 else { return nil }
+        return name + " " + g[2]
+    }
+
     static func lineTitle(_ e: CalEvent, covers: [String]) -> String {
         if let mark = cityMarker(e.title) { return "→ " + mark }
         if let r = Places.route(e.title) { return r }
@@ -431,11 +451,19 @@ struct Almanac {
             let dz = here0.flatMap { Places.zones[$0.name] }
             let timed = Places.joinJourneys(dayOwn.filter { !Rules.effTime($0).isEmpty }.sorted { clock($0, cityZone: dz) < clock($1, cityZone: dz) })
             for e in allday {
-                parts.append(.init(id: e.id, kind: .allday, text: Rules.lineTitle(e, covers: names), show: Rules.isShow(e),
+                parts.append(.init(id: e.id, kind: .allday, text: Rules.showTitle(e, spans: covering) ?? Rules.lineTitle(e, covers: names), show: Rules.isShow(e),
                                    pencil: Rules.isPencil(e) || Rules.isTbc(e), ink: ink(e), color: color(e)))
             }
+            var lastShowName: String? = nil
             for e in timed {
-                parts.append(.init(id: e.id, kind: .timed, time: clock(e, cityZone: dz), text: Rules.lineTitle(e, covers: names), show: Rules.isShow(e),
+                var text = Rules.showTitle(e, spans: covering) ?? Rules.lineTitle(e, covers: names)
+                // a second show of the same production that day keeps only its number
+                if let st = Rules.showTitle(e, spans: covering), let sp = st.lastIndex(of: " ") {
+                    let name = String(st[..<sp])
+                    if name == lastShowName { text = String(st[st.index(after: sp)...]) }
+                    lastShowName = name
+                }
+                parts.append(.init(id: e.id, kind: .timed, time: clock(e, cityZone: dz), text: text, show: Rules.isShow(e),
                                    pencil: Rules.isPencil(e) || Rules.isTbc(e), ink: ink(e), color: color(e)))
             }
             let here = whereOn(ds, moves: mv, legs: legs)
@@ -513,7 +541,9 @@ struct Almanac {
             let timed = Places.joinJourneys(dayEv.filter { !Rules.effTime($0).isEmpty }.sorted { clock($0, cityZone: dz) < clock($1, cityZone: dz) })
             func line(_ e: CalEvent) -> WeekDay.Line {
                 let t = clock(e, cityZone: dz)
-                let text = t.isEmpty ? Rules.lineTitle(e, covers: names) : Rules.stripClock(Rules.wallTitle(e.title.deco, covers: names))
+                let covering = spans.filter { $0.start <= ds && $0.end >= ds }
+                let text = Rules.showTitle(e, spans: Array(covering))
+                    ?? (t.isEmpty ? Rules.lineTitle(e, covers: names) : Rules.stripClock(Rules.wallTitle(e.title.deco, covers: names)))
                 return .init(id: e.id, time: t, text: text, color: color(e), ink: ink(e), show: Rules.isShow(e),
                              pencil: Rules.isPencil(e) || Rules.isTbc(e), note: !RX.sub("^P[ \\t]*(?:\\r?\\n(?:[ \\t]*\\r?\\n)?|$)", e.notes, "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }

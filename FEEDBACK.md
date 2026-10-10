@@ -75,7 +75,7 @@ and a drag onto a day to give it that date. Same Apple list as Siri and the Watc
 | 39 | "When I swipe left there is a bounce effect. And the border around the month glitches after" | BUILT native 11.10: the page no longer follows the finger (month, week, year) |
 | 40 | "Still wondering if swipe up or down for year swap will get me in trouble when scrolling" | **OPEN** — answered in chat; his call whether to keep it |
 | 41 | "In month view, clicking anywhere on the right of the screen opens the week in question" (screenshot: a zone right of the info column's start, the full height) | BUILT native 11.10: the right fifth of every row opens its week |
-| 42 | "Test to see if the font on the month view could be tiny bigger" | BUILT native 11.10, his pick after before/after: 13 pt ("easier on the eyes"). **OPEN**: "wish Performance 4 would fit on the 17th" — options to him |
+| 42 | "Test to see if the font on the month view could be tiny bigger" | BUILT native 11.10, his pick after before/after: 13 pt ("easier on the eyes"). "Performance 4 on the 17th": BUILT 11.10 — a show reads as production + number ("Vildanden 3"), a second show the same day as its number ("18:30 4"); production from the title, else the project span in the same calendar, else as written |
 | 43 | "Make the times on the day sheet tiny but stronger in contrast, but like the sophisticated look" | **OPEN** — as 42: put back, before/after shown, his choice |
 | 44 | TO-DO: "you completely misunderstood me … I do not want to-do showing up in my calendar, I hate that … a button that brings up my to-do list that I can comment, cross out, call from … almost its own app inside the Almanac … designed perfectly for my situation" | **OPEN** — design to him. Day-sheet reminders REMOVED 11.10 on his word |
 | 45 | TO-DO, his read of the first design: "some of this was good" — writing like Notes (return gives the next line), one tap ticks off and sinks, swipe right gives a day, swipe left deletes, hold and drag moves, headings are the lists, "☐ 5" in the month header opens it | **OPEN** — kept for the design |
@@ -83,5 +83,5 @@ and a drag onto a day to give it that date. Same Apple list as Siri and the Watc
 | 47 | TO-DO: "my potential projects heading was good" | **OPEN** — a heading for potential projects |
 | 48 | TO-DO answers: dates rarely, but possible; "call Person" → tap the name to call; never in the calendar | **OPEN** — for the design |
 | 49 | TO-DO: Ornella's list is a bulletin of to-dos to/from her, living in the workspace desktop app and iPhone suite; maybe a wg button here brings it up — "when that is designed" | **OPEN** — later, with the workspace app |
-| 50 | Day-sheet times: before/after shown close up 11.10 | **OPEN** — his pick |
+| 50 | Day-sheet times: before/after shown close up 11.10 | BUILT 11.10, his pick: 11pt medium, darker ("better color") |
 

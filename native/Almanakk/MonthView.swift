@@ -530,7 +530,7 @@ struct DaySheet: View {
                 // START AND END (Alan, 10.10: "I wanted to know how long the flight was and had
                 // to click edit to see it"): the end stands under the start
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(t).font(.system(size: (12) * Ink.scale).monospacedDigit()).foregroundStyle(Ink.muted)
+                    Text(t).font(.system(size: (11) * Ink.scale, weight: .medium).monospacedDigit()).foregroundStyle(Ink.soft)
                     let endShown: String = {
                         if e.minutes > 0, let r = Places.route(e.title), let z = Places.zones[r.components(separatedBy: " → ").last ?? ""],
                            let c = alm.clock(e, plus: e.minutes, in: z) { return c }
@@ -538,7 +538,7 @@ struct DaySheet: View {
                         return e.endTime
                     }()
                     if !endShown.isEmpty && endShown != t {
-                        Text(endShown).font(.system(size: (11) * Ink.scale).monospacedDigit()).foregroundStyle(Ink.muted.opacity(0.8))
+                        Text(endShown).font(.system(size: (10) * Ink.scale, weight: .medium).monospacedDigit()).foregroundStyle(Ink.soft.opacity(0.75))
                     }
                 }
                 .frame(width: 40, alignment: .leading)
