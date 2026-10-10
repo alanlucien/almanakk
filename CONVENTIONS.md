@@ -36,6 +36,7 @@ invent a mark that only the app understands.
 | 22 | A planned move a booking takes over | The app takes care of it: a pencilled or tbc move on a day that also holds a booked flight or move is stepped aside — off the month and week, out of the city reckoning — and the day sheet shows it with "erstattet av fly · Fjern". Nothing is deleted on its own. (Alan, 11.10: "would be great if the app just took care of it") | **Decided 11.10**, native |
 | 23 | Moon phases | New moon, first and last quarter, full moon: a small mark by the weekday letter in the month, in the week's day head, and named in the day sheet. (Alan, 11.10: "moon phases we need!") | **Decided 11.10**, native |
 | 24 | Dropped / later | The Byer switch (names ↔ codes): dropped (11.10). Printing: comes with the Mac app, then copied to the phone. | Decided 11.10 |
+| 25 | Angre | The phone's own undo: shake ("Angre endring av …?") or a three-finger swipe left undoes the last change of any kind, right redoes it; after a delete the short "Slettet · Angre" line stays a few seconds, like Mail. No standing button (Alan, 11.10: "should regret sit so long? … I like shake undo … and the three fingers"). | **Decided 11.10**, native |
 
 ## Order for the native build
 

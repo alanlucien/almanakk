@@ -17,6 +17,16 @@ final class Store: ObservableObject {
     /// the line at the foot of the screen after a write: what happened, and how to undo it
     @Published var toast: Toast? = nil
     struct Toast: Identifiable { let id = UUID(); var text: String; var undo: (() async -> Void)? = nil }
+    /// THE PHONE'S OWN UNDO (Alan, 11.10: "I like shake undo … and the three fingers"): every
+    /// change registers its opposite with the window's undo manager, so a shake ("Angre …?")
+    /// or a three-finger swipe left undoes it and right redoes it. The inverse of an undo is
+    /// registered in turn, which is what makes redo work.
+    weak var undo: UndoManager?
+    private func registerUndo(_ name: String, _ action: @escaping @MainActor (Store) async -> Void) {
+        guard let u = undo else { return }
+        u.registerUndo(withTarget: self) { store in Task { @MainActor in await action(store) } }
+        u.setActionName(name)
+    }
 
     init() {
         let c = Day.greg.dateComponents([.year, .month], from: Date())
@@ -124,6 +134,7 @@ final class Store: ObservableObject {
             events.removeAll { $0.id == old?.id }
             events.append(e)
             toast = .init(text: old == nil ? "Lagt til" : "Lagret")
+            registerInverse(of: old, saved: e)
             return true
         }
         do {
@@ -141,6 +152,7 @@ final class Store: ObservableObject {
             events.append(e)
             Cache.write(.init(calendars: calendars, events: events)); writeSnapshot()
             toast = .init(text: old == nil ? "Lagt til i \(calendars.first { $0.id == cal }?.name ?? "kalenderen")" : "Lagret")
+            registerInverse(of: old, saved: e)
             return true
         } catch {
             problem = "Ble ikke lagret: " + error.localizedDescription
@@ -148,8 +160,19 @@ final class Store: ObservableObject {
         }
     }
 
+    /// a new event's opposite is its deletion; an edit's is the event as it was
+    private func registerInverse(of old: CalEvent?, saved e: CalEvent) {
+        let name = e.title.deco
+        if let old {
+            let back = Draft(old, zone: old.zone.isEmpty ? TimeZone.current.identifier : old.zone)
+            registerUndo("endring av \(name)") { store in _ = await store.save(back, editing: store.events.first { $0.id == e.id } ?? e) }
+        } else {
+            registerUndo("ny hendelse \(name)") { store in await store.delete(store.events.first { $0.id == e.id } ?? e, quiet: true) }
+        }
+    }
+
     /// deleted, with "Angre" for a moment: undo writes it back as it was
-    func delete(_ e: CalEvent) async {
+    func delete(_ e: CalEvent, quiet: Bool = false) async {
         problem = nil
         let back = Draft(e, zone: TimeZone.current.identifier)
         if !demo {
@@ -157,10 +180,13 @@ final class Store: ObservableObject {
         }
         events.removeAll { $0.id == e.id }
         if !demo { Cache.write(.init(calendars: calendars, events: events)); writeSnapshot() }
+        var restore = back; restore.calId = e.calId
+        registerUndo("sletting av \(e.title.deco)") { store in _ = await store.save(restore, editing: nil) }
+        if quiet { toast = .init(text: "Angret"); return }
         toast = .init(text: "Slettet") { [weak self] in
             guard let self else { return }
-            var d = back; d.calId = e.calId
-            if self.demo { self.events.append(e) } else { await self.save(d, editing: nil) }
+            // the line's "Angre" is the same undo a shake gives, so the two cannot both restore it
+            if let u = self.undo, u.canUndo { u.undo() } else { _ = await self.save(restore, editing: nil) }
             self.toast = .init(text: "Gjenopprettet")
         }
     }

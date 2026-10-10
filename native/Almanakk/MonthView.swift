@@ -38,6 +38,7 @@ struct NativeRoot: View {
     @StateObject private var store = Store()
     @StateObject private var rem = RemindersStore()
     @AppStorage("almanakk.large") private var large = false
+    @Environment(\.undoManager) private var undoManager
     @Environment(\.scenePhase) private var phase
     @State private var open: String? = nil
     @State private var detent: PresentationDetent = .medium
@@ -87,7 +88,8 @@ struct NativeRoot: View {
                     .presentationBackgroundInteraction(.enabled(upThrough: .medium))
             }
             // fresh from Google when the app opens and whenever it comes forward again
-            .task { await store.refresh() }
+            .task { store.undo = undoManager; await store.refresh() }
+            .onChange(of: undoManager) { store.undo = undoManager }
             .onChange(of: phase) { if phase == .active { Task { await store.refresh(); await rem.load() } } }
     }
 }
