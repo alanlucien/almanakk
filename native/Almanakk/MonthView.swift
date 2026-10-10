@@ -223,7 +223,6 @@ struct MonthScreen: View {
                     Toggle("English", isOn: Binding(get: { englishUI }, set: { UserDefaults.standard.set($0 ? "en" : "no", forKey: "almanakk.lang") }))
                     Toggle(T("Større tekst", "Larger text"), isOn: Binding(get: { UserDefaults.standard.bool(forKey: "almanakk.large") },
                                                           set: { UserDefaults.standard.set($0, forKey: "almanakk.large") }))
-                    Toggle(T("Påminnelser", "Reminders"), isOn: Binding(get: { rem.enabled }, set: { on in Task { await rem.setEnabled(on) } }))
                     if !store.demo { Button(T("Logg ut av Google", "Sign out of Google"), role: .destructive) { store.signOut() } }
                 } label: {
                     Image(systemName: "ellipsis").font(.system(size: (17) * Ink.scale, weight: .semibold)).foregroundStyle(Ink.ink)
@@ -298,7 +297,7 @@ struct DayRow: View {
 
     private var figure: some View {
         Text("\(row.d)")
-            .font(.system(size: (13) * Ink.scale, weight: .medium).monospacedDigit())
+            .font(.system(size: (14) * Ink.scale, weight: .medium).monospacedDigit())
             .foregroundStyle(row.today ? (row.red ? Ink.onInkRed : Ink.paper) : (row.red ? Ink.red : Ink.ink))
     }
 
@@ -409,11 +408,11 @@ struct DayLine: View {
     private func entry(_ p: MonthRow.Part) -> Text {
         let colour: Color = inverted ? (p.show ? Ink.onInkRed : (p.pencil ? Ink.onInkSoft : Ink.paper))
             : (p.show ? Ink.red : (p.pencil ? Ink.muted : (p.ink.isEmpty ? Ink.ink : Ink.hex(p.ink))))
-        let clock = p.kind == .timed ? Text(p.time + " ").font(.system(size: (10) * Ink.scale)).foregroundColor(inverted ? Ink.onInkSoft : Ink.muted) : Text("")
+        let clock = p.kind == .timed ? Text(p.time + " ").font(.system(size: (10.5) * Ink.scale)).foregroundColor(inverted ? Ink.onInkSoft : Ink.muted) : Text("")
         if p.kind == .span {
-            return Text(p.text.uppercased()).font(.system(size: (10.5) * Ink.scale, weight: .semibold)).tracking(0.8).foregroundColor(colour)
+            return Text(p.text.uppercased()).font(.system(size: (11) * Ink.scale, weight: .semibold)).tracking(0.8).foregroundColor(colour)
         }
-        return clock + Text(p.text).font(.system(size: (12) * Ink.scale)).foregroundColor(colour)
+        return clock + Text(p.text).font(.system(size: (13) * Ink.scale)).foregroundColor(colour)
     }
 
     private func measure(_ p: MonthRow.Part) -> CGFloat {
@@ -421,9 +420,9 @@ struct DayLine: View {
             (s as NSString).size(withAttributes: [.font: f, .kern: k]).width
         }
         switch p.kind {
-        case .span: return w(p.text.uppercased(), .systemFont(ofSize: 10.5 * Ink.scale, weight: .semibold), 0.8)
-        case .timed: return w(p.time + " ", .systemFont(ofSize: 10 * Ink.scale)) + w(p.text, .systemFont(ofSize: 12 * Ink.scale))
-        case .allday: return w(p.text, .systemFont(ofSize: 12 * Ink.scale))
+        case .span: return w(p.text.uppercased(), .systemFont(ofSize: 11 * Ink.scale, weight: .semibold), 0.8)
+        case .timed: return w(p.time + " ", .systemFont(ofSize: 10.5 * Ink.scale)) + w(p.text, .systemFont(ofSize: 13 * Ink.scale))
+        case .allday: return w(p.text, .systemFont(ofSize: 13 * Ink.scale))
         }
     }
 
@@ -510,7 +509,6 @@ struct DaySheet: View {
                     Rectangle().fill(Ink.rule).frame(height: 0.5)
                 }
                 if let p = store.problem { Text(p).font(.system(size: (13) * Ink.scale)).foregroundStyle(Ink.red).padding(.top, 10) }
-                DayReminders(rem: rem, date: date)
                 // THE ADD LINE, quiet at the foot: the keyboard comes only when it is tapped
                 AddLine(store: store, date: date, zone: cityZone) { d in
                     var d = d; if d.calId.isEmpty { d.calId = store.defaultCal }
