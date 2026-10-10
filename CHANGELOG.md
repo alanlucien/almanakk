@@ -6,6 +6,13 @@ to get exactly that version back (`git checkout <commit>` then `python3 publiser
 Cloudflare also keeps every deployment of v2 with a one-click **Rollback** in the dashboard.
 
 
+## 10.10.2026 — LIVE: bygg 20261010c
+- His city column follows only his own flights and moves; a tour he does not join no
+  longer sets it.
+- "- A. Name" (a dash and a space) is a list item, not a move.
+- No emoji in titles or notes on the wall.
+- TO UNDO: Cloudflare → almanakk-v2 → Deployments → Rollback to 2ecb26ab (20261010a).
+
 ## 10.10.2026 — LIVE: bygg 20261010a
 - A comma ends a flight's route: "Flight AAA-BBB, Airline XX 123" moved the city
   nowhere, because its last leg read as "CAI, Transavia". 14-case route test passes.

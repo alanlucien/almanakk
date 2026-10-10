@@ -508,6 +508,10 @@ else the month's first full week (a 1st on a weekend belongs to the week before)
 SEPTEMBER fits at 375px with both buttons. The design session's answer on the title
 toggle and the phone year is still to come; this button does not wait for it.
 
+**10.10 morning — bygg `20261010c` IN PRODUCTION on Alan's "go"** (deployment `aeae8396`;
+undo: Cloudflare Rollback to `2ecb26ab`, 20261010a). One event abroad moved from Oslo time
+to its local zone on his word ("fix reception"). Pushed to GitHub on his "push".
+
 **10.10 night — NATIVE STAGES 4–6 built while Alan slept** (simulator, his real calendar
 unless marked demo; nothing deployed, no TestFlight, the only calendar write was the
 mask removal he asked for):
