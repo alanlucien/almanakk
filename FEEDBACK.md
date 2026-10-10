@@ -93,4 +93,23 @@ comes here first, then to the phone. His points go below as he gives them.
 
 | # | His point | State |
 |---|---|---|
-
+| D1 | "Quick-edit of an event in place in month view (click a name and write/edit in place), but also edit in detail with all options. Click on a line to write a new event" | OPEN |
+| D2 | "Quickly select multiple days by clicking in a cell and dragging, then get a prompt to type the multi-day event title" | OPEN |
+| D3 | "The way the months are laid out has different weighting of boxes around months" | OPEN |
+| D4 | "Week view is wide (a stretched iPhone design). What would a good week-view almanac be? A week on a page with a day on a page next to it?" | OPEN — design question |
+| D5 | "Share screenshot function, with the ability to redact events, then share as a message (to share availability/schedule)" | OPEN |
+| D6 | "Not 'October–November' but a proper, standout headline for each month" | OPEN |
+| D7 | "Clicking a city in month view brings up travel to and travel from (the two dates and event names), clickable to go to either. Or the events ping bold in a standout colour?" | OPEN — two options |
+| D8 | "The way the day opens when clicking a day line — perhaps open in place a more thorough almanac page?" | OPEN |
+| D9 | "What else could there be on an almanac 'home'? A list of projects — clickable strips with key info taking you to the period (Fanny og Alexander → the month it starts), wg tours/productions" | OPEN — design question |
+| D10 | "List of holidays? Easter and merkedager — imitate and brainstorm almanac standards, with customs for me" | OPEN |
+| D11 | "To-do list? How is it previewed and maintained?" | OPEN |
+| D12 | "My shared to-do with Ornella? Or does that overlap with wg workspace?" | OPEN — with 49 |
+| D13 | "Toggle in year and month view to show only all-day events (also for iPhone) — at-a-glance 'oversikt'" | OPEN — Mac and iPhone |
+| D14 | "Keyboard: ⌘P must bring up print, ⌘N new event — what other shortcuts?" | OPEN |
+| D15 | "In all-day-only mode, should multi-day events be bands like the wg tours? Or messy?" | OPEN — with D13 |
+| D16 | "Show only wg touring? Turn wg touring off?" | OPEN |
+| D17 | "Let the mouse be a hand when moving over the calendar" | OPEN |
+| D18 | "Somehow connect the multi-day lines with their titles in month view (week view does not do this best)" | OPEN |
+| D19 | "In week view the all-day events are squashed at the top of the week" | OPEN — fixed on iPhone 11.10 (build 6); Mac to follow |
+| D20 | "What are 'guests' in a calendar and how does this connect to Google? Pulled from my contacts as I type? Emailed?" | OPEN — answered in chat 11.10; his call |
