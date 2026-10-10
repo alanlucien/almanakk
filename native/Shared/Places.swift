@@ -136,7 +136,7 @@ enum Places {
         return nil
     }
     /// flightRoute: how a flight reads on the day line. EVERY CITY STAYS ON THE LINE (Alan,
-    /// 11.10: "oslo-kairo-amsterdam"), so a stop is seen, not hidden: "Oslo → Kairo → Amsterdam"
+    /// 11.10: "oslo-x-amsterdam"), so a stop is seen, not hidden: "Oslo → Roma → Amsterdam"
     static func route(_ title: String) -> String? {
         var l = legs(title)
         if l.count < 2 && hasFlightWord(title) { l = placesIn(title) }
@@ -147,7 +147,7 @@ enum Places {
     }
 
     /// A DAY'S FLIGHTS THAT MEET ARE ONE JOURNEY: "OSL-CAI" at 08:00 and "CAI-AMS" at 15:00
-    /// read "Oslo → Kairo → Amsterdam" at 08:00 (collapseJourneys, with every city kept).
+    /// read "Oslo → Roma → Amsterdam" at 08:00 (collapseJourneys, with every city kept).
     /// The day sheet keeps each flight as it is.
     static func joinJourneys(_ timed: [CalEvent]) -> [CalEvent] {
         var out: [CalEvent] = []

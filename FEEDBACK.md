@@ -15,7 +15,7 @@ States: OPEN · BUILT (native = in the iPhone app, from TestFlight build 5/6) ·
 |---|---|---|
 | 1 | "A toggle to see reminders from Apple, and to add reminders?" | BUILT native: "⋯" → Påminnelser; dated reminders in the day sheet, tick off, add to the day |
 | 2 | "Or a to-do list section for me that is very intuitive?" | **OPEN** — see 34: his own to-do list, designed first |
-| 3 | "Cities did not update with my flight to Cairo today" | BUILT web + native (a comma ended the route); title corrected; flight skill written |
+| 3 | "Cities did not update with my flight today" | BUILT web + native (a comma ended the route); title corrected; flight skill written |
 | 4 | "Holding my thumb and making the day I am selecting bigger" | BUILT native: the magnifier |
 | 5 | "I liked the old year view with all the little dots … but easier to pick months with the new one. Different year views?" | BUILT native: Måneder and Plakat |
 | 6 | "Click 19 in September → September with the 19th selected, not the drawer open" | BUILT native |
@@ -37,7 +37,7 @@ States: OPEN · BUILT (native = in the iPhone app, from TestFlight build 5/6) ·
 | 17 | "Open in the app or web of the airline to check in, the code copied" | BUILT native: "Sjekk inn" (airline pages untested on his phone) |
 | 18 | The name as booked (Oeyen / Oyen / Øyen) in the notes | BUILT: in the flight skill |
 | 19 | "The 5-digit code is too big" | BUILT native: smaller |
-| 20 | Clean flight notes, no noise | BUILT: skill rewritten; the Cairo flight's notes cleaned |
+| 20 | Clean flight notes, no noise | BUILT: skill rewritten; the flight's notes cleaned |
 | 21 | "When looking forward to a week in Asia, dinner at 19, not 13" | BUILT native: times in the day's city |
 | 22 | "Can I type 8am-12 or 8-12pm?" | BUILT native |
 | 23 | Reading glasses | BUILT native: "⋯" → Større tekst |
@@ -50,7 +50,7 @@ States: OPEN · BUILT (native = in the iPhone app, from TestFlight build 5/6) ·
 
 | # | His point | State |
 |---|---|---|
-| 28 | "Joined journeys … perhaps instead oslo-kairo-amsterdam" | BUILT native |
+| 28 | "Joined journeys … perhaps instead oslo-x-amsterdam" | BUILT native |
 | 29 | "When a flight planned is booked … the app should take care of it" | BUILT native: stepped aside, "erstattet av fly · Fjern" |
 | 30 | "Moon phases we need!" | BUILT native |
 | 31 | "Shake undo … and the three fingers" | BUILT native |
@@ -77,7 +77,7 @@ and a drag onto a day to give it that date. Same Apple list as Siri and the Watc
 | 41 | "In month view, clicking anywhere on the right of the screen opens the week in question" (screenshot: a zone right of the info column's start, the full height) | BUILT native 11.10: the right fifth of every row opens its week |
 | 42 | "Test to see if the font on the month view could be tiny bigger" | BUILT native 11.10, his pick after before/after: 13 pt ("easier on the eyes"). "Performance 4 on the 17th": BUILT 11.10 — a show reads as production + number ("Vildanden 3"), a second show the same day as its number ("18:30 4"); production from the title, else the project span in the same calendar, else as written |
 | 43 | "Make the times on the day sheet tiny but stronger in contrast, but like the sophisticated look" | **OPEN** — as 42: put back, before/after shown, his choice |
-| 44 | TO-DO: "you completely misunderstood me … I do not want to-do showing up in my calendar, I hate that … a button that brings up my to-do list that I can comment, cross out, call from … almost its own app inside the Almanac … designed perfectly for my situation" | BUILT native 11.10 (his yes to design 2): "☐ n" in the month header opens GJØREMÅL; lists as headings, write like Notes, sub-points (swipe right), notes, "Ring Runi" calls, dates only in the list, I DAG, tick off, drag to order. Tested on the demo simulator. Day-sheet reminders removed |
+| 44 | TO-DO: "you completely misunderstood me … I do not want to-do showing up in my calendar, I hate that … a button that brings up my to-do list that I can comment, cross out, call from … almost its own app inside the Almanac … designed perfectly for my situation" | BUILT native 11.10 (his yes to design 2): "☐ n" in the month header opens GJØREMÅL; lists as headings, write like Notes, sub-points (swipe right), notes, "Ring Kari" calls, dates only in the list, I DAG, tick off, drag to order. Tested on the demo simulator. Day-sheet reminders removed |
 | 45 | TO-DO, his read of the first design: "some of this was good" — writing like Notes (return gives the next line), one tap ticks off and sinks, swipe right gives a day, swipe left deletes, hold and drag moves, headings are the lists, "☐ 5" in the month header opens it | **OPEN** — kept for the design |
 | 46 | TO-DO: "need sub points also" | **OPEN** |
 | 47 | TO-DO: "my potential projects heading was good" | **OPEN** — a heading for potential projects |

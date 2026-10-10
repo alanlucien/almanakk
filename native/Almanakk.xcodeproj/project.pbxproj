@@ -170,7 +170,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Almanakk;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSContactsUsageDescription = "Almanakk finner personen i et gjøremål som «Ring Runi», så du kan ringe med ett trykk.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "Almanakk finner personen i et gjøremål som «Ring Kari», så du kan ringe med ett trykk.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Almanakk viser påminnelsene dine på dagene de hører til, og lar deg huke dem av og legge til nye.";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "winter guests";
@@ -206,7 +206,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Almanakk;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSContactsUsageDescription = "Almanakk finner personen i et gjøremål som «Ring Runi», så du kan ringe med ett trykk.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "Almanakk finner personen i et gjøremål som «Ring Kari», så du kan ringe med ett trykk.";
 				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "Almanakk viser påminnelsene dine på dagene de hører til, og lar deg huke dem av og legge til nye.";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "winter guests";

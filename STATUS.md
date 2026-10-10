@@ -509,7 +509,7 @@ SEPTEMBER fits at 375px with both buttons. The design session's answer on the ti
 toggle and the phone year is still to come; this button does not wait for it.
 
 **11.10 — TESTFLIGHT BUILD 6 UPLOADED (iPhone)** on Alan's word. Adds since build 5: moon
-phases; flight chains ("Oslo → Kairo → Amsterdam"); booked-over plans stepped aside
+phases; flight chains ("Oslo → Roma → Amsterdam"); booked-over plans stepped aside
 ("erstattet av fly · Fjern"); shake / three-finger undo; Norwegian/English incl. holidays;
 tap the sheet's top to close; widget days open their week; offline outbox; no bounce;
 right fifth of a month row opens its week; month at 13 pt; shows as "Vildanden 3", a second

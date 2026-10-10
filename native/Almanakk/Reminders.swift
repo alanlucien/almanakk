@@ -6,7 +6,7 @@
 //   · write like Notes: return gives the next line; empty lines vanish
 //   · sub-points: stored as ordinary reminders linked to their parent (Apple does not let
 //     other apps use Reminders' own sub-tasks), so in Apple's app they show flat
-//   · "Ring Runi": the name is a link; a tap finds the contact and offers call or message
+//   · "Ring Kari": the name is a link; a tap finds the contact and offers call or message
 //   · a date only inside the list (red "fre"); on the day the line rises to I DAG
 //   · one tap ticks off; struck through, sinks, gone the next day
 //   · the order he drags is kept by the almanac (Apple does not share Reminders' order)
@@ -159,7 +159,7 @@ final class TodoStore: ObservableObject {
 // ---------- calling from a line ----------
 
 enum CallName {
-    /// "Ring Runi om lysdesigner" → ("Ring ", "Runi", " om lysdesigner")
+    /// "Ring Kari om lysdesigner" → ("Ring ", "Kari", " om lysdesigner")
     static func split(_ t: String) -> (String, String, String)? {
         guard let g = RX.groups("^((?:[Rr]ing|[Cc]all|[Ss]ms|[Mm]elding til)\\s+)(\\p{Lu}\\p{L}+(?:\\s\\p{Lu}\\p{L}+)?)(.*)$", t) else { return nil }
         return (g[1], g[2], g[3])
@@ -353,7 +353,7 @@ struct TodoView: View {
         }
     }
 
-    /// the title; "Ring Runi …" with the name as a link
+    /// the title; "Ring Kari …" with the name as a link
     @ViewBuilder private func title(_ r: EKReminder, sub: Bool) -> some View {
         let t = r.title ?? ""
         let f = Font.system(size: (sub ? 15 : 16) * Ink.scale)
