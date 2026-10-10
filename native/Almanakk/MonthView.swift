@@ -38,7 +38,8 @@ var WD_LONG: [String] { englishUI ? ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY
 
 struct NativeRoot: View {
     @StateObject private var store = Store()
-    @StateObject private var rem = RemindersStore()
+    @StateObject private var rem = TodoStore()
+    @State private var showTodo = false
     @AppStorage("almanakk.large") private var large = false
     @AppStorage("almanakk.lang") private var lang = "no"
     @Environment(\.undoManager) private var undoManager
@@ -78,7 +79,7 @@ struct NativeRoot: View {
         // THE MONTH IS HOME; THE WEEK IS PUSHED ON IT, with the phone's own back button and
         // back swipe, "‹ Oktober" (Alan, 10.10: "opening a week from month view has no back")
         NavigationStack(path: $path) {
-            MonthScreen(store: store, rem: rem, open: $open, selected: $selected, toWeek: toWeek, toYear: toYear)
+            MonthScreen(store: store, rem: rem, open: $open, selected: $selected, showTodo: $showTodo, toWeek: toWeek, toYear: toYear)
                 .id("\(large)\(lang)")   // either switch redraws the whole almanac
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationTitle(MONTHS[store.month].capitalized)
@@ -103,6 +104,9 @@ struct NativeRoot: View {
             }
             // fresh from Google when the app opens and whenever it comes forward again
             .onOpenURL(perform: openURL)
+            // GJØREMÅL: its own page over the almanac
+            .fullScreenCover(isPresented: $showTodo) { TodoView(todo: rem) }
+            .task { await rem.load() }
             .task { store.undo = undoManager; await store.refresh() }
             .onChange(of: undoManager) { store.undo = undoManager }
             .onChange(of: phase) { if phase == .active { Task { await store.refresh(); await rem.load() } } }
@@ -111,9 +115,10 @@ struct NativeRoot: View {
 
 struct MonthScreen: View {
     @ObservedObject var store: Store
-    @ObservedObject var rem: RemindersStore
+    @ObservedObject var rem: TodoStore
     @Binding var open: String?
     @Binding var selected: String?
+    @Binding var showTodo: Bool
     var toWeek: (String) -> Void = { _ in }
     var toYear: () -> Void = {}
     @State private var drag: CGFloat = 0
@@ -218,6 +223,15 @@ struct MonthScreen: View {
                         .font(.system(size: (11) * Ink.scale)).foregroundStyle(Ink.muted)
                 }
                 Spacer()
+                // ☐ n — the to-do list, its own page (Alan, 11.10)
+                Button { open = nil; showTodo = true } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "square").font(.system(size: (13) * Ink.scale, weight: .medium))
+                        if rem.granted && rem.openCount > 0 { Text("\(rem.openCount)").font(.system(size: (13) * Ink.scale, weight: .medium).monospacedDigit()) }
+                    }
+                    .foregroundStyle(Ink.ink).frame(minWidth: 34, minHeight: 30).contentShape(Rectangle())
+                }
+                .accessibilityLabel(T("Gjøremål", "To-do"))
                 // the quiet menu: the few switches, out of the way (L3)
                 Menu {
                     Toggle("English", isOn: Binding(get: { englishUI }, set: { UserDefaults.standard.set($0 ? "en" : "no", forKey: "almanakk.lang") }))
@@ -443,7 +457,7 @@ struct DayLine: View {
 
 struct DaySheet: View {
     @ObservedObject var store: Store
-    @ObservedObject var rem: RemindersStore
+    @ObservedObject var rem: TodoStore
     let date: String
     var toWeek: (String) -> Void = { _ in }
     @State private var viewing: String? = nil
