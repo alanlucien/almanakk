@@ -20,7 +20,7 @@ struct WeekScreen: View {
         let w = store.almanac.week(monday)
         VStack(spacing: 0) {
             GeometryReader { geo in
-                let spanH: CGFloat = w.spans.isEmpty ? 0 : CGFloat(w.spans.count) * 18 + 12
+                let spanH: CGFloat = w.spans.isEmpty ? 0 : CGFloat(w.spans.count) * 24 * Ink.scale + 10
                 let dayMin = max(44, (geo.size.height - spanH) / 7)
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
@@ -95,22 +95,56 @@ struct WeekScreen: View {
         .foregroundStyle(Ink.ink)
     }
 
-    /// his spans of the week, each with its colour and its days
+    /// HIS SPANS ON TOP, THEIR LINES HANGING FROM THEIR NAMES (Alan, 11.10: "squashed and easy
+    /// to miss, and the lines do not connect down"; his yes to the before/after): each span's
+    /// line starts at its own name with a short tick into it and runs straight down, in the
+    /// same lane the days use — dotted until the day it begins, solid on its own days.
     private func spanBlock(_ spans: [Almanac.WeekSpan]) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            ForEach(spans) { sp in
+        let lead = CGFloat(spans.count) * 7 + 16
+        let mon = monday
+        return VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(spans.enumerated()), id: \.element.id) { j, sp in
                 HStack(spacing: 8) {
-                    Rectangle().fill(Ink.hex(sp.color)).frame(width: 4, height: 12)
-                    Text(sp.title.uppercased()).font(.system(size: (11) * Ink.scale, weight: .semibold)).tracking(0.8)
+                    Text(sp.title.uppercased()).font(.system(size: (12.5) * Ink.scale, weight: .semibold)).tracking(0.8)
                         .foregroundStyle(sp.pencil ? Ink.muted : Ink.ink).lineLimit(1)
-                    Text(shortRange(sp.start, sp.end)).font(.system(size: (11) * Ink.scale)).foregroundStyle(Ink.muted).fixedSize()
+                    Text(shortRange(sp.start, sp.end)).font(.system(size: (12) * Ink.scale)).foregroundStyle(Ink.muted).fixedSize()
                     Spacer(minLength: 0)
                 }
-                .frame(height: 15)
+                .padding(.leading, lead)
+                .frame(height: 24 * Ink.scale)
+                .overlay(alignment: .leading) {
+                    GeometryReader { g in
+                        let h = g.size.height
+                        ZStack(alignment: .topLeading) {
+                            ForEach(0...j, id: \.self) { i in
+                                let s2 = spans[i], c = Ink.hex(s2.color), x = 6 + CGFloat(i) * 7 + 2
+                                let top: CGFloat = i == j ? h / 2 : 0
+                                let solid = s2.start <= mon
+                                Path { p in p.move(to: CGPoint(x: x, y: top)); p.addLine(to: CGPoint(x: x, y: h)) }
+                                    .stroke(c.opacity(solid ? 1 : 0.6), style: StrokeStyle(lineWidth: solid ? 4 : 1.5, dash: solid ? [] : [2, 3]))
+                                if i == j {
+                                    Path { p in p.move(to: CGPoint(x: x - 2, y: h / 2)); p.addLine(to: CGPoint(x: lead - 6, y: h / 2)) }
+                                        .stroke(c, lineWidth: 1.5)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 6)
+        .padding(.vertical, 5)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .leading) {
+            GeometryReader { g in
+                ZStack(alignment: .topLeading) {
+                    ForEach(Array(spans.enumerated()), id: \.element.id) { i, s2 in
+                        let c = Ink.hex(s2.color), x = 6 + CGFloat(i) * 7 + 2, solid = s2.start <= mon
+                        Path { p in p.move(to: CGPoint(x: x, y: g.size.height - 5)); p.addLine(to: CGPoint(x: x, y: g.size.height)) }
+                            .stroke(c.opacity(solid ? 1 : 0.6), style: StrokeStyle(lineWidth: solid ? 4 : 1.5, dash: solid ? [] : [2, 3]))
+                    }
+                }
+            }
+        }
         .overlay(alignment: .bottom) { Rectangle().fill(Ink.rule).frame(height: 0.5) }
     }
 
@@ -182,7 +216,7 @@ struct WeekDayBlock: View {
                 let c = Ink.hex(sp.color)
                 if day.spanOn[i] {
                     Rectangle().fill(c).frame(width: 4)
-                        .padding(.top, sp.start == day.date ? 10 : 0).padding(.bottom, sp.end == day.date ? 10 : 0)
+                        .padding(.bottom, sp.end == day.date ? 10 : 0)   // no gap at the top: the line hangs from its name
                 } else if day.date < sp.start {
                     // the dotted lead, centred in the span's lane
                     GeometryReader { g in

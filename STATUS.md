@@ -508,6 +508,15 @@ else the month's first full week (a 1st on a weekend belongs to the week before)
 SEPTEMBER fits at 375px with both buttons. The design session's answer on the title
 toggle and the phone year is still to come; this button does not wait for it.
 
+**11.10 — TESTFLIGHT BUILD 6 UPLOADED (iPhone)** on Alan's word. Adds since build 5: moon
+phases; flight chains ("Oslo → Kairo → Amsterdam"); booked-over plans stepped aside
+("erstattet av fly · Fjern"); shake / three-finger undo; Norwegian/English incl. holidays;
+tap the sheet's top to close; widget days open their week; offline outbox; no bounce;
+right fifth of a month row opens its week; month at 13 pt; shows as "Vildanden 3", a second
+the same day as "18:30 4"; darker day-sheet times; GJØREMÅL (to-do list over Reminders);
+the week's span names larger with their lines hanging into the days. Day-sheet reminders
+removed. Every point and its state: FEEDBACK.md.
+
 **10.10 — TESTFLIGHT BUILD 5 UPLOADED (iPhone only) on Alan's "testflight": the native app.**
 The iPhone now runs the native almanac in release builds (AlmanakkApp: `#if os(iOS)`);
 the Mac stays on the web almanac. Added before the archive, on his word: READING

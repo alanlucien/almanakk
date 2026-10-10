@@ -84,5 +84,13 @@ and a drag onto a day to give it that date. Same Apple list as Siri and the Watc
 | 48 | TO-DO answers: dates rarely, but possible; "call Person" → tap the name to call; never in the calendar | **OPEN** — for the design |
 | 49 | TO-DO: Ornella's list is a bulletin of to-dos to/from her, living in the workspace desktop app and iPhone suite; maybe a wg button here brings it up — "when that is designed" | **OPEN** — later, with the workspace app |
 | 50 | Day-sheet times: before/after shown close up 11.10 | BUILT 11.10, his pick: 11pt medium, darker ("better color") |
-| 51 | Week view: "all-day events at the top seem squashed and easy to miss, and the lines do not connect down" | **OPEN** — before/after shown 11.10: larger names, each line hangs from its name into the days; his pick |
+| 51 | Week view: "all-day events at the top seem squashed and easy to miss, and the lines do not connect down" | BUILT native 11.10 on his yes: larger names, each line hangs from its name into the days |
+
+## Desktop app (Mac) — his list, to come
+
+The Mac gets its own interface and design, not a copy of the phone (Alan, 09.10). Printing
+comes here first, then to the phone. His points go below as he gives them.
+
+| # | His point | State |
+|---|---|---|
 
