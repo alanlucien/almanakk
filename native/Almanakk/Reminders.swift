@@ -68,7 +68,14 @@ final class TodoStore: ObservableObject {
     @Published var folded: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "almanakk.todoFolded") ?? []) {
         didSet { UserDefaults.standard.set(Array(folded), forKey: "almanakk.todoFolded") }
     }
-    var main: EKCalendar? { lists.first { $0.calendarIdentifier == mainList } ?? ek.defaultCalendarForNewReminders().flatMap { d in lists.first { $0.calendarIdentifier == d.calendarIdentifier } } ?? lists.first }
+    /// the main list: the one he picked; else "To Do" (Alan, 11.10: "todo is hovedliste");
+    /// else the phone's default list
+    var main: EKCalendar? {
+        lists.first { $0.calendarIdentifier == mainList }
+            ?? lists.first { ["to do", "todo", "gjøremål"].contains($0.title.lowercased()) }
+            ?? ek.defaultCalendarForNewReminders().flatMap { d in lists.first { $0.calendarIdentifier == d.calendarIdentifier } }
+            ?? lists.first
+    }
     /// main first, then the others, then those set aside
     var orderedLists: [EKCalendar] {
         let m = main?.calendarIdentifier

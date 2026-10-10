@@ -97,7 +97,7 @@ and a drag onto a day to give it that date. Same Apple list as Siri and the Watc
 | 56 | To-do: "need collapse/expand, and the lists below are as important as the main list, which is not right" | BUILT 11.10: lists fold; only the main list starts open, others one line each; "Gjør til hovedliste". Tried at his scale (12 lists, names and sizes read from his Mac) |
 | 57 | To-do: "headlines are too small" | BUILT 11.10: 17 pt main, 15 pt others |
 | 58 | To-do: "quick entry is hard" | BUILT 11.10: a line at the top, return adds to the main list and stays ready |
-| 59 | To-do: "where are my projects?" | OPEN — question to him |
+| 59 | To-do: "where are my projects?" → "how can I add projects to my lists" | ANSWERED 11.10: a project is its own list, "+ Ny liste" at the foot (it appears in Reminders too). "To Do" is the main list by default (his word) |
 | 60 | To-do: "the count is counting all notes, including my bar cabinet list 'booze' as unchecked to-dos" | BUILT 11.10: "Sett til side" on a list: folded at the foot, never counted |
 
 
