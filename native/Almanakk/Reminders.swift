@@ -67,21 +67,21 @@ struct DayReminders: View {
     var body: some View {
         if rem.enabled {
             VStack(alignment: .leading, spacing: 8) {
-                Text("PÅMINNELSER").font(.system(size: (11) * Ink.scale, weight: .semibold)).tracking(1.2).foregroundStyle(Ink.muted)
+                Text(T("PÅMINNELSER", "REMINDERS")).font(.system(size: (11) * Ink.scale, weight: .semibold)).tracking(1.2).foregroundStyle(Ink.muted)
                     .padding(.top, 14)
                 ForEach(rem.byDay[date] ?? [], id: \.calendarItemIdentifier) { r in
                     HStack(spacing: 10) {
                         Button { rem.complete(r) } label: {
                             Circle().stroke(Ink.ink, lineWidth: 1.2).frame(width: 18, height: 18)
                         }
-                        .accessibilityLabel("Huk av")
+                        .accessibilityLabel(T("Huk av", "Tick off"))
                         Text(r.title ?? "").font(.system(size: (16) * Ink.scale)).foregroundStyle(Ink.ink)
                         Spacer()
                     }
                 }
                 HStack(spacing: 10) {
                     Circle().stroke(Ink.rule, lineWidth: 1.2).frame(width: 18, height: 18)
-                    TextField("Ny påminnelse …", text: $text)
+                    TextField(T("Ny påminnelse …", "New reminder …"), text: $text)
                         .font(.system(size: (16) * Ink.scale)).autocorrectionDisabled(true).submitLabel(.done)
                         .onSubmit { let t = text.trimmingCharacters(in: .whitespaces); if !t.isEmpty { rem.add(t, on: date); text = "" } }
                 }

@@ -51,9 +51,9 @@ struct ContentView: View {
                 .ignoresSafeArea(.container, edges: .bottom)
             if let err = page.error {
                 VStack(spacing: 12) {
-                    Text("Almanakken får ikke kontakt").font(.headline)
+                    Text(T("Almanakken får ikke kontakt", "The almanac can't connect")).font(.headline)
                     Text(err).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                    Button("Prøv igjen") { page.load() }
+                    Button(T("Prøv igjen", "Try again")) { page.load() }
                 }
                 .padding(24)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))

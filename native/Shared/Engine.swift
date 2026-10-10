@@ -7,6 +7,12 @@
 // reads tour legs and "-Roma" moves only.
 import Foundation
 
+// ---------- the almanac's own words, Norwegian or English (Alan, 11.10) ----------
+// His entries are never translated; only the almanac's words: months, weekdays, buttons.
+// Holiday names stay Norwegian, as on the web.
+var englishUI: Bool { UserDefaults.standard.string(forKey: "almanakk.lang") == "en" }
+func T(_ no: String, _ en: String) -> String { englishUI ? en : no }
+
 // ---------- the data, as Google keeps it ----------
 
 struct CalEvent: Codable, Identifiable, Hashable {
@@ -107,31 +113,32 @@ enum Holidays {
         return Day.key(y, mo - 1, da)
     }
     static func of(_ y: Int) -> [String: Holiday] {
-        if let c = cache[y] { return c }
+        let ck = y * 2 + (englishUI ? 1 : 0)
+        if let c = cache[ck] { return c }
         var map: [String: Holiday] = [:]
         func put(_ k: String, _ name: String, _ red: Bool = false) { map[k] = Holiday(name: name, red: red) }
         let E = easter(y)
-        put(Day.key(y, 0, 1), "1. Nyttårsdag", true)
-        put(Day.add(E, -7), "Palmesøndag", true)
-        put(Day.add(E, -3), "Skjærtorsdag", true)
-        put(Day.add(E, -2), "Langfredag", true)
-        put(Day.add(E, -1), "Påskeaften")
-        put(E, "1. Påskedag", true)
-        put(Day.add(E, 1), "2. Påskedag", true)
-        put(Day.key(y, 4, 1), "1. mai", true)
-        put(Day.key(y, 4, 17), "17. mai", true)
-        put(Day.add(E, 39), "Kr. himmelfart", true)
-        put(Day.add(E, 49), "1. Pinsedag", true)
-        put(Day.add(E, 50), "2. Pinsedag", true)
-        put(Day.key(y, 5, 23), "St.Hansaften")
+        put(Day.key(y, 0, 1), T("1. Nyttårsdag", "New Year's Day"), true)
+        put(Day.add(E, -7), T("Palmesøndag", "Palm Sunday"), true)
+        put(Day.add(E, -3), T("Skjærtorsdag", "Maundy Thursday"), true)
+        put(Day.add(E, -2), T("Langfredag", "Good Friday"), true)
+        put(Day.add(E, -1), T("Påskeaften", "Easter Eve"))
+        put(E, T("1. Påskedag", "Easter Sunday"), true)
+        put(Day.add(E, 1), T("2. Påskedag", "Easter Monday"), true)
+        put(Day.key(y, 4, 1), T("1. mai", "May Day"), true)
+        put(Day.key(y, 4, 17), T("17. mai", "Constitution Day"), true)
+        put(Day.add(E, 39), T("Kr. himmelfart", "Ascension Day"), true)
+        put(Day.add(E, 49), T("1. Pinsedag", "Whit Sunday"), true)
+        put(Day.add(E, 50), T("2. Pinsedag", "Whit Monday"), true)
+        put(Day.key(y, 5, 23), T("St.Hansaften", "Midsummer Eve"))
         let dec24 = Day.key(y, 11, 24)
         let advent4 = Day.add(dec24, -((Day.weekdayIdx(dec24) + 1) % 7))   // the Sunday on or before the 24th
-        for n in 1...4 { put(Day.add(advent4, (n - 4) * 7), "\(n). advent") }
-        put(dec24, "Julaften")
-        put(Day.key(y, 11, 25), "1. Juledag", true)
-        put(Day.key(y, 11, 26), "2. Juledag", true)
-        put(Day.key(y, 11, 31), "Nyttårsaften")
-        cache[y] = map
+        for n in 1...4 { put(Day.add(advent4, (n - 4) * 7), T("\(n). advent", "Advent \(n)")) }
+        put(dec24, T("Julaften", "Christmas Eve"))
+        put(Day.key(y, 11, 25), T("1. Juledag", "Christmas Day"), true)
+        put(Day.key(y, 11, 26), T("2. Juledag", "Boxing Day"), true)
+        put(Day.key(y, 11, 31), T("Nyttårsaften", "New Year's Eve"))
+        cache[ck] = map
         return map
     }
 }
@@ -442,7 +449,7 @@ struct Almanac {
             } else if wi == 0 && headLeg != nil {
                 mondayYielded = true                     // the heading has the whole row
             } else if wi == 0 || (wi == 1 && mondayYielded) {
-                info = .init(kind: .uke, text: "uke \(Day.isoWeek(ds))")
+                info = .init(kind: .uke, text: T("uke", "week") + " \(Day.isoWeek(ds))")
                 if wi == 1 { cityLate = true }
             } else if let c = here?.name, c != shownCity || (wi == 1 && !cityLate) || (wi == 2 && cityLate) || d == 1 {
                 info = .init(kind: .cty, text: c, tbc: here!.tbc); shownCity = c

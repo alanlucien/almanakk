@@ -133,7 +133,7 @@ final class Store: ObservableObject {
             if e.calId.isEmpty { e.calId = "own" }
             events.removeAll { $0.id == old?.id }
             events.append(e)
-            toast = .init(text: old == nil ? "Lagt til" : "Lagret")
+            toast = .init(text: old == nil ? T("Lagt til", "Added") : T("Lagret", "Saved"))
             registerInverse(of: old, saved: e)
             return true
         }
@@ -151,7 +151,7 @@ final class Store: ObservableObject {
             events.removeAll { $0.id == old?.id }
             events.append(e)
             Cache.write(.init(calendars: calendars, events: events)); writeSnapshot()
-            toast = .init(text: old == nil ? "Lagt til i \(calendars.first { $0.id == cal }?.name ?? "kalenderen")" : "Lagret")
+            toast = .init(text: old == nil ? T("Lagt til i", "Added to") + " \(calendars.first { $0.id == cal }?.name ?? T("kalenderen", "the calendar"))" : T("Lagret", "Saved"))
             registerInverse(of: old, saved: e)
             return true
         } catch {
@@ -171,7 +171,7 @@ final class Store: ObservableObject {
         }
     }
 
-    /// deleted, with "Angre" for a moment: undo writes it back as it was
+    /// deleted, with T("Angre", "Undo") for a moment: undo writes it back as it was
     func delete(_ e: CalEvent, quiet: Bool = false) async {
         problem = nil
         let back = Draft(e, zone: TimeZone.current.identifier)
@@ -182,12 +182,12 @@ final class Store: ObservableObject {
         if !demo { Cache.write(.init(calendars: calendars, events: events)); writeSnapshot() }
         var restore = back; restore.calId = e.calId
         registerUndo("sletting av \(e.title.deco)") { store in _ = await store.save(restore, editing: nil) }
-        if quiet { toast = .init(text: "Angret"); return }
-        toast = .init(text: "Slettet") { [weak self] in
+        if quiet { toast = .init(text: T("Angret", "Undone")); return }
+        toast = .init(text: T("Slettet", "Deleted")) { [weak self] in
             guard let self else { return }
-            // the line's "Angre" is the same undo a shake gives, so the two cannot both restore it
+            // the line's T("Angre", "Undo") is the same undo a shake gives, so the two cannot both restore it
             if let u = self.undo, u.canUndo { u.undo() } else { _ = await self.save(restore, editing: nil) }
-            self.toast = .init(text: "Gjenopprettet")
+            self.toast = .init(text: T("Gjenopprettet", "Restored"))
         }
     }
 
@@ -195,7 +195,7 @@ final class Store: ObservableObject {
     func confirm(_ e: CalEvent) async {
         var d = Draft(e, zone: e.time.isEmpty ? TimeZone.current.identifier : (zoneOf(e) ?? TimeZone.current.identifier))
         d.pencil = false
-        if await save(d, editing: e) { toast = .init(text: "Bekreftet") }
+        if await save(d, editing: e) { toast = .init(text: T("Bekreftet", "Confirmed")) }
     }
     /// the zone a timed event was written in (kept on the event since stage 2)
     func zoneOf(_ e: CalEvent) -> String? { e.zone.isEmpty ? nil : e.zone }

@@ -42,10 +42,11 @@ struct Draft: Identifiable, Equatable {
 
     /// the reading shown under the add line before saving
     var reading: String {
-        let months = ["jan", "feb", "mar", "apr", "mai", "jun", "jul", "aug", "sep", "okt", "nov", "des"]
+        let months = englishUI ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+                               : ["jan", "feb", "mar", "apr", "mai", "jun", "jul", "aug", "sep", "okt", "nov", "des"]
         func day(_ k: String) -> String { "\(Int(k.suffix(2))!). \(months[Int(k.dropFirst(5).prefix(2))! - 1])" }
         if allDay {
-            return (end > start ? "\(Int(start.suffix(2))!).–\(day(end))" : day(start)) + " · heldag"
+            return (end > start ? "\(Int(start.suffix(2))!).–\(day(end))" : day(start)) + T(" · heldag", " · all day")
         }
         return day(start) + " · " + time + (endTime.isEmpty || endTime == time ? "" : "–" + endTime)
     }
@@ -191,8 +192,8 @@ extension Places {
     static func zone(for city: String) -> String { zones[city] ?? TimeZone.current.identifier }
     /// "Roma-tid", for the form: the day's own city when the zone is its, else the zone's name
     static func zoneLabel(_ id: String, city: String = "") -> String {
-        if !city.isEmpty, zones[city] == id { return city + "-tid" }
-        if id == "Europe/Oslo" { return "Oslo-tid" }
-        return (id.split(separator: "/").last.map { $0.replacingOccurrences(of: "_", with: " ") } ?? id) + "-tid"
+        if !city.isEmpty, zones[city] == id { return city + T("-tid", " time") }
+        if id == "Europe/Oslo" { return T("Oslo-tid", "Oslo time") }
+        return (id.split(separator: "/").last.map { $0.replacingOccurrences(of: "_", with: " ") } ?? id) + T("-tid", " time")
     }
 }

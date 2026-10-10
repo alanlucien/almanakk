@@ -72,12 +72,12 @@ struct WeekScreen: View {
     private var title: some View {
         let sun = Day.add(monday, 6)
         let m1 = Int(monday.dropFirst(5).prefix(2))! - 1, m2 = Int(sun.dropFirst(5).prefix(2))! - 1
-        let short = ["jan", "feb", "mar", "apr", "mai", "jun", "jul", "aug", "sep", "okt", "nov", "des"]
+        let short = englishUI ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : ["jan", "feb", "mar", "apr", "mai", "jun", "jul", "aug", "sep", "okt", "nov", "des"]
         let range = m1 == m2
             ? "\(Int(monday.suffix(2))!).–\(Int(sun.suffix(2))!). \(short[m2])"
             : "\(Int(monday.suffix(2))!). \(short[m1]) – \(Int(sun.suffix(2))!). \(short[m2])"
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("UKE \(Day.isoWeek(monday))").font(.system(size: (17) * Ink.scale, weight: .semibold)).tracking(1.2)
+            Text(T("UKE", "WEEK") + " \(Day.isoWeek(monday))").font(.system(size: (17) * Ink.scale, weight: .semibold)).tracking(1.2)
             Text(range).font(.system(size: (13) * Ink.scale)).foregroundStyle(Ink.muted)
         }
         .foregroundStyle(Ink.ink)
@@ -88,7 +88,7 @@ struct WeekScreen: View {
             withAnimation { monday = Almanac.monday(Day.today) }
             store.goToday()
         } label: {
-            Text("I DAG").font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1.2)
+            Text(T("I DAG", "TODAY")).font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1.2)
         }
         .foregroundStyle(Ink.ink)
     }

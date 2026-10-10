@@ -63,7 +63,10 @@ enum Places {
     }()
 
     /// a code or a name -> the city as the calendar spells it (cityName)
-    static func name(_ place: String) -> String { iata[place] ?? airports[place] ?? place }
+    static func name(_ place: String) -> String {
+        let n = iata[place] ?? airports[place] ?? place
+        return englishUI ? (exonym[n] ?? n) : n          // Roma / Rome, as the language reads
+    }
 
     /// placeOf: a 3-letter code (any case, curated), a code in capitals (full table), or a known name
     static func placeOf(_ s: String) -> String? {

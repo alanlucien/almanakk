@@ -30,14 +30,17 @@ enum Ink {
     }
 }
 
-let MONTHS = ["JANUAR", "FEBRUAR", "MARS", "APRIL", "MAI", "JUNI", "JULI", "AUGUST", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"]
-let WD = ["M", "Ti", "O", "To", "F", "L", "S"]
-let WD_LONG = ["MANDAG", "TIRSDAG", "ONSDAG", "TORSDAG", "FREDAG", "LØRDAG", "SØNDAG"]
+var MONTHS: [String] { englishUI ? ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"]
+                                  : ["JANUAR", "FEBRUAR", "MARS", "APRIL", "MAI", "JUNI", "JULI", "AUGUST", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"] }
+var WD: [String] { englishUI ? ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] : ["M", "Ti", "O", "To", "F", "L", "S"] }
+var WD_LONG: [String] { englishUI ? ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+                                  : ["MANDAG", "TIRSDAG", "ONSDAG", "TORSDAG", "FREDAG", "LØRDAG", "SØNDAG"] }
 
 struct NativeRoot: View {
     @StateObject private var store = Store()
     @StateObject private var rem = RemindersStore()
     @AppStorage("almanakk.large") private var large = false
+    @AppStorage("almanakk.lang") private var lang = "no"
     @Environment(\.undoManager) private var undoManager
     @Environment(\.scenePhase) private var phase
     @State private var open: String? = nil
@@ -65,7 +68,7 @@ struct NativeRoot: View {
         // back swipe, "‹ Oktober" (Alan, 10.10: "opening a week from month view has no back")
         NavigationStack(path: $path) {
             MonthScreen(store: store, rem: rem, open: $open, selected: $selected, toWeek: toWeek, toYear: toYear)
-                .id(large)   // the switch redraws the whole almanac at the new size
+                .id("\(large)\(lang)")   // either switch redraws the whole almanac
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationTitle(MONTHS[store.month].capitalized)
                 .navigationDestination(for: Route.self) { r in
@@ -198,17 +201,18 @@ struct MonthScreen: View {
                 Spacer()
                 // the quiet menu: the few switches, out of the way (L3)
                 Menu {
-                    Toggle("Større tekst", isOn: Binding(get: { UserDefaults.standard.bool(forKey: "almanakk.large") },
+                    Toggle("English", isOn: Binding(get: { englishUI }, set: { UserDefaults.standard.set($0 ? "en" : "no", forKey: "almanakk.lang") }))
+                    Toggle(T("Større tekst", "Larger text"), isOn: Binding(get: { UserDefaults.standard.bool(forKey: "almanakk.large") },
                                                           set: { UserDefaults.standard.set($0, forKey: "almanakk.large") }))
-                    Toggle("Påminnelser", isOn: Binding(get: { rem.enabled }, set: { on in Task { await rem.setEnabled(on) } }))
-                    if !store.demo { Button("Logg ut av Google", role: .destructive) { store.signOut() } }
+                    Toggle(T("Påminnelser", "Reminders"), isOn: Binding(get: { rem.enabled }, set: { on in Task { await rem.setEnabled(on) } }))
+                    if !store.demo { Button(T("Logg ut av Google", "Sign out of Google"), role: .destructive) { store.signOut() } }
                 } label: {
                     Image(systemName: "ellipsis").font(.system(size: (17) * Ink.scale, weight: .semibold)).foregroundStyle(Ink.ink)
                         .frame(width: 34, height: 30).contentShape(Rectangle())
                 }
-                .accessibilityLabel("Mer")
+                .accessibilityLabel(T("Mer", "More"))
                 Button { withAnimation { store.goToday() } } label: {
-                    Text("I DAG").font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1.2)
+                    Text(T("I DAG", "TODAY")).font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1.2)
                         .padding(.horizontal, 10).padding(.vertical, 5)
                         .overlay(RoundedRectangle(cornerRadius: 5).stroke(Ink.ink, lineWidth: 1))
                 }
@@ -217,7 +221,7 @@ struct MonthScreen: View {
             // SIGNED OUT: ONE BUTTON, nothing else (Alan, 10.10)
             if store.demo && !Store.demoWanted {
                 Button { Task { await store.signIn() } } label: {
-                    Text("Logg inn med Google").font(.system(size: (15) * Ink.scale, weight: .semibold))
+                    Text(T("Logg inn med Google", "Sign in with Google")).font(.system(size: (15) * Ink.scale, weight: .semibold))
                         .frame(maxWidth: .infinity).padding(.vertical, 10)
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Ink.ink, lineWidth: 1))
                 }
@@ -247,7 +251,7 @@ struct DayRow: View {
             HStack(spacing: 0) {
                 figure.frame(width: 28, alignment: .trailing)
                 Text(WD[row.wi]).font(.system(size: (10) * Ink.scale)).foregroundStyle(row.today ? Ink.onInkSoft : (row.red ? Ink.red : Ink.muted))
-                    .frame(width: 20, alignment: .leading).padding(.leading, 4)
+                    .frame(width: 24, alignment: .leading).padding(.leading, 4)
                     // THE MOON on the day it turns (Alan, 11.10), small, at the letter's side
                     .overlay(alignment: .trailing) {
                         if let m = Moon.turn(row.date) {
@@ -426,9 +430,10 @@ struct DaySheet: View {
     var toWeek: (String) -> Void = { _ in }
     @State private var viewing: String? = nil
     /// the form's job travels as ONE value, so the event being edited cannot be lost
-    /// between two state changes (it was: "Endre" opened as "Ny hendelse")
+    /// between two state changes (it was: T("Endre", "Edit") opened as T("Ny hendelse", "New event"))
     struct FormJob: Identifiable { let id = UUID(); var draft: Draft; var editing: CalEvent? }
     @State private var form: FormJob? = nil
+    @Environment(\.dismiss) private var dismissSheet
 
     var body: some View {
         content
@@ -469,13 +474,17 @@ struct DaySheet: View {
                     // the sheet's week number opens that day's week: any day, also a week that
                     // began last month and has no "uke" cell in this one (Alan, 10.10)
                     Button { toWeek(date) } label: {
-                        Text("uke \(Day.isoWeek(date)) ›").font(.system(size: (12) * Ink.scale)).foregroundStyle(Ink.soft)
+                        Text(T("uke", "week") + " \(Day.isoWeek(date)) ›").font(.system(size: (12) * Ink.scale)).foregroundStyle(Ink.soft)
                     }
                 }
                 .padding(.top, 22).padding(.bottom, 10)
+                // A TAP ON THE TOP CLOSES THE SHEET (Alan, 09.10; native 11.10); the week
+                // number's own button still opens the week
+                .contentShape(Rectangle())
+                .onTapGesture { dismissSheet() }
                 Rectangle().fill(Ink.ink).frame(height: 1)
                 if list.isEmpty {
-                    Text("Ingenting denne dagen.").font(.system(size: (14) * Ink.scale)).foregroundStyle(Ink.muted).padding(.vertical, 16)
+                    Text(T("Ingenting denne dagen.", "Nothing this day.")).font(.system(size: (14) * Ink.scale)).foregroundStyle(Ink.muted).padding(.vertical, 16)
                 }
                 ForEach(list) { e in
                     eventRow(e, alm: alm, wg: tour.contains(e.calId))
@@ -528,7 +537,7 @@ struct DaySheet: View {
                 let a = parts.first ?? "", b = parts.last ?? ""
                 let dep = Places.zones[a].flatMap { alm.clock(e, plus: 0, in: $0) } ?? ownT
                 let arr = Places.zones[b].flatMap { alm.clock(e, plus: e.minutes, in: $0) } ?? e.endTime
-                Text("\(a) \(dep) → \(b) \(arr) · \(e.minutes / 60) t \(String(format: "%02d", e.minutes % 60)) min")
+                Text("\(a) \(dep) → \(b) \(arr) · \(e.minutes / 60) \(T("t", "h")) \(String(format: "%02d", e.minutes % 60)) min")
                     .font(.system(size: (12) * Ink.scale)).foregroundStyle(Ink.soft).padding(.leading, 48)
             }
             // shown in the day's city time: the event's own clock is named beneath it
@@ -538,9 +547,9 @@ struct DaySheet: View {
             // a plan a booking has taken over: said, and one tap away from gone
             if alm.replacedPlans.contains(e.id) {
                 HStack(spacing: 12) {
-                    Text("erstattet av fly").font(.system(size: (12) * Ink.scale)).italic().foregroundStyle(Ink.muted)
+                    Text(T("erstattet av fly", "replaced by flight")).font(.system(size: (12) * Ink.scale)).italic().foregroundStyle(Ink.muted)
                     if store.writable.contains(where: { $0.id == e.calId }) {
-                        Button("Fjern") { Task { await store.delete(e) } }
+                        Button(T("Fjern", "Remove")) { Task { await store.delete(e) } }
                             .font(.system(size: (13) * Ink.scale, weight: .semibold)).foregroundStyle(Ink.ink)
                     }
                 }
@@ -561,7 +570,7 @@ struct DaySheet: View {
             // opens the airline's check-in (CONVENTIONS 18)
             if Places.dest(e.title) != nil, let ref = CheckIn.reference(e.notes) {
                 HStack(spacing: 14) {
-                    Button { UIPasteboard.general.string = ref; store.toast = .init(text: "\(ref) kopiert") } label: {
+                    Button { UIPasteboard.general.string = ref; store.toast = .init(text: "\(ref) " + T("kopiert", "copied")) } label: {
                         Text(ref).font(.system(size: (16) * Ink.scale, weight: .semibold).monospaced()).tracking(1).foregroundStyle(Ink.ink)
                     }
                     if let a = CheckIn.airline(e), let url = URL(string: a.url) {
@@ -569,7 +578,7 @@ struct DaySheet: View {
                             UIPasteboard.general.string = ref
                             UIApplication.shared.open(url)
                         } label: {
-                            Text("Sjekk inn · \(a.name)").font(.system(size: (14) * Ink.scale, weight: .semibold))
+                            Text(T("Sjekk inn", "Check in") + " · \(a.name)").font(.system(size: (14) * Ink.scale, weight: .semibold))
                                 .padding(.horizontal, 10).padding(.vertical, 6)
                                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Ink.ink, lineWidth: 1))
                         }
@@ -584,11 +593,11 @@ struct DaySheet: View {
             // the robot's tour and the schedule are read here, never written
             if store.writable.contains(where: { $0.id == e.calId }) {
                 HStack(spacing: 18) {
-                    Button("Endre") {
+                    Button(T("Endre", "Edit")) {
                         form = FormJob(draft: Draft(e, zone: e.zone.isEmpty ? cityZone : e.zone), editing: e)
                     }
-                    if Rules.isPencil(e) { Button("Bekreft") { Task { await store.confirm(e) } } }
-                    Button("Slett", role: .destructive) { Task { await store.delete(e); viewing = nil } }
+                    if Rules.isPencil(e) { Button(T("Bekreft", "Confirm")) { Task { await store.confirm(e) } } }
+                    Button(T("Slett", "Delete"), role: .destructive) { Task { await store.delete(e); viewing = nil } }
                 }
                 .font(.system(size: (15) * Ink.scale, weight: .semibold)).foregroundStyle(Ink.ink)
                 .padding(.top, 6)

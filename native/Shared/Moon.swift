@@ -6,14 +6,15 @@ import Foundation
 
 enum Moon {
     struct Phase { var glyph: String; var name: String }
-    static let phases = [Phase(glyph: "●", name: "Nymåne"), Phase(glyph: "◐", name: "Første kvarter"),
-                         Phase(glyph: "○", name: "Fullmåne"), Phase(glyph: "◑", name: "Siste kvarter")]
-    private static var cache: [Int: [String: Phase]] = [:]
+    static var phases: [Phase] { [Phase(glyph: "●", name: T("Nymåne", "New moon")), Phase(glyph: "◐", name: T("Første kvarter", "First quarter")),
+                                  Phase(glyph: "○", name: T("Fullmåne", "Full moon")), Phase(glyph: "◑", name: T("Siste kvarter", "Last quarter"))] }
+    private static var cache: [String: [String: Phase]] = [:]
 
     static func turn(_ ds: String) -> Phase? { year(Int(ds.prefix(4))!)[ds] }
 
     static func year(_ y: Int) -> [String: Phase] {
-        if let c = cache[y] { return c }
+        let ck = "\(y)\(englishUI)"
+        if let c = cache[ck] { return c }
         var map: [String: Phase] = [:]
         let k0 = Int(floor(Double(y - 2000) * 12.3685)) - 1
         for k in k0..<(k0 + 15) {
@@ -24,7 +25,7 @@ enum Moon {
                 if key.hasPrefix(String(y)) { map[key] = phases[q] }
             }
         }
-        cache[y] = map
+        cache[ck] = map
         return map
     }
 

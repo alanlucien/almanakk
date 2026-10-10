@@ -23,18 +23,18 @@ struct AddLine: View {
             HStack(spacing: 10) {
                 // NO AUTOCORRECT: his titles are names — Vildanden, Taichung, YNGVAR — and the
                 // keyboard "corrected" Almanakk to Almanac in the first real test (10.10)
-                TextField("Ny hendelse …", text: $text)
+                TextField(T("Ny hendelse …", "New event …"), text: $text)
                     .font(.system(size: (16) * Ink.scale)).focused($focused).submitLabel(.send)
                     .autocorrectionDisabled(true)
                     .onSubmit { add(draft) }
                     .onChange(of: text) { alt = false }
                 if !text.isEmpty {
-                    Button("Legg til") { add(draft) }.font(.system(size: (14) * Ink.scale, weight: .semibold))
+                    Button(T("Legg til", "Add")) { add(draft) }.font(.system(size: (14) * Ink.scale, weight: .semibold))
                 }
                 // a move, picked rather than typed (CONVENTIONS 3)
-                Button("Reise") { focused = false; moving = true }
+                Button(T("Reise", "Trip")) { focused = false; moving = true }
                     .font(.system(size: (14) * Ink.scale))
-                Button("Skjema") {
+                Button(T("Skjema", "Form")) {
                     var d = draft ?? Draft(day: date)
                     if draft == nil { d.zone = zone }
                     text = ""; focused = false
@@ -80,48 +80,48 @@ struct EventForm: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Tittel", text: $draft.title).font(.system(size: (17) * Ink.scale)).autocorrectionDisabled(true)
-                    TextField("Sted", text: $draft.location).autocorrectionDisabled(true)
+                    TextField(T("Tittel", "Title"), text: $draft.title).font(.system(size: (17) * Ink.scale)).autocorrectionDisabled(true)
+                    TextField(T("Sted", "Place"), text: $draft.location).autocorrectionDisabled(true)
                 }
                 Section {
-                    Toggle("Heldag", isOn: $draft.allDay.animation())
+                    Toggle(T("Heldag", "All day"), isOn: $draft.allDay.animation())
                         .onChange(of: draft.allDay) { if !draft.allDay && draft.time.isEmpty { draft.time = "09:00"; draft.endTime = "10:00" } }
-                    DatePicker("Starter", selection: day(\.start), displayedComponents: .date)
+                    DatePicker(T("Starter", "Starts"), selection: day(\.start), displayedComponents: .date)
                     if draft.allDay {
-                        DatePicker("Slutter", selection: day(\.end), in: Day.date(draft.start)..., displayedComponents: .date)
+                        DatePicker(T("Slutter", "Ends"), selection: day(\.end), in: Day.date(draft.start)..., displayedComponents: .date)
                     } else {
-                        DatePicker("Fra", selection: clock(\.time), displayedComponents: .hourAndMinute)
-                        DatePicker("Til", selection: clock(\.endTime), displayedComponents: .hourAndMinute)
-                        Picker("Tidssone", selection: $draft.zone) {
+                        DatePicker(T("Fra", "From"), selection: clock(\.time), displayedComponents: .hourAndMinute)
+                        DatePicker(T("Til", "To"), selection: clock(\.endTime), displayedComponents: .hourAndMinute)
+                        Picker(T("Tidssone", "Time zone"), selection: $draft.zone) {
                             ForEach(zoneChoices, id: \.self) { Text(Places.zoneLabel($0, city: city)).tag($0) }
                         }
                     }
                 }
                 Section {
-                    Picker("Kalender", selection: $draft.calId) {
+                    Picker(T("Kalender", "Calendar"), selection: $draft.calId) {
                         ForEach(store.writable) { Text($0.name).tag($0.id) }
                     }
-                    Toggle("Blyant", isOn: $draft.pencil)
+                    Toggle(T("Blyant", "Pencil"), isOn: $draft.pencil)
                     swatches
                 }
-                Section("Notater") {
+                Section(T("Notater", "Notes")) {
                     TextEditor(text: $draft.notes).frame(minHeight: 90)
                 }
                 if let e = editing {
                     Section {
-                        Button("Slett hendelsen", role: .destructive) {
+                        Button(T("Slett hendelsen", "Delete event"), role: .destructive) {
                             Task { await store.delete(e); dismiss() }
                         }
                     }
                 }
                 if let p = store.problem { Section { Text(p).foregroundStyle(Ink.red).font(.system(size: (13) * Ink.scale)) } }
             }
-            .navigationTitle(editing == nil ? "Ny hendelse" : "Endre")
+            .navigationTitle(editing == nil ? T("Ny hendelse", "New event") : T("Endre", "Edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(T("Avbryt", "Cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(saving ? "Lagrer …" : "Lagre") {
+                    Button(saving ? T("Lagrer …", "Saving …") : T("Lagre", "Save")) {
                         saving = true
                         Task {
                             if draft.end < draft.start { draft.end = draft.start }
@@ -147,7 +147,7 @@ struct EventForm: View {
     /// his eight colours, and the calendar's own (no colour of its own)
     private var swatches: some View {
         HStack(spacing: 10) {
-            Text("Farge")
+            Text(T("Farge", "Colour"))
             Spacer()
             swatch("", Ink.hex(store.calendars.first { $0.id == draft.calId }?.color ?? "#26241f"))
             ForEach(Palette.order, id: \.self) { swatch($0, Ink.hex(Palette.dusty[$0]!)) }
@@ -156,7 +156,7 @@ struct EventForm: View {
     private func swatch(_ id: String, _ c: Color) -> some View {
         Circle().fill(c).frame(width: 20, height: 20)
             .overlay(Circle().stroke(Ink.ink, lineWidth: draft.colorId == id ? 2 : 0).padding(-3))
-            .accessibilityLabel(Palette.names[id] ?? "Kalenderens farge")
+            .accessibilityLabel(Palette.names[id] ?? T("Kalenderens farge", "The calendar's colour"))
             .onTapGesture { draft.colorId = id }
     }
 
@@ -186,7 +186,7 @@ struct ToastBar: View {
             HStack(spacing: 14) {
                 Text(t.text).font(.system(size: (14) * Ink.scale, weight: .medium))
                 if let undo = t.undo {
-                    Button("Angre") {
+                    Button(T("Angre", "Undo")) {
                         store.toast = nil
                         Task { @MainActor in await undo() }
                     }
@@ -200,7 +200,7 @@ struct ToastBar: View {
             .padding(.bottom, 12)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .task(id: t.id) {
-                // an interrupted wait must not clear the line (it did: "Angre" vanished)
+                // an interrupted wait must not clear the line (it did: T("Angre", "Undo") vanished)
                 do { try await Task.sleep(for: .seconds(t.undo == nil ? 2.5 : 10)) } catch { return }
                 if store.toast?.id == t.id { withAnimation { store.toast = nil } }
             }
@@ -235,24 +235,24 @@ struct MoveForm: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Til (by eller sted)", text: $place).autocorrectionDisabled(true)
+                    TextField(T("Til (by eller sted)", "To (city or place)"), text: $place).autocorrectionDisabled(true)
                     ForEach(suggestions, id: \.self) { s in
                         Button(s) { place = s }.foregroundStyle(Ink.ink)
                     }
                 }
                 Section {
-                    DatePicker("Dag", selection: $day, displayedComponents: .date)
-                    Toggle("Klokkeslett", isOn: $timed)
-                    if timed { DatePicker("Kl.", selection: $at, displayedComponents: .hourAndMinute) }
-                    Toggle("Blyant", isOn: $pencil)
+                    DatePicker(T("Dag", "Day"), selection: $day, displayedComponents: .date)
+                    Toggle(T("Klokkeslett", "Time"), isOn: $timed)
+                    if timed { DatePicker(T("Kl.", "At"), selection: $at, displayedComponents: .hourAndMinute) }
+                    Toggle(T("Blyant", "Pencil"), isOn: $pencil)
                 }
                 if let p = store.problem { Section { Text(p).foregroundStyle(Ink.red).font(.system(size: 13 * Ink.scale)) } }
             }
-            .navigationTitle("Reise til …").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(T("Reise til …", "Trip to …")).navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(T("Avbryt", "Cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Lagre") {
+                    Button(T("Lagre", "Save")) {
                         var d = Draft(day: Day.key(day))
                         d.title = "→ " + place.trimmingCharacters(in: .whitespaces)
                         d.pencil = pencil

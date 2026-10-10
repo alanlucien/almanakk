@@ -23,8 +23,8 @@ struct YearScreen: View {
         let data = YearData(alm: store.almanac, year: year)
         VStack(spacing: 6) {
             Picker("", selection: $style) {
-                Text("Måneder").tag("months")
-                Text("Plakat").tag("poster")
+                Text(T("Måneder", "Months")).tag("months")
+                Text(T("Plakat", "Poster")).tag("poster")
             }
             .pickerStyle(.segmented).padding(.horizontal, 14)
             Group {
