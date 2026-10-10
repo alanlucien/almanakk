@@ -306,17 +306,36 @@ struct MonthRow: Identifiable {
 }
 
 struct Almanac {
-    var events: [CalEvent]
-    var calendars: [CalInfo]
+    let events: [CalEvent]
+    let calendars: [CalInfo]
     static let maxLanes = 4
+
+    /// WORKED OUT ONCE (Alan, 11.10: "a 2-second delay to bring up the sheet"): the flights,
+    /// moves and stepped-aside plans read every title with many patterns, and every month,
+    /// week and sheet asked for them again. Now they are computed when the calendar changes,
+    /// and months and weeks are remembered until it changes again.
+    final class Memo {
+        var replaced: Set<String>? ; var moves: [(date: String, time: String, dest: String, tbc: Bool)]?
+        var months: [Int: (rows: [MonthRow], nLanes: Int)] = [:]
+        var weeks: [String: (spans: [WeekSpan], days: [WeekDay])] = [:]
+        var own: [CalEvent]?; var tour: [CalEvent]?
+    }
+    private let memo = Memo()
+    init(events: [CalEvent], calendars: [CalInfo]) { self.events = events; self.calendars = calendars }
 
     // which calendar is whose (robotCalIds, scheduleCalIds, ownEvents, tourEvents)
     var tourCalIds: Set<String> {
         Set(calendars.filter { RX.test("\\btouring\\b", $0.name, ci: true) && !RX.test("\\(test\\)", $0.name, ci: true) }.map(\.id))
     }
     var scheduleCalIds: Set<String> { Set(calendars.filter { RX.test("\\bschedule\\b", $0.name, ci: true) }.map(\.id)) }
-    var own: [CalEvent] { let out = tourCalIds.union(scheduleCalIds); return events.filter { !out.contains($0.calId) } }
-    var tour: [CalEvent] { let t = tourCalIds; return events.filter { t.contains($0.calId) && $0.time.isEmpty } }
+    var own: [CalEvent] {
+        if let o = memo.own { return o }
+        let out = tourCalIds.union(scheduleCalIds); let o = events.filter { !out.contains($0.calId) }; memo.own = o; return o
+    }
+    var tour: [CalEvent] {
+        if let t0 = memo.tour { return t0 }
+        let t = tourCalIds; let r = events.filter { t.contains($0.calId) && $0.time.isEmpty }; memo.tour = r; return r
+    }
 
     /// TIMES FOLLOW THE CITY HE IS IN THAT DAY (CONVENTIONS 16, Alan 10.10): a timed event
     /// shows at that city's clock — dinner in Asia reads 19:00 from anywhere, a call reads
@@ -356,6 +375,10 @@ struct Almanac {
     /// The app steps it aside — off the month and the week, out of the city reckoning — and
     /// the day sheet offers to remove it. Nothing is deleted on its own.
     var replacedPlans: Set<String> {
+        if let r = memo.replaced { return r }
+        let r = computeReplaced(); memo.replaced = r; return r
+    }
+    private func computeReplaced() -> Set<String> {
         let marked = events.filter { !$0.fromGmail && (Rules.cityMarker($0.title) != nil || Places.dest($0.title) != nil) }
         let plans = marked.filter { Rules.isTbc($0) || Rules.isPencil($0) }
         let booked = Set(marked.filter { !(Rules.isTbc($0) || Rules.isPencil($0)) }.map(\.start))
@@ -376,6 +399,10 @@ struct Almanac {
     /// scraped (a cc'd itinerary is often someone else's). Date first; within a day a
     /// booking outranks a plan (tbc or pencilled), then by time, so the winner sorts last.
     func moves() -> [(date: String, time: String, dest: String, tbc: Bool)] {
+        if let m = memo.moves { return m }
+        let m = computeMoves(); memo.moves = m; return m
+    }
+    private func computeMoves() -> [(date: String, time: String, dest: String, tbc: Bool)] {
         let stale = replacedPlans
         return events.compactMap { e -> (date: String, time: String, dest: String, tbc: Bool)? in
             if e.fromGmail || stale.contains(e.id) { return nil }
@@ -397,6 +424,12 @@ struct Almanac {
     }
 
     func month(_ y: Int, _ m: Int) -> (rows: [MonthRow], nLanes: Int) {
+        let key = y * 100 + m
+        // today's row and the moon change by the day, the rest by the calendar: keyed per day
+        if let hit = memo.months[key], hit.rows.contains(where: { $0.today }) == (Day.key(y, m, 1) <= Day.today && Day.today <= Day.key(y, m, Day.daysInMonth(y, m))) { return hit }
+        let r = computeMonth(y, m); memo.months[key] = r; return r
+    }
+    private func computeMonth(_ y: Int, _ m: Int) -> (rows: [MonthRow], nLanes: Int) {
         let n = Day.daysInMonth(y, m), first = Day.key(y, m, 1), last = Day.key(y, m, n)
         let hol = Holidays.of(y), today = Day.today
         // laneSpans: his spans, each given a lane for the month. LONGEST ON THE LEFT
@@ -519,6 +552,10 @@ struct Almanac {
     /// single things are his and the schedule's (wg | Schedule lives here, D1) — never the
     /// tour's words, which stand in the day's head instead.
     func week(_ mon: String) -> (spans: [WeekSpan], days: [WeekDay]) {
+        if let hit = memo.weeks[mon] { return hit }
+        let r = computeWeek(mon); memo.weeks[mon] = r; return r
+    }
+    private func computeWeek(_ mon: String) -> (spans: [WeekSpan], days: [WeekDay]) {
         let keys = (0..<7).map { Day.add(mon, $0) }
         let first = keys[0], last = keys[6], today = Day.today
         let tourIds = tourCalIds

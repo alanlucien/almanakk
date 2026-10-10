@@ -86,6 +86,21 @@ and a drag onto a day to give it that date. Same Apple list as Siri and the Watc
 | 50 | Day-sheet times: before/after shown close up 11.10 | BUILT 11.10, his pick: 11pt medium, darker ("better color") |
 | 51 | Week view: "all-day events at the top seem squashed and easy to miss, and the lines do not connect down" | BUILT native 11.10 on his yes: larger names, each line hangs from its name into the days |
 
+## From 11.10 afternoon, build 6 on his phone
+
+| # | His point | State |
+|---|---|---|
+| 52 | "Clicking a day from the widget opens the day in week view, but on a busy day it does not scroll down to the event (Friday 10 Oct)" | BUILT 11.10: the week scrolls to the picked day; almanakk:// declared. Tested on his data (10 Oct) |
+| 53 | "Clicking a day in week view: a lag before the sheet comes up" | BUILT 11.10: flights, moves, months and weeks computed once per calendar change. Measured |
+| 54 | "Even more in month view: a 2-second delay to bring up the sheet" | BUILT 11.10: measured on his data, release build: sheet 74 ms, turning to another day 17 ms |
+| 55 | "On a busy week, swiping left/right between weeks tugs at scrolling down, so it gets confused; a little slow to respond" | BUILT 11.10: a week turns only on a clearly sideways swipe, read alongside the scroll. Tested in week 41 |
+| 56 | To-do: "need collapse/expand, and the lists below are as important as the main list, which is not right" | BUILT 11.10: lists fold; only the main list starts open, others one line each; "Gjør til hovedliste". Tried at his scale (12 lists, names and sizes read from his Mac) |
+| 57 | To-do: "headlines are too small" | BUILT 11.10: 17 pt main, 15 pt others |
+| 58 | To-do: "quick entry is hard" | BUILT 11.10: a line at the top, return adds to the main list and stays ready |
+| 59 | To-do: "where are my projects?" | OPEN — question to him |
+| 60 | To-do: "the count is counting all notes, including my bar cabinet list 'booze' as unchecked to-dos" | BUILT 11.10: "Sett til side" on a list: folded at the foot, never counted |
+
+
 ## Desktop app (Mac) — his list, to come
 
 The Mac gets its own interface and design, not a copy of the phone (Alan, 09.10). Printing

@@ -7,8 +7,8 @@ import WidgetKit
 
 @MainActor
 final class Store: ObservableObject {
-    @Published var events: [CalEvent] = []
-    @Published var calendars: [CalInfo] = []
+    @Published var events: [CalEvent] = [] { didSet { cachedAlmanac = nil } }
+    @Published var calendars: [CalInfo] = [] { didSet { cachedAlmanac = nil } }
     @Published var year: Int
     @Published var month: Int          // 0-based, as the engine
     @Published var demo = true
@@ -43,7 +43,13 @@ final class Store: ObservableObject {
         #endif
     }
 
-    var almanac: Almanac { Almanac(events: events, calendars: calendars) }
+    /// one Almanac per state of the calendar, so its remembered months and weeks survive
+    /// between screens; a change to events or calendars makes a fresh one
+    private var cachedAlmanac: Almanac?
+    var almanac: Almanac {
+        if let a = cachedAlmanac { return a }
+        let a = Almanac(events: events, calendars: calendars); cachedAlmanac = a; return a
+    }
 
     /// SIGNED OUT IS EMPTY, WITH ONE BUTTON (Alan, 10.10: "do we need 'eksempeldata'? just
     /// log in"). The demo month is only for testing, started with the "-demo" argument.

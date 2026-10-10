@@ -18,22 +18,34 @@ struct WeekScreen: View {
 
     var body: some View {
         let w = store.almanac.week(monday)
+        let _ = Timing.shown("week")
         VStack(spacing: 0) {
             GeometryReader { geo in
                 let spanH: CGFloat = w.spans.isEmpty ? 0 : CGFloat(w.spans.count) * 24 * Ink.scale + 10
                 let dayMin = max(44, (geo.size.height - spanH) / 7)
+                ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         if !w.spans.isEmpty { spanBlock(w.spans).frame(height: spanH) }
                         ForEach(Array(w.days.enumerated()), id: \.element.id) { _, day in
                             WeekDayBlock(day: day, spans: w.spans, minHeight: dayMin, open: open == day.date)
+                                .id(day.date)
                                 .overlay(picked == day.date ? Rectangle().stroke(Ink.ink, lineWidth: 2).padding(1) : nil)
                                 .contentShape(Rectangle())
-                                .onTapGesture { open = day.date }
+                                .onTapGesture { Timing.tap(); open = day.date }
                         }
                     }
                     .background(Ink.paper)
                     .overlay(Rectangle().stroke(Ink.ink, lineWidth: 1))
+                }
+                // FROM A WIDGET, THE DAY IS IN VIEW (Alan, 11.10: "on a busy day it does not
+                // scroll down to the event"): the picked day, else today, is scrolled to the top
+                .onAppear {
+                    let target = picked ?? (w.days.contains { $0.date == Day.today } ? Day.today : nil)
+                    if let t = target, t != w.days.first?.date {
+                        DispatchQueue.main.async { proxy.scrollTo(t, anchor: .top) }
+                    }
+                }
                 }
                 .offset(x: drag)
             }
@@ -54,10 +66,13 @@ struct WeekScreen: View {
             }
             .opacity(0).accessibilityHidden(true)
         }
-        .gesture(DragGesture(minimumDistance: 20)
+        // SIDEWAYS IS A WEEK, ONLY WHEN IT IS CLEARLY SIDEWAYS (Alan, 11.10: on a busy week
+        // the swipe "tugs at scrolling down"): read alongside the scroll, never instead of it
+        .simultaneousGesture(DragGesture(minimumDistance: 24)
             .onEnded { v in
                 guard open == nil else { drag = 0; return }
-                                if abs(v.translation.width) > 60 && abs(v.translation.width) > abs(v.translation.height) { step(v.translation.width < 0 ? 1 : -1) }
+                                let dx = v.translation.width, dy = v.translation.height
+                if abs(dx) > 70 && abs(dx) > 2.2 * abs(dy) { step(dx < 0 ? 1 : -1) }
             })
     }
 

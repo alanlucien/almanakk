@@ -168,6 +168,7 @@
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Almanakk/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Almanakk;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSContactsUsageDescription = "Almanakk finner personen i et gjøremål som «Ring Kari», så du kan ringe med ett trykk.";
@@ -204,6 +205,7 @@
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Almanakk/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Almanakk;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSContactsUsageDescription = "Almanakk finner personen i et gjøremål som «Ring Kari», så du kan ringe med ett trykk.";

@@ -32,12 +32,60 @@ final class TodoStore: ObservableObject {
         }
     }
 
+    /// TEST ONLY ("-seedTodo" on a simulator): his lists by name and size, filled with
+    /// placeholders, so the page is tried at its real scale. Adds what is missing, deletes
+    /// nothing.
+    func seedForTest() async {
+        guard ProcessInfo.processInfo.arguments.contains("-seedTodo"), granted,
+              let source = ek.defaultCalendarForNewReminders()?.source else { return }
+        let shape: [(String, Int)] = [("Reminders", 14), ("To Do", 4), ("Shopping", 2), ("Family", 0), ("Sjopping", 0),
+                                      ("Handleliste", 2), ("Film List", 9), ("Booze", 1), ("Inbox", 0), ("Julegaver", 12)]
+        let have = Set(ek.calendars(for: .reminder).map(\.title))
+        for (name, n) in shape where !have.contains(name) {
+            let c = EKCalendar(for: .reminder, eventStore: ek); c.title = name; c.source = source
+            try? ek.saveCalendar(c, commit: true)
+            for i in 0..<n { let r = EKReminder(eventStore: ek); r.title = "\(name) punkt \(i + 1)"; r.calendar = c; try? ek.save(r, commit: false) }
+        }
+        try? ek.commit()
+        await load()
+    }
+
     func requestAccess() async {
         if !granted { granted = (try? await ek.requestFullAccessToReminders()) ?? false }
         await load()
     }
 
-    var openCount: Int { items.filter { !$0.isCompleted }.count }
+    /// LISTS HAVE A RANK (Alan, 11.10: "the lists below are as important as the main list,
+    /// which is not right"; "the count is counting … my bar cabinet list 'booze'"): one main
+    /// list first and open, the rest foldable; a list set aside (a bar list, a packing list)
+    /// sits folded at the foot and is never counted.
+    @Published var mainList: String = UserDefaults.standard.string(forKey: "almanakk.todoMain") ?? "" {
+        didSet { UserDefaults.standard.set(mainList, forKey: "almanakk.todoMain") }
+    }
+    @Published var asideLists: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "almanakk.todoAside") ?? []) {
+        didSet { UserDefaults.standard.set(Array(asideLists), forKey: "almanakk.todoAside") }
+    }
+    @Published var folded: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "almanakk.todoFolded") ?? []) {
+        didSet { UserDefaults.standard.set(Array(folded), forKey: "almanakk.todoFolded") }
+    }
+    var main: EKCalendar? { lists.first { $0.calendarIdentifier == mainList } ?? ek.defaultCalendarForNewReminders().flatMap { d in lists.first { $0.calendarIdentifier == d.calendarIdentifier } } ?? lists.first }
+    /// main first, then the others, then those set aside
+    var orderedLists: [EKCalendar] {
+        let m = main?.calendarIdentifier
+        return lists.filter { $0.calendarIdentifier == m }
+            + lists.filter { $0.calendarIdentifier != m && !asideLists.contains($0.calendarIdentifier) }
+            + lists.filter { asideLists.contains($0.calendarIdentifier) && $0.calendarIdentifier != m }
+    }
+    func isFolded(_ l: EKCalendar) -> Bool {
+        // ONLY THE MAIN LIST STARTS OPEN (tried at his real scale, 12 lists: all open made one
+        // endless page with every list as loud as the main one); a tap flips it and is kept
+        let startsOpen = l.calendarIdentifier == main?.calendarIdentifier
+        return folded.contains(l.calendarIdentifier) == startsOpen
+    }
+    func toggleFold(_ l: EKCalendar) {
+        if folded.contains(l.calendarIdentifier) { folded.remove(l.calendarIdentifier) } else { folded.insert(l.calendarIdentifier) }
+    }
+    var openCount: Int { items.filter { !$0.isCompleted && !asideLists.contains($0.calendar.calendarIdentifier) }.count }
 
     func load() async {
         guard granted else { return }
@@ -76,11 +124,11 @@ final class TodoStore: ObservableObject {
         }
         return out
     }
-    /// due today or before, not done: they stand under I DAG as well
+    /// due today or before, not done: they stand under I DAG as well (never from a list set aside)
     var today: [EKReminder] {
         let end = Day.greg.startOfDay(for: Date()).addingTimeInterval(86400)
         return sorted(items.filter { r in
-            guard !r.isCompleted, let dc = r.dueDateComponents, let d = Day.greg.date(from: dc) else { return false }
+            guard !r.isCompleted, !asideLists.contains(r.calendar.calendarIdentifier), let dc = r.dueDateComponents, let d = Day.greg.date(from: dc) else { return false }
             return d < end
         })
     }
@@ -195,6 +243,7 @@ struct TodoView: View {
     @State private var listName = ""
     @State private var addingList = false
     @State private var editMode: EditMode = .inactive
+    @State private var quick = ""
 
     var body: some View {
         NavigationStack {
@@ -219,7 +268,7 @@ struct TodoView: View {
                 }
             }
         }
-        .task { await todo.load() }
+        .task { await todo.load(); await todo.seedForTest() }
         .confirmationDialog(T("Ring ", "Call ") + callName, isPresented: $calling, titleVisibility: .visible) {
             if callNumbers.isEmpty { Button(T("Fant ikke \(callName) i kontaktene", "\(callName) is not in your contacts")) {} }
             ForEach(Array(callNumbers.enumerated()), id: \.offset) { _, n in
@@ -256,21 +305,66 @@ struct TodoView: View {
     }
 
     private var list: some View {
+        VStack(spacing: 0) {
+            quickEntry
+            Rectangle().fill(Ink.ink).frame(height: 1)
+            listBody
+        }
+    }
+
+    /// QUICK ENTRY, always at the top (Alan, 11.10: "quick entry is hard"): type, return,
+    /// and it is in the main list; the field stays ready for the next one
+    private var quickEntry: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "plus").font(.system(size: 15 * Ink.scale, weight: .semibold)).foregroundStyle(Ink.soft)
+            TextField(T("Nytt gjøremål …", "New to-do …"), text: $quick)
+                .font(.system(size: 17 * Ink.scale)).autocorrectionDisabled(true)
+                .focused($focus, equals: "quick").submitLabel(.return)
+                .onSubmit {
+                    let t = quick.trimmingCharacters(in: .whitespaces)
+                    if !t.isEmpty, let m = todo.main { todo.add(t, to: m); quick = "" }
+                    focus = "quick"
+                }
+            if let m = todo.main {
+                Text(m.title).font(.system(size: 12 * Ink.scale)).foregroundStyle(Ink.muted).lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .background(Ink.paper)
+    }
+
+    private var listBody: some View {
         List {
             if !todo.today.isEmpty {
                 Section {
+                    head(T("I DAG", "TODAY"), todo.today.count).listRowBackground(Ink.paper)
                     ForEach(todo.today, id: \.calendarItemIdentifier) { r in row(r, sub: false, inToday: true) }
-                } header: { head(T("I DAG", "TODAY"), todo.today.count) }
+                }
             }
-            ForEach(todo.lists, id: \.calendarIdentifier) { l in
+            ForEach(todo.orderedLists, id: \.calendarIdentifier) { l in
                 let rows = todo.rows(of: l)
+                let aside = todo.asideLists.contains(l.calendarIdentifier)
+                let isMain = l.calendarIdentifier == todo.main?.calendarIdentifier
                 Section {
-                    ForEach(rows, id: \.r.calendarItemIdentifier) { x in row(x.r, sub: x.sub, inToday: false) }
-                        .onMove { todo.move(in: l, from: $0, to: $1) }
-                    newLine(l)
-                } header: {
-                    head(l.title.uppercased(), rows.filter { !$0.r.isCompleted }.count)
-                        .contextMenu { Button(T("Gi nytt navn", "Rename")) { listName = l.title; renaming = l } }
+                    // the heading is an ordinary line, so a folded list takes one line
+                    Button { withAnimation(.easeOut(duration: 0.15)) { todo.toggleFold(l) } } label: {
+                        head(l.title.uppercased(), aside ? nil : rows.filter { !$0.r.isCompleted }.count,
+                             folded: todo.isFolded(l), main: isMain, aside: aside)
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(Ink.paper)
+                    .moveDisabled(true)
+                    .contextMenu {
+                        if !isMain { Button(T("Gjør til hovedliste", "Make main list")) { todo.mainList = l.calendarIdentifier } }
+                        if aside { Button(T("Ta med i gjøremål", "Count as to-dos")) { todo.asideLists.remove(l.calendarIdentifier) } }
+                        else if !isMain { Button(T("Sett til side (telles ikke)", "Set aside (not counted)")) { todo.asideLists.insert(l.calendarIdentifier) } }
+                        Button(T("Gi nytt navn", "Rename")) { listName = l.title; renaming = l }
+                    }
+                    if !todo.isFolded(l) {
+                        ForEach(rows, id: \.r.calendarItemIdentifier) { x in row(x.r, sub: x.sub, inToday: false) }
+                            .onMove { todo.move(in: l, from: $0, to: $1) }
+                        newLine(l)
+                    }
                 }
             }
             Section {
@@ -280,17 +374,25 @@ struct TodoView: View {
             }
         }
         .listStyle(.plain)
+        .listSectionSpacing(.compact)
         .environment(\.editMode, $editMode)
         .scrollContentBackground(.hidden)
         .background(Ink.paper)
     }
 
-    private func head(_ t: String, _ n: Int) -> some View {
-        HStack {
-            Text(t).font(.system(size: 11 * Ink.scale, weight: .semibold)).tracking(1.4).foregroundStyle(Ink.soft)
+    /// HEADINGS AT READING SIZE (Alan, 11.10: "headlines are too small"); the main list the
+    /// largest, a list set aside quiet
+    private func head(_ t: String, _ n: Int?, folded: Bool = false, main: Bool = true, aside: Bool = false) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: folded ? "chevron.right" : "chevron.down")
+                .font(.system(size: 11 * Ink.scale, weight: .semibold)).foregroundStyle(Ink.muted).frame(width: 12)
+            Text(t).font(.system(size: (main ? 17 : 15) * Ink.scale, weight: .semibold)).tracking(1.2)
+                .foregroundStyle(aside ? Ink.muted : Ink.ink)
             Spacer()
-            Text("\(n)").font(.system(size: 11 * Ink.scale)).foregroundStyle(Ink.muted)
+            if let n, n > 0 { Text("\(n)").font(.system(size: 13 * Ink.scale, weight: .medium)).foregroundStyle(Ink.soft) }
         }
+        .padding(.top, main ? 10 : 2).padding(.bottom, 2)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder private func row(_ r: EKReminder, sub: Bool, inToday: Bool) -> some View {

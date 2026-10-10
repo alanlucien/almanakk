@@ -36,6 +36,16 @@ var WD: [String] { englishUI ? ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] : ["M"
 var WD_LONG: [String] { englishUI ? ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
                                   : ["MANDAG", "TIRSDAG", "ONSDAG", "TORSDAG", "FREDAG", "LØRDAG", "SØNDAG"] }
 
+/// timing, only with the "-timing" launch argument: tap → sheet on screen, in ms
+enum Timing {
+    static var tapAt: Date?
+    static let on = ProcessInfo.processInfo.arguments.contains("-timing")
+    static func tap() { if on { tapAt = Date() } }
+    static func shown(_ what: String) {
+        if on, let t = tapAt { print("ALMT \(what) \(Int(Date().timeIntervalSince(t) * 1000)) ms"); tapAt = nil }
+    }
+}
+
 struct NativeRoot: View {
     @StateObject private var store = Store()
     @StateObject private var rem = TodoStore()
@@ -140,6 +150,7 @@ struct MonthScreen: View {
                             // THE RIGHT FIFTH OF A ROW OPENS ITS WEEK (Alan, 11.10, his sketch: the
                             // strip over the right-hand column, top to bottom); the rest opens the day
                             .onTapGesture(coordinateSpace: .local) { loc in
+                                Timing.tap()
                                 if loc.x > geo.size.width * 0.8 { toWeek(r.date) } else { selected = nil; open = r.date }
                             }
                     }
@@ -469,7 +480,8 @@ struct DaySheet: View {
 
     var body: some View {
         content
-            .onChange(of: date) { viewing = nil }
+            .onAppear { Timing.shown("sheet") }
+            .onChange(of: date) { viewing = nil; Timing.shown("sheet turn") }
             .overlay(alignment: .bottom) { ToastBar(store: store) }
             .sheet(item: $form) { job in
                 EventForm(store: store, draft: job.draft, editing: job.editing, cityZone: cityZone, city: city)
