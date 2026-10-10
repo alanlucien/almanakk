@@ -298,7 +298,7 @@ struct DayRow: View {
 
     private var figure: some View {
         Text("\(row.d)")
-            .font(.system(size: (14) * Ink.scale, weight: .medium).monospacedDigit())
+            .font(.system(size: (13) * Ink.scale, weight: .medium).monospacedDigit())
             .foregroundStyle(row.today ? (row.red ? Ink.onInkRed : Ink.paper) : (row.red ? Ink.red : Ink.ink))
     }
 
@@ -409,11 +409,11 @@ struct DayLine: View {
     private func entry(_ p: MonthRow.Part) -> Text {
         let colour: Color = inverted ? (p.show ? Ink.onInkRed : (p.pencil ? Ink.onInkSoft : Ink.paper))
             : (p.show ? Ink.red : (p.pencil ? Ink.muted : (p.ink.isEmpty ? Ink.ink : Ink.hex(p.ink))))
-        let clock = p.kind == .timed ? Text(p.time + " ").font(.system(size: (10.5) * Ink.scale)).foregroundColor(inverted ? Ink.onInkSoft : Ink.muted) : Text("")
+        let clock = p.kind == .timed ? Text(p.time + " ").font(.system(size: (10) * Ink.scale)).foregroundColor(inverted ? Ink.onInkSoft : Ink.muted) : Text("")
         if p.kind == .span {
-            return Text(p.text.uppercased()).font(.system(size: (11) * Ink.scale, weight: .semibold)).tracking(0.8).foregroundColor(colour)
+            return Text(p.text.uppercased()).font(.system(size: (10.5) * Ink.scale, weight: .semibold)).tracking(0.8).foregroundColor(colour)
         }
-        return clock + Text(p.text).font(.system(size: (13) * Ink.scale)).foregroundColor(colour)
+        return clock + Text(p.text).font(.system(size: (12) * Ink.scale)).foregroundColor(colour)
     }
 
     private func measure(_ p: MonthRow.Part) -> CGFloat {
@@ -421,9 +421,9 @@ struct DayLine: View {
             (s as NSString).size(withAttributes: [.font: f, .kern: k]).width
         }
         switch p.kind {
-        case .span: return w(p.text.uppercased(), .systemFont(ofSize: 11 * Ink.scale, weight: .semibold), 0.8)
-        case .timed: return w(p.time + " ", .systemFont(ofSize: 10.5 * Ink.scale)) + w(p.text, .systemFont(ofSize: 13 * Ink.scale))
-        case .allday: return w(p.text, .systemFont(ofSize: 13 * Ink.scale))
+        case .span: return w(p.text.uppercased(), .systemFont(ofSize: 10.5 * Ink.scale, weight: .semibold), 0.8)
+        case .timed: return w(p.time + " ", .systemFont(ofSize: 10 * Ink.scale)) + w(p.text, .systemFont(ofSize: 12 * Ink.scale))
+        case .allday: return w(p.text, .systemFont(ofSize: 12 * Ink.scale))
         }
     }
 
@@ -532,7 +532,7 @@ struct DaySheet: View {
                 // START AND END (Alan, 10.10: "I wanted to know how long the flight was and had
                 // to click edit to see it"): the end stands under the start
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(t).font(.system(size: (11) * Ink.scale, weight: .medium).monospacedDigit()).foregroundStyle(Ink.soft)
+                    Text(t).font(.system(size: (12) * Ink.scale).monospacedDigit()).foregroundStyle(Ink.muted)
                     let endShown: String = {
                         if e.minutes > 0, let r = Places.route(e.title), let z = Places.zones[r.components(separatedBy: " → ").last ?? ""],
                            let c = alm.clock(e, plus: e.minutes, in: z) { return c }
@@ -540,7 +540,7 @@ struct DaySheet: View {
                         return e.endTime
                     }()
                     if !endShown.isEmpty && endShown != t {
-                        Text(endShown).font(.system(size: (10) * Ink.scale, weight: .medium).monospacedDigit()).foregroundStyle(Ink.soft.opacity(0.75))
+                        Text(endShown).font(.system(size: (11) * Ink.scale).monospacedDigit()).foregroundStyle(Ink.muted.opacity(0.8))
                     }
                 }
                 .frame(width: 40, alignment: .leading)

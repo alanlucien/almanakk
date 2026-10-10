@@ -1,5 +1,7 @@
 # Almanakk — Alan's points, one list
 
+A change to how it LOOKS is shown to him before/after first and decided by him, never built straight in (Alan, 11.10).
+
 Every point Alan raises goes here the day he raises it, in his words, with where it
 stands. Nothing leaves this list except by being BUILT (and seen by him), or DROPPED on
 his word. Read this before saying anything is done (Alan, 11.10: "did you forget my
@@ -73,8 +75,8 @@ and a drag onto a day to give it that date. Same Apple list as Siri and the Watc
 | 39 | "When I swipe left there is a bounce effect. And the border around the month glitches after" | BUILT native 11.10: the page no longer follows the finger (month, week, year) |
 | 40 | "Still wondering if swipe up or down for year swap will get me in trouble when scrolling" | **OPEN** — answered in chat; his call whether to keep it |
 | 41 | "In month view, clicking anywhere on the right of the screen opens the week in question" (screenshot: a zone right of the info column's start, the full height) | BUILT native 11.10: the right fifth of every row opens its week |
-| 42 | "Test to see if the font on the month view could be tiny bigger" | BUILT native 11.10: lines 12→13, spans 10.5→11, figures 13→14. Cost: a busy day hides one more entry behind "+1" |
-| 43 | "Make the times on the day sheet tiny but stronger in contrast, but like the sophisticated look" | BUILT native 11.10: 11pt medium, dark grey instead of light |
+| 42 | "Test to see if the font on the month view could be tiny bigger" | **OPEN** — built without showing him first, then put back (11.10, his words: "I wish you would've shown me"). Before/after shown; his choice |
+| 43 | "Make the times on the day sheet tiny but stronger in contrast, but like the sophisticated look" | **OPEN** — as 42: put back, before/after shown, his choice |
 | 44 | TO-DO: "you completely misunderstood me … I do not want to-do showing up in my calendar, I hate that … a button that brings up my to-do list that I can comment, cross out, call from … almost its own app inside the Almanac … designed perfectly for my situation" | **OPEN** — questions to him first. Follows: reminders must NOT show on days (the 10.10 day-sheet reminders are against this) |
 | 45 | TO-DO, his read of the first design: "some of this was good" — writing like Notes (return gives the next line), one tap ticks off and sinks, swipe right gives a day, swipe left deletes, hold and drag moves, headings are the lists, "☐ 5" in the month header opens it | **OPEN** — kept for the design |
 | 46 | TO-DO: "need sub points also" | **OPEN** |
