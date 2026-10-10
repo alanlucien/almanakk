@@ -54,7 +54,7 @@ States: OPEN · BUILT (native = in the iPhone app, from TestFlight build 5/6) ·
 | 31 | "Shake undo … and the three fingers" | BUILT native |
 | 32 | "Don't need Byer switch" | DROPPED |
 | 33 | His general usage feedback from this morning | **OPEN** — he gives it once this list is settled |
-| 34 | "My perfect interactive to-do list replacing what I would use in Notes … Reminders hard to use, too much clicking … perhaps the engine is okay" | **OPEN** — design first, picture to him |
+| 34 | "My perfect interactive to-do list replacing what I would use in Notes … Reminders hard to use, too much clicking … perhaps the engine is okay" | **OPEN** — first design MISREAD (11.10, see 44) |
 | 35 | "My workspace app … will have an Ornella and Alan exchange that could also be fed into almanac" | **OPEN** — later, when the workspace app is far enough |
 | 36 | "Holiday names exist also in English … why would we not translate them" | BUILT native 11.10 |
 
@@ -63,3 +63,20 @@ States: OPEN · BUILT (native = in the iPhone app, from TestFlight build 5/6) ·
 Undated Apple Reminders as a short list of their own: under "⋯" → "Gjøremål", a page
 with the open reminders that have no date, a ring to tick each off, a line to add one,
 and a drag onto a day to give it that date. Same Apple list as Siri and the Watch.
+
+## From 11.10, his morning on the phone
+
+| # | His point | State |
+|---|---|---|
+| 37 | "Open from widget on a day, then the week with that day selected. Tap the month header and it opens in month view" | BUILT native 11.10: a day in the day/week/month widget opens its week with the day outlined; the week's title returns to the month. Not yet tried from a real widget |
+| 38 | "Ability to save when offline and push once back online" | BUILT native 11.10: changes without network go to an outbox on the phone, shown as "N venter på nett", sent in order on the next open. NOT TESTED offline yet |
+| 39 | "When I swipe left there is a bounce effect. And the border around the month glitches after" | BUILT native 11.10: the page no longer follows the finger (month, week, year) |
+| 40 | "Still wondering if swipe up or down for year swap will get me in trouble when scrolling" | **OPEN** — answered in chat; his call whether to keep it |
+| 41 | "In month view, clicking anywhere on the right of the screen opens the week in question" (screenshot: a zone right of the info column's start, the full height) | BUILT native 11.10: the right fifth of every row opens its week |
+| 42 | "Test to see if the font on the month view could be tiny bigger" | BUILT native 11.10: lines 12→13, spans 10.5→11, figures 13→14. Cost: a busy day hides one more entry behind "+1" |
+| 43 | "Make the times on the day sheet tiny but stronger in contrast, but like the sophisticated look" | BUILT native 11.10: 11pt medium, dark grey instead of light |
+| 44 | TO-DO: "you completely misunderstood me … I do not want to-do showing up in my calendar, I hate that … a button that brings up my to-do list that I can comment, cross out, call from … almost its own app inside the Almanac … designed perfectly for my situation" | **OPEN** — questions to him first. Follows: reminders must NOT show on days (the 10.10 day-sheet reminders are against this) |
+| 45 | TO-DO, his read of the first design: "some of this was good" — writing like Notes (return gives the next line), one tap ticks off and sinks, swipe right gives a day, swipe left deletes, hold and drag moves, headings are the lists, "☐ 5" in the month header opens it | **OPEN** — kept for the design |
+| 46 | TO-DO: "need sub points also" | **OPEN** |
+| 47 | TO-DO: "my potential projects heading was good" | **OPEN** — a heading for potential projects |
+

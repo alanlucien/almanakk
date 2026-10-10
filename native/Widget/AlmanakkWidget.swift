@@ -210,6 +210,7 @@ struct DayView: View {
                     if lines.count > room { Text("+\(lines.count - room)").font(.system(size: 8)).foregroundStyle(Color.muted) }
                 }
             }
+            .widgetURL(dayURL(d.date))
         } else {
             Stale()
         }
@@ -279,6 +280,7 @@ struct WeekView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(d.today ? Color.wash : (d.sun ? Color.wash.opacity(0.6) : Color.clear))
                         .overlay(alignment: .leading) { if d.today { Rectangle().fill(Color.ink).frame(width: 2) } }
+                        .dayLink(d.date)
                         Rectangle().fill(d.sun ? Color.ruleStrong : Color.rule).frame(height: d.sun ? 1 : 0.5)
                     } else {
                         Spacer().frame(maxHeight: .infinity)
@@ -296,6 +298,14 @@ struct WeekView: View {
 }
 
 private extension Snapshot.Day { var today: Bool { date == Snapshot.key(Date()) } }
+
+/// A TAP ON A DAY OPENS ITS WEEK in the app, that day marked (Alan, 11.10)
+func dayURL(_ ds: String) -> URL { URL(string: "almanakk://day/\(ds)")! }
+extension View {
+    func dayLink(_ ds: String) -> some View {
+        overlay(Link(destination: dayURL(ds)) { Rectangle().fill(Color.white.opacity(0.001)) })
+    }
+}
 
 // ---------- MÅNED: the sheet itself, every row ----------
 struct MonthView: View {
@@ -346,6 +356,7 @@ struct MonthView: View {
                         .background(d.sun || !d.hol.isEmpty ? Color.wash : Color.clear)
                         .overlay(alignment: .leading) { if d.today { Rectangle().fill(Color.ink).frame(width: 2) } }
                         .clipped()
+                        .dayLink(d.date)
                         Rectangle().fill(d.sun ? Color.ruleStrong : Color.rule).frame(height: 0.5)
                     }
                 }

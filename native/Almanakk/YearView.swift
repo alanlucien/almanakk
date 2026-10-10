@@ -59,10 +59,8 @@ struct YearScreen: View {
             .opacity(0).accessibilityHidden(true)
         }
         .gesture(DragGesture(minimumDistance: 20)
-            .onChanged { v in if abs(v.translation.width) > abs(v.translation.height) { drag = v.translation.width * 0.6 } }
             .onEnded { v in
-                withAnimation(.easeOut(duration: 0.18)) { drag = 0 }
-                if abs(v.translation.width) > 60 && abs(v.translation.width) > abs(v.translation.height) {
+                                if abs(v.translation.width) > 60 && abs(v.translation.width) > abs(v.translation.height) {
                     withAnimation { year += v.translation.width < 0 ? 1 : -1 }
                 }
             })

@@ -14,6 +14,7 @@ final class Store: ObservableObject {
     @Published var demo = true
     @Published var loading = false
     @Published var problem: String? = nil
+    @Published var pendingCount = Outbox.count     // changes waiting for the network
     /// the line at the foot of the screen after a write: what happened, and how to undo it
     @Published var toast: Toast? = nil
     struct Toast: Identifiable { let id = UUID(); var text: String; var undo: (() async -> Void)? = nil }
@@ -88,6 +89,7 @@ final class Store: ObservableObject {
     /// FIVE YEARS BACK AND FIVE AHEAD (Alan, 10.10), all visible calendars at once.
     func refresh() async {
         guard !demo, !loading else { return }
+        if Outbox.count > 0 { await flushOutbox() }
         loading = true; defer { loading = false }
         let now = Day.greg.component(.year, from: Date())
         let from = "\(now - 5)-01-01", to = "\(now + 5)-12-31"
@@ -127,9 +129,7 @@ final class Store: ObservableObject {
     func save(_ d: Draft, editing old: CalEvent?) async -> Bool {
         problem = nil
         if demo {
-            var e = CalEvent(id: old?.id ?? "demo-" + d.id, calId: d.calId.isEmpty ? defaultCal : d.calId, title: d.finalTitle,
-                             start: d.start, end: d.allDay ? max(d.end, d.start) : d.start, time: d.allDay ? "" : d.time,
-                             endTime: d.allDay ? "" : d.endTime, location: d.location, notes: d.notes, colorId: d.colorId)
+            var e = localEvent(d, id: old?.id ?? "demo-" + d.id)
             if e.calId.isEmpty { e.calId = "own" }
             events.removeAll { $0.id == old?.id }
             events.append(e)
@@ -154,10 +154,68 @@ final class Store: ObservableObject {
             toast = .init(text: old == nil ? T("Lagt til i", "Added to") + " \(calendars.first { $0.id == cal }?.name ?? T("kalenderen", "the calendar"))" : T("Lagret", "Saved"))
             registerInverse(of: old, saved: e)
             return true
+        } catch where Store.offline(error) {
+            // NO NETWORK: kept on the phone and sent when it is back (Alan, 11.10)
+            let cal = d.calId.isEmpty ? defaultCal : d.calId
+            var e = localEvent(d, id: old?.id ?? "local-" + d.id)
+            e.calId = old?.calId ?? cal
+            if let old, old.id.hasPrefix("local-") {
+                Outbox.replace(insertFor: old.id, cal: cal, body: d.googleBody())
+            } else if let old {
+                Outbox.add(.init(kind: "patch", cal: old.calId, eventId: old.id, localId: nil, body: d.googleBody()))
+            } else {
+                Outbox.add(.init(kind: "insert", cal: cal, eventId: nil, localId: e.id, body: d.googleBody()))
+            }
+            events.removeAll { $0.id == old?.id }
+            events.append(e)
+            Cache.write(.init(calendars: calendars, events: events)); writeSnapshot()
+            pendingCount = Outbox.count
+            toast = .init(text: T("Lagret på telefonen – sendes når du er på nett", "Saved on the phone – sent when you are online"))
+            return true
         } catch {
-            problem = "Ble ikke lagret: " + error.localizedDescription
+            problem = T("Ble ikke lagret: ", "Not saved: ") + error.localizedDescription
             return false
         }
+    }
+
+    private func localEvent(_ d: Draft, id: String) -> CalEvent {
+        CalEvent(id: id, calId: d.calId.isEmpty ? defaultCal : d.calId, title: d.finalTitle,
+                 start: d.start, end: d.allDay ? max(d.end, d.start) : d.start, time: d.allDay ? "" : d.time,
+                 endTime: d.allDay ? "" : d.endTime, location: d.location, notes: d.notes, colorId: d.colorId,
+                 zone: d.allDay ? "" : d.zone)
+    }
+
+    static func offline(_ error: Error) -> Bool {
+        guard let u = error as? URLError else { return false }
+        return [.notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotFindHost, .cannotConnectToHost, .dataNotAllowed, .internationalRoamingOff].contains(u.code)
+    }
+
+    /// what waits in the outbox is sent in order; a step that still has no network stops
+    /// the run and keeps the rest. Called on refresh, i.e. on opening and coming forward.
+    func flushOutbox() async {
+        guard !demo else { return }
+        for op in Outbox.all {
+            do {
+                let body = op.bodyDict
+                switch op.kind {
+                case "insert": _ = try await GCal.send("POST", GCal.path(op.cal) + "/events", body: body)
+                case "patch":
+                    if let id = op.eventId { _ = try await GCal.send("PATCH", GCal.path(op.cal) + "/events/" + String(id.dropFirst(op.cal.count + 1)), body: body) }
+                case "delete":
+                    if let id = op.eventId { _ = try await GCal.send("DELETE", GCal.path(op.cal) + "/events/" + String(id.dropFirst(op.cal.count + 1))) }
+                default: break
+                }
+                Outbox.remove(op.id)
+            } catch where Store.offline(error) {
+                pendingCount = Outbox.count
+                return                                   // still no network: keep the rest, in order
+            } catch {
+                // Google refused it: said, and dropped, so one bad step cannot block the rest
+                problem = T("En endring fra da du var uten nett ble avvist: ", "A change made offline was refused: ") + error.localizedDescription
+                Outbox.remove(op.id)
+            }
+        }
+        pendingCount = Outbox.count
     }
 
     /// a new event's opposite is its deletion; an edit's is the event as it was
@@ -176,7 +234,13 @@ final class Store: ObservableObject {
         problem = nil
         let back = Draft(e, zone: TimeZone.current.identifier)
         if !demo {
-            do { try await GCal.delete(e) } catch { problem = "Ble ikke slettet: " + error.localizedDescription; return }
+            do { try await GCal.delete(e) }
+            catch where Store.offline(error) {
+                if e.id.hasPrefix("local-") { Outbox.dropInsert(e.id) }
+                else { Outbox.add(.init(kind: "delete", cal: e.calId, eventId: e.id, localId: nil, body: nil)) }
+                pendingCount = Outbox.count
+            }
+            catch { problem = T("Ble ikke slettet: ", "Not deleted: ") + error.localizedDescription; return }
         }
         events.removeAll { $0.id == e.id }
         if !demo { Cache.write(.init(calendars: calendars, events: events)); writeSnapshot() }
@@ -304,5 +368,35 @@ enum Demo {
             notes: "Saksliste kommer.\n\nmessage://%3Cdemo%40example.com%3E")
         add("private", "Bursdag", 28, color: "11")
         return out
+    }
+}
+
+// THE OUTBOX: changes made without network, kept on the phone in order until they are sent.
+struct PendingOp: Codable, Identifiable {
+    var id = UUID().uuidString
+    var kind: String          // insert · patch · delete
+    var cal: String
+    var eventId: String?
+    var localId: String?
+    var body: Data?
+    init(kind: String, cal: String, eventId: String?, localId: String?, body: [String: Any]?) {
+        self.kind = kind; self.cal = cal; self.eventId = eventId; self.localId = localId
+        self.body = body.flatMap { try? JSONSerialization.data(withJSONObject: $0) }
+    }
+    var bodyDict: [String: Any]? { body.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] } }
+}
+enum Outbox {
+    static var url: URL? {
+        try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent("outbox.json")
+    }
+    static var all: [PendingOp] { url.flatMap { try? Data(contentsOf: $0) }.flatMap { try? JSONDecoder().decode([PendingOp].self, from: $0) } ?? [] }
+    static var count: Int { all.count }
+    static func save(_ ops: [PendingOp]) { if let u = url, let d = try? JSONEncoder().encode(ops) { try? d.write(to: u, options: [.atomic, .completeFileProtection]) } }
+    static func add(_ op: PendingOp) { save(all + [op]) }
+    static func remove(_ id: String) { save(all.filter { $0.id != id }) }
+    static func dropInsert(_ localId: String) { save(all.filter { $0.localId != localId }) }
+    static func replace(insertFor localId: String, cal: String, body: [String: Any]) {
+        save(all.map { op in op.localId == localId ? PendingOp(kind: "insert", cal: cal, eventId: nil, localId: localId, body: body) : op })
     }
 }

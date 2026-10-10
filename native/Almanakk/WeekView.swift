@@ -12,6 +12,8 @@ struct WeekScreen: View {
     @ObservedObject var store: Store
     @State var monday: String
     @Binding var open: String?
+    var picked: String? = nil                 // marked when it came from a widget
+    var toMonth: () -> Void = {}
     @State private var drag: CGFloat = 0
 
     var body: some View {
@@ -25,6 +27,7 @@ struct WeekScreen: View {
                         if !w.spans.isEmpty { spanBlock(w.spans).frame(height: spanH) }
                         ForEach(Array(w.days.enumerated()), id: \.element.id) { _, day in
                             WeekDayBlock(day: day, spans: w.spans, minHeight: dayMin, open: open == day.date)
+                                .overlay(picked == day.date ? Rectangle().stroke(Ink.ink, lineWidth: 2).padding(1) : nil)
                                 .contentShape(Rectangle())
                                 .onTapGesture { open = day.date }
                         }
@@ -40,7 +43,8 @@ struct WeekScreen: View {
         // the week's name and dates ride in the bar beside the back button: one line, not two
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .principal) { title }
+            // THE TITLE GOES TO THE MONTH (Alan, 11.10: "tap the month header and it opens in month view")
+            ToolbarItem(placement: .principal) { Button(action: toMonth) { title } }
             ToolbarItem(placement: .topBarTrailing) { todayButton }
         }
         .background {
@@ -51,11 +55,9 @@ struct WeekScreen: View {
             .opacity(0).accessibilityHidden(true)
         }
         .gesture(DragGesture(minimumDistance: 20)
-            .onChanged { v in if open == nil && abs(v.translation.width) > abs(v.translation.height) { drag = v.translation.width * 0.6 } }
             .onEnded { v in
                 guard open == nil else { drag = 0; return }
-                withAnimation(.easeOut(duration: 0.18)) { drag = 0 }
-                if abs(v.translation.width) > 60 && abs(v.translation.width) > abs(v.translation.height) { step(v.translation.width < 0 ? 1 : -1) }
+                                if abs(v.translation.width) > 60 && abs(v.translation.width) > abs(v.translation.height) { step(v.translation.width < 0 ? 1 : -1) }
             })
     }
 

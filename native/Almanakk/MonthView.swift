@@ -47,6 +47,7 @@ struct NativeRoot: View {
     @State private var detent: PresentationDetent = .medium
     @State private var path: [Route] = []
     @State private var selected: String? = nil      // a day picked in the year: marked, no sheet
+    @State private var weekPick: String? = nil      // a day picked in a widget: marked in its week
 
     /// to a day's week, from anywhere: the sheet steps aside, the week slides in
     private func toWeek(_ ds: String) {
@@ -54,6 +55,16 @@ struct NativeRoot: View {
         path = [.week(Almanac.monday(ds))]
     }
     private func toYear() { open = nil; path = [.year(store.year)] }
+    /// a tap on a day in a widget: that day's week, the day marked (Alan, 11.10)
+    private func openURL(_ url: URL) {
+        guard url.scheme == "almanakk", url.host == "day" else { return }
+        let ds = url.lastPathComponent
+        guard ds.count == 10 else { return }
+        let c = Day.greg.dateComponents([.year, .month], from: Day.date(ds))
+        store.year = c.year!; store.month = c.month! - 1
+        open = nil; weekPick = ds
+        path = [.week(Almanac.monday(ds))]
+    }
     /// from the year back to a month, with the tapped day marked (Alan, 10.10: "I land on
     /// September 19 … highlighted as a selected day … not the drawer open")
     private func pick(_ day: String?, _ y: Int, _ m: Int) {
@@ -73,7 +84,7 @@ struct NativeRoot: View {
                 .navigationTitle(MONTHS[store.month].capitalized)
                 .navigationDestination(for: Route.self) { r in
                     switch r {
-                    case .week(let mon): WeekScreen(store: store, monday: mon, open: $open)
+                    case .week(let mon): WeekScreen(store: store, monday: mon, open: $open, picked: weekPick, toMonth: { path = [] })
                     case .year(let y): YearScreen(store: store, year: y, pick: pick)
                     }
                 }
@@ -91,6 +102,7 @@ struct NativeRoot: View {
                     .presentationBackgroundInteraction(.enabled(upThrough: .medium))
             }
             // fresh from Google when the app opens and whenever it comes forward again
+            .onOpenURL(perform: openURL)
             .task { store.undo = undoManager; await store.refresh() }
             .onChange(of: undoManager) { store.undo = undoManager }
             .onChange(of: phase) { if phase == .active { Task { await store.refresh(); await rem.load() } } }
@@ -120,7 +132,11 @@ struct MonthScreen: View {
                             // A DAY PICKED IN THE YEAR is outlined in ink, unmistakable, no sheet
                             .overlay(selected == r.date ? Rectangle().stroke(Ink.ink, lineWidth: 2).padding(1) : nil)
                             .contentShape(Rectangle())
-                            .onTapGesture { selected = nil; open = r.date }
+                            // THE RIGHT FIFTH OF A ROW OPENS ITS WEEK (Alan, 11.10, his sketch: the
+                            // strip over the right-hand column, top to bottom); the rest opens the day
+                            .onTapGesture(coordinateSpace: .local) { loc in
+                                if loc.x > geo.size.width * 0.8 { toWeek(r.date) } else { selected = nil; open = r.date }
+                            }
                     }
                 }
                 .background(Ink.paper)
@@ -175,16 +191,15 @@ struct MonthScreen: View {
             }
             .opacity(0).accessibilityHidden(true)
         }
-        // A SIDEWAYS SWIPE IS A MONTH, the phone's own gesture: the page follows the
-        // finger and lets go into the next month or back
+        // A SIDEWAYS SWIPE IS A MONTH. The page no longer follows the finger (Alan, 11.10:
+        // "a bounce effect … and the border around the month glitches after"): the swipe
+        // is read when it ends and the next month is simply there
         .gesture(DragGesture(minimumDistance: 20)
             // while a sheet is up its own drags belong to it: closing it must not step the month
-            .onChanged { v in if open == nil && abs(v.translation.width) > abs(v.translation.height) { drag = v.translation.width * 0.6 } }
             .onEnded { v in
                 guard open == nil else { drag = 0; return }
                 let dx = v.translation.width, dy = v.translation.height
-                withAnimation(.easeOut(duration: 0.18)) { drag = 0 }
-                if abs(dx) > 60 && abs(dx) > abs(dy) { store.step(dx < 0 ? 1 : -1) }
+                                if abs(dx) > 60 && abs(dx) > abs(dy) { store.step(dx < 0 ? 1 : -1) }
                 else if abs(dy) > 90 && abs(dy) > 2 * abs(dx) { store.step(dy < 0 ? 12 : -12) }   // up and down is a year
             })
     }
@@ -198,6 +213,10 @@ struct MonthScreen: View {
                     Text(String(store.year)).font(.system(size: (15) * Ink.scale, weight: .regular)).tracking(1).foregroundStyle(Ink.muted)
                 }
                 if store.loading { ProgressView().controlSize(.mini) }
+                if store.pendingCount > 0 {
+                    Text(T("\(store.pendingCount) venter på nett", "\(store.pendingCount) waiting for network"))
+                        .font(.system(size: (11) * Ink.scale)).foregroundStyle(Ink.muted)
+                }
                 Spacer()
                 // the quiet menu: the few switches, out of the way (L3)
                 Menu {
@@ -279,7 +298,7 @@ struct DayRow: View {
 
     private var figure: some View {
         Text("\(row.d)")
-            .font(.system(size: (13) * Ink.scale, weight: .medium).monospacedDigit())
+            .font(.system(size: (14) * Ink.scale, weight: .medium).monospacedDigit())
             .foregroundStyle(row.today ? (row.red ? Ink.onInkRed : Ink.paper) : (row.red ? Ink.red : Ink.ink))
     }
 
@@ -390,11 +409,11 @@ struct DayLine: View {
     private func entry(_ p: MonthRow.Part) -> Text {
         let colour: Color = inverted ? (p.show ? Ink.onInkRed : (p.pencil ? Ink.onInkSoft : Ink.paper))
             : (p.show ? Ink.red : (p.pencil ? Ink.muted : (p.ink.isEmpty ? Ink.ink : Ink.hex(p.ink))))
-        let clock = p.kind == .timed ? Text(p.time + " ").font(.system(size: (10) * Ink.scale)).foregroundColor(inverted ? Ink.onInkSoft : Ink.muted) : Text("")
+        let clock = p.kind == .timed ? Text(p.time + " ").font(.system(size: (10.5) * Ink.scale)).foregroundColor(inverted ? Ink.onInkSoft : Ink.muted) : Text("")
         if p.kind == .span {
-            return Text(p.text.uppercased()).font(.system(size: (10.5) * Ink.scale, weight: .semibold)).tracking(0.8).foregroundColor(colour)
+            return Text(p.text.uppercased()).font(.system(size: (11) * Ink.scale, weight: .semibold)).tracking(0.8).foregroundColor(colour)
         }
-        return clock + Text(p.text).font(.system(size: (12) * Ink.scale)).foregroundColor(colour)
+        return clock + Text(p.text).font(.system(size: (13) * Ink.scale)).foregroundColor(colour)
     }
 
     private func measure(_ p: MonthRow.Part) -> CGFloat {
@@ -402,9 +421,9 @@ struct DayLine: View {
             (s as NSString).size(withAttributes: [.font: f, .kern: k]).width
         }
         switch p.kind {
-        case .span: return w(p.text.uppercased(), .systemFont(ofSize: 10.5 * Ink.scale, weight: .semibold), 0.8)
-        case .timed: return w(p.time + " ", .systemFont(ofSize: 10 * Ink.scale)) + w(p.text, .systemFont(ofSize: 12 * Ink.scale))
-        case .allday: return w(p.text, .systemFont(ofSize: 12 * Ink.scale))
+        case .span: return w(p.text.uppercased(), .systemFont(ofSize: 11 * Ink.scale, weight: .semibold), 0.8)
+        case .timed: return w(p.time + " ", .systemFont(ofSize: 10.5 * Ink.scale)) + w(p.text, .systemFont(ofSize: 13 * Ink.scale))
+        case .allday: return w(p.text, .systemFont(ofSize: 13 * Ink.scale))
         }
     }
 
@@ -513,7 +532,7 @@ struct DaySheet: View {
                 // START AND END (Alan, 10.10: "I wanted to know how long the flight was and had
                 // to click edit to see it"): the end stands under the start
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(t).font(.system(size: (12) * Ink.scale).monospacedDigit()).foregroundStyle(Ink.muted)
+                    Text(t).font(.system(size: (11) * Ink.scale, weight: .medium).monospacedDigit()).foregroundStyle(Ink.soft)
                     let endShown: String = {
                         if e.minutes > 0, let r = Places.route(e.title), let z = Places.zones[r.components(separatedBy: " → ").last ?? ""],
                            let c = alm.clock(e, plus: e.minutes, in: z) { return c }
@@ -521,7 +540,7 @@ struct DaySheet: View {
                         return e.endTime
                     }()
                     if !endShown.isEmpty && endShown != t {
-                        Text(endShown).font(.system(size: (11) * Ink.scale).monospacedDigit()).foregroundStyle(Ink.muted.opacity(0.8))
+                        Text(endShown).font(.system(size: (10) * Ink.scale, weight: .medium).monospacedDigit()).foregroundStyle(Ink.soft.opacity(0.75))
                     }
                 }
                 .frame(width: 40, alignment: .leading)
