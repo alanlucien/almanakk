@@ -1,4 +1,5 @@
 > Current state, open work and what is waiting on Alan: **[STATUS.md](STATUS.md)** — read that first; this file is method, not state.
+> Every point Alan has raised, and whether it is open: **[FEEDBACK.md](FEEDBACK.md)**. Add his points there the day he makes them; nothing is "done" until it is there as BUILT.
 
 # Almanakk — Norwegian wall-calendar view on Google Calendar
 
