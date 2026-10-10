@@ -132,12 +132,35 @@ enum Places {
         }
         return nil
     }
-    /// flightRoute: how a flight reads on the day line, "Oslo → Hong Kong"
+    /// flightRoute: how a flight reads on the day line. EVERY CITY STAYS ON THE LINE (Alan,
+    /// 11.10: "oslo-kairo-amsterdam"), so a stop is seen, not hidden: "Oslo → Kairo → Amsterdam"
     static func route(_ title: String) -> String? {
         var l = legs(title)
         if l.count < 2 && hasFlightWord(title) { l = placesIn(title) }
         guard l.count >= 2 else { return nil }
-        return name(l[0]) + " → " + name(l[l.count - 1])
+        var names: [String] = []
+        for c in l.map(name) where names.last != c { names.append(c) }
+        return names.joined(separator: " → ")
+    }
+
+    /// A DAY'S FLIGHTS THAT MEET ARE ONE JOURNEY: "OSL-CAI" at 08:00 and "CAI-AMS" at 15:00
+    /// read "Oslo → Kairo → Amsterdam" at 08:00 (collapseJourneys, with every city kept).
+    /// The day sheet keeps each flight as it is.
+    static func joinJourneys(_ timed: [CalEvent]) -> [CalEvent] {
+        var out: [CalEvent] = []
+        var lastLegs: [String] = []
+        for e in timed {
+            let l = legs(e.title)
+            if l.count >= 2, var prev = out.last, lastLegs.count >= 2, lastLegs.last == l.first {
+                lastLegs += l.dropFirst()
+                prev.title = "Flight " + lastLegs.joined(separator: "-")
+                out[out.count - 1] = prev
+                continue
+            }
+            out.append(e)
+            lastLegs = l
+        }
+        return out
     }
     /// nightFlight: a flight leaving 00:00–03:29 belongs to the evening before
     static func nightFlight(_ title: String, time: String) -> Bool {

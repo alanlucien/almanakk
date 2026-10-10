@@ -246,6 +246,13 @@ struct DayRow: View {
                 figure.frame(width: 28, alignment: .trailing)
                 Text(WD[row.wi]).font(.system(size: (10) * Ink.scale)).foregroundStyle(row.today ? Ink.onInkSoft : (row.red ? Ink.red : Ink.muted))
                     .frame(width: 20, alignment: .leading).padding(.leading, 4)
+                    // THE MOON on the day it turns (Alan, 11.10), small, at the letter's side
+                    .overlay(alignment: .trailing) {
+                        if let m = Moon.turn(row.date) {
+                            Text(m.glyph).font(.system(size: (7) * Ink.scale)).foregroundStyle(row.today ? Ink.onInkSoft : Ink.soft)
+                                .accessibilityLabel(m.name)
+                        }
+                    }
             }
             .frame(maxHeight: .infinity).contentShape(Rectangle())
             .onTapGesture { toWeek(row.date) }
@@ -451,6 +458,9 @@ struct DaySheet: View {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text("\(Int(date.suffix(2))!)").font(.system(size: (44) * Ink.scale, weight: .semibold)).foregroundStyle(wi == 6 || (hol?.red ?? false) ? Ink.red : Ink.ink)
                     Text(WD_LONG[wi]).font(.system(size: (13) * Ink.scale, weight: .semibold)).tracking(2).foregroundStyle(Ink.ink)
+                    if let m = Moon.turn(date) {
+                        Text("\(m.glyph) \(m.name.lowercased())").font(.system(size: (11) * Ink.scale)).foregroundStyle(Ink.muted)
+                    }
                     Spacer()
                     if let c = row?.city, !c.isEmpty { Text(c.uppercased()).font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1.2).foregroundStyle(Ink.soft) }
                     if let h = hol { Text(h.name).font(.system(size: (12) * Ink.scale)).italic().foregroundStyle(h.red ? Ink.red : Ink.soft) }
@@ -522,6 +532,17 @@ struct DaySheet: View {
             // shown in the day's city time: the event's own clock is named beneath it
             if t != ownT && !ownT.isEmpty {
                 Text("\(ownT) \(Places.zoneLabel(e.zone))").font(.system(size: (11) * Ink.scale)).foregroundStyle(Ink.muted).padding(.leading, 48)
+            }
+            // a plan a booking has taken over: said, and one tap away from gone
+            if alm.replacedPlans.contains(e.id) {
+                HStack(spacing: 12) {
+                    Text("erstattet av fly").font(.system(size: (12) * Ink.scale)).italic().foregroundStyle(Ink.muted)
+                    if store.writable.contains(where: { $0.id == e.calId }) {
+                        Button("Fjern") { Task { await store.delete(e) } }
+                            .font(.system(size: (13) * Ink.scale, weight: .semibold)).foregroundStyle(Ink.ink)
+                    }
+                }
+                .padding(.leading, 48)
             }
             if viewing == e.id { details(e, alm: alm).padding(.leading, 48) }
         }

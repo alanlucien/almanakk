@@ -324,6 +324,17 @@ struct Almanac {
         return String(format: "%02d:%02d", t.hour ?? 0, t.minute ?? 0)
     }
 
+    /// A PLAN A BOOKING HAS TAKEN OVER (Alan, 11.10: "would be great if the app just took
+    /// care of it"): a pencilled or tbc move on a day that also holds a booked flight or move.
+    /// The app steps it aside — off the month and the week, out of the city reckoning — and
+    /// the day sheet offers to remove it. Nothing is deleted on its own.
+    var replacedPlans: Set<String> {
+        let marked = events.filter { !$0.fromGmail && (Rules.cityMarker($0.title) != nil || Places.dest($0.title) != nil) }
+        let plans = marked.filter { Rules.isTbc($0) || Rules.isPencil($0) }
+        let booked = Set(marked.filter { !(Rules.isTbc($0) || Rules.isPencil($0)) }.map(\.start))
+        return Set(plans.filter { booked.contains($0.start) }.map(\.id))
+    }
+
     /// the zone of the city he is in on a day, if the almanac knows it
     func zoneOn(_ ds: String, moves mv: [(date: String, time: String, dest: String, tbc: Bool)]) -> String? {
         whereOn(ds, moves: mv, legs: []).flatMap { Places.zones[$0.name] }
@@ -338,8 +349,9 @@ struct Almanac {
     /// scraped (a cc'd itinerary is often someone else's). Date first; within a day a
     /// booking outranks a plan (tbc or pencilled), then by time, so the winner sorts last.
     func moves() -> [(date: String, time: String, dest: String, tbc: Bool)] {
-        events.compactMap { e -> (date: String, time: String, dest: String, tbc: Bool)? in
-            if e.fromGmail { return nil }
+        let stale = replacedPlans
+        return events.compactMap { e -> (date: String, time: String, dest: String, tbc: Bool)? in
+            if e.fromGmail || stale.contains(e.id) { return nil }
             guard let d = Rules.cityMarker(e.title) ?? Places.dest(e.title) else { return nil }
             return (e.start, e.time.isEmpty ? "99" : e.time, Places.name(d), Rules.isTbc(e) || Rules.isPencil(e))
         }
@@ -380,7 +392,8 @@ struct Almanac {
         spans.sort { $0.start != $1.start ? $0.start < $1.start : $0.end > $1.end }
         spans = spans.filter { (laneOf[$0.id] ?? -1) >= 0 }
         let nLanes = min(Almanac.maxLanes, laneEnd.count)
-        let ownDays = own.filter { !$0.isSpan && $0.start >= first && $0.start <= last }
+        let stale = replacedPlans
+        let ownDays = own.filter { !$0.isSpan && $0.start >= first && $0.start <= last && !stale.contains($0.id) }
         let legs = tour.filter(\.isSpan).sorted { $0.start > $1.start }      // innermost first
         let words = tour.filter { !$0.isSpan }
         let mv = moves()
@@ -409,7 +422,7 @@ struct Almanac {
             let allday = dayOwn.filter { Rules.effTime($0).isEmpty }
             let here0 = whereOn(ds, moves: mv, legs: legs)
             let dz = here0.flatMap { Places.zones[$0.name] }
-            let timed = dayOwn.filter { !Rules.effTime($0).isEmpty }.sorted { clock($0, cityZone: dz) < clock($1, cityZone: dz) }
+            let timed = Places.joinJourneys(dayOwn.filter { !Rules.effTime($0).isEmpty }.sorted { clock($0, cityZone: dz) < clock($1, cityZone: dz) })
             for e in allday {
                 parts.append(.init(id: e.id, kind: .allday, text: Rules.lineTitle(e, covers: names), show: Rules.isShow(e),
                                    pencil: Rules.isPencil(e) || Rules.isTbc(e), ink: ink(e), color: color(e)))
@@ -477,7 +490,8 @@ struct Almanac {
         let legs = tour.filter(\.isSpan).sorted { $0.start > $1.start }
         let words = tour.filter { !$0.isSpan }
         let spans = own.filter { $0.isSpan && $0.start <= last && $0.end >= first }.sorted { $0.start < $1.start }.prefix(3)
-        let singles = events.filter { !$0.isSpan && $0.start >= first && $0.start <= last && !tourIds.contains($0.calId) }
+        let stale = replacedPlans
+        let singles = events.filter { !$0.isSpan && $0.start >= first && $0.start <= last && !tourIds.contains($0.calId) && !stale.contains($0.id) }
         let mv = moves()
         let wspans = spans.map { WeekSpan(id: $0.id, title: Rules.stripParens($0.title.deco), color: color($0), start: $0.start, end: $0.end, pencil: Rules.isPencil($0)) }
         let days = keys.map { ds -> WeekDay in
@@ -489,7 +503,7 @@ struct Almanac {
             let names = spans.filter { $0.start <= ds && $0.end >= ds }.map(\.title)
             let allday = dayEv.filter { Rules.effTime($0).isEmpty }
             let dz = zoneOn(ds, moves: mv)
-            let timed = dayEv.filter { !Rules.effTime($0).isEmpty }.sorted { clock($0, cityZone: dz) < clock($1, cityZone: dz) }
+            let timed = Places.joinJourneys(dayEv.filter { !Rules.effTime($0).isEmpty }.sorted { clock($0, cityZone: dz) < clock($1, cityZone: dz) })
             func line(_ e: CalEvent) -> WeekDay.Line {
                 let t = clock(e, cityZone: dz)
                 let text = t.isEmpty ? Rules.lineTitle(e, covers: names) : Rules.stripClock(Rules.wallTitle(e.title.deco, covers: names))

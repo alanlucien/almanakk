@@ -153,6 +153,10 @@ struct WeekDayBlock: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("\(day.d)").font(.system(size: (17) * Ink.scale, weight: .semibold).monospacedDigit())
             Text(WD_LONG[day.wi]).font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1.4)
+            if let m = Moon.turn(day.date) {
+                Text(m.glyph).font(.system(size: (11) * Ink.scale)).foregroundStyle(day.today ? Ink.onInkSoft : Ink.soft)
+                    .accessibilityLabel(m.name)
+            }
             Spacer(minLength: 6)
             if !day.ctx.isEmpty {
                 Text(day.ctxKind == "hn" ? day.ctx : day.ctx.uppercased())
