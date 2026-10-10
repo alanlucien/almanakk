@@ -67,7 +67,7 @@ struct DayReminders: View {
     var body: some View {
         if rem.enabled {
             VStack(alignment: .leading, spacing: 8) {
-                Text("PÅMINNELSER").font(.system(size: 11, weight: .semibold)).tracking(1.2).foregroundStyle(Ink.muted)
+                Text("PÅMINNELSER").font(.system(size: (11) * Ink.scale, weight: .semibold)).tracking(1.2).foregroundStyle(Ink.muted)
                     .padding(.top, 14)
                 ForEach(rem.byDay[date] ?? [], id: \.calendarItemIdentifier) { r in
                     HStack(spacing: 10) {
@@ -75,14 +75,14 @@ struct DayReminders: View {
                             Circle().stroke(Ink.ink, lineWidth: 1.2).frame(width: 18, height: 18)
                         }
                         .accessibilityLabel("Huk av")
-                        Text(r.title ?? "").font(.system(size: 16)).foregroundStyle(Ink.ink)
+                        Text(r.title ?? "").font(.system(size: (16) * Ink.scale)).foregroundStyle(Ink.ink)
                         Spacer()
                     }
                 }
                 HStack(spacing: 10) {
                     Circle().stroke(Ink.rule, lineWidth: 1.2).frame(width: 18, height: 18)
                     TextField("Ny påminnelse …", text: $text)
-                        .font(.system(size: 16)).autocorrectionDisabled(true).submitLabel(.done)
+                        .font(.system(size: (16) * Ink.scale)).autocorrectionDisabled(true).submitLabel(.done)
                         .onSubmit { let t = text.trimmingCharacters(in: .whitespaces); if !t.isEmpty { rem.add(t, on: date); text = "" } }
                 }
             }

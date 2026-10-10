@@ -44,8 +44,8 @@ struct YearScreen: View {
                     }
                 } label: {
                     HStack(spacing: 4) {
-                        Text(String(year)).font(.system(size: 17, weight: .semibold)).tracking(1.2)
-                        Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold))
+                        Text(String(year)).font(.system(size: (17) * Ink.scale, weight: .semibold)).tracking(1.2)
+                        Image(systemName: "chevron.down").font(.system(size: (11) * Ink.scale, weight: .semibold))
                     }
                     .foregroundStyle(Ink.ink)
                 }
@@ -124,11 +124,11 @@ struct MiniMonths: View {
         let lead = cells.first!.wi
         return VStack(alignment: .leading, spacing: 2) {
             Button { pick(nil, data.year, m) } label: {
-                Text(MONTHS[m]).font(.system(size: 12, weight: .semibold)).tracking(1).foregroundStyle(Ink.ink)
+                Text(MONTHS[m]).font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1).foregroundStyle(Ink.ink)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 1) {
                 ForEach(0..<7, id: \.self) { i in
-                    Text(String(WD[i].prefix(1))).font(.system(size: 9)).foregroundStyle(i == 6 ? Ink.red : Ink.muted)
+                    Text(String(WD[i].prefix(1))).font(.system(size: (9) * Ink.scale)).foregroundStyle(i == 6 ? Ink.red : Ink.muted)
                 }
                 ForEach(0..<lead, id: \.self) { _ in Color.clear.frame(height: 18) }
                 ForEach(cells, id: \.date) { c in day(c, m) }
@@ -143,7 +143,7 @@ struct MiniMonths: View {
     private func day(_ c: YearData.Cell, _ m: Int) -> some View {
         Text("\(c.d)")
             // as large as the cell allows (his eyesight): 12pt, not 10
-            .font(.system(size: 12, weight: c.show ? .bold : .regular).monospacedDigit())
+            .font(.system(size: (12) * Ink.scale, weight: c.show ? .bold : .regular).monospacedDigit())
             .foregroundStyle(c.show ? Ink.paper : (c.red ? Ink.red : Ink.ink))
             .frame(maxWidth: .infinity, minHeight: 18)
             // A SHOW DAY IS A RED BOX WITH A WHITE FIGURE (his pick C, 10.10)
@@ -170,14 +170,14 @@ struct Poster: View {
                     Color.clear.frame(width: labelW, height: 16)
                     ForEach(0..<12, id: \.self) { m in
                         Button { pick(nil, data.year, m) } label: {
-                            Text(String(MONTHS[m].prefix(3))).font(.system(size: 9, weight: .semibold)).tracking(0.5).foregroundStyle(Ink.ink)
+                            Text(String(MONTHS[m].prefix(3))).font(.system(size: (9) * Ink.scale, weight: .semibold)).tracking(0.5).foregroundStyle(Ink.ink)
                                 .frame(width: colW, height: 16)
                         }
                     }
                 }
                 ForEach(1...31, id: \.self) { d in
                     HStack(spacing: 0) {
-                        Text("\(d)").font(.system(size: 8).monospacedDigit()).foregroundStyle(Ink.muted).frame(width: labelW, height: rowH)
+                        Text("\(d)").font(.system(size: (8) * Ink.scale).monospacedDigit()).foregroundStyle(Ink.muted).frame(width: labelW, height: rowH)
                         ForEach(0..<12, id: \.self) { m in
                             cell(m: m, d: d).frame(width: colW, height: rowH)
                         }

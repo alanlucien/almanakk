@@ -77,8 +77,8 @@ struct WeekScreen: View {
             ? "\(Int(monday.suffix(2))!).–\(Int(sun.suffix(2))!). \(short[m2])"
             : "\(Int(monday.suffix(2))!). \(short[m1]) – \(Int(sun.suffix(2))!). \(short[m2])"
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("UKE \(Day.isoWeek(monday))").font(.system(size: 17, weight: .semibold)).tracking(1.2)
-            Text(range).font(.system(size: 13)).foregroundStyle(Ink.muted)
+            Text("UKE \(Day.isoWeek(monday))").font(.system(size: (17) * Ink.scale, weight: .semibold)).tracking(1.2)
+            Text(range).font(.system(size: (13) * Ink.scale)).foregroundStyle(Ink.muted)
         }
         .foregroundStyle(Ink.ink)
     }
@@ -88,7 +88,7 @@ struct WeekScreen: View {
             withAnimation { monday = Almanac.monday(Day.today) }
             store.goToday()
         } label: {
-            Text("I DAG").font(.system(size: 12, weight: .semibold)).tracking(1.2)
+            Text("I DAG").font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1.2)
         }
         .foregroundStyle(Ink.ink)
     }
@@ -99,9 +99,9 @@ struct WeekScreen: View {
             ForEach(spans) { sp in
                 HStack(spacing: 8) {
                     Rectangle().fill(Ink.hex(sp.color)).frame(width: 4, height: 12)
-                    Text(sp.title.uppercased()).font(.system(size: 11, weight: .semibold)).tracking(0.8)
+                    Text(sp.title.uppercased()).font(.system(size: (11) * Ink.scale, weight: .semibold)).tracking(0.8)
                         .foregroundStyle(sp.pencil ? Ink.muted : Ink.ink).lineLimit(1)
-                    Text(shortRange(sp.start, sp.end)).font(.system(size: 11)).foregroundStyle(Ink.muted).fixedSize()
+                    Text(shortRange(sp.start, sp.end)).font(.system(size: (11) * Ink.scale)).foregroundStyle(Ink.muted).fixedSize()
                     Spacer(minLength: 0)
                 }
                 .frame(height: 15)
@@ -131,10 +131,10 @@ struct WeekDayBlock: View {
             head
             ForEach(day.lines) { l in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(l.time).font(.system(size: 12).monospacedDigit()).foregroundStyle(Ink.muted).frame(width: 40, alignment: .trailing)
+                    Text(l.time).font(.system(size: (12) * Ink.scale).monospacedDigit()).foregroundStyle(Ink.muted).frame(width: 40, alignment: .trailing)
                     Circle().fill(Ink.hex(l.color)).frame(width: 6, height: 6).alignmentGuide(.firstTextBaseline) { $0[.bottom] - 1 }
                     (Text(l.text) + Text(l.note ? "  ∗" : "").foregroundColor(Ink.muted))
-                        .font(.system(size: 15))
+                        .font(.system(size: (15) * Ink.scale))
                         .foregroundStyle(l.show ? Ink.red : (l.pencil ? Ink.muted : (l.ink.isEmpty ? Ink.ink : Ink.hex(l.ink))))
                         .lineLimit(1)
                     Spacer(minLength: 0)
@@ -151,12 +151,12 @@ struct WeekDayBlock: View {
 
     private var head: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("\(day.d)").font(.system(size: 17, weight: .semibold).monospacedDigit())
-            Text(WD_LONG[day.wi]).font(.system(size: 12, weight: .semibold)).tracking(1.4)
+            Text("\(day.d)").font(.system(size: (17) * Ink.scale, weight: .semibold).monospacedDigit())
+            Text(WD_LONG[day.wi]).font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1.4)
             Spacer(minLength: 6)
             if !day.ctx.isEmpty {
                 Text(day.ctxKind == "hn" ? day.ctx : day.ctx.uppercased())
-                    .font(.system(size: 11, weight: day.ctxKind == "hn" ? .regular : .semibold)).tracking(day.ctxKind == "hn" ? 0.2 : 0.9)
+                    .font(.system(size: (11) * Ink.scale, weight: day.ctxKind == "hn" ? .regular : .semibold)).tracking(day.ctxKind == "hn" ? 0.2 : 0.9)
                     .italic(day.ctxKind == "hn" || day.ctxTbc)
                     .foregroundStyle(day.today ? Ink.paper : (day.ctxKind == "tour" ? Ink.tourInk : Ink.red))
                     .lineLimit(1)

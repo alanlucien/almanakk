@@ -20,6 +20,8 @@ enum Ink {
     static let tourInk = Color(red: 0x8a / 255, green: 0x4a / 255, blue: 0x1c / 255)  // the tour's colour, dark enough to read
     static let onInkSoft = Color(red: 0xc8 / 255, green: 0xc8 / 255, blue: 0xc2 / 255)   // muted words on today's ink
     static let onInkRed = Color(red: 0xff / 255, green: 0x8a / 255, blue: 0x7a / 255)    // red that reads on ink
+    /// READING GLASSES (Alan, 10.10; backlog L2): one switch, every word a size larger
+    static var scale: CGFloat { UserDefaults.standard.bool(forKey: "almanakk.large") ? 1.2 : 1.0 }
     static func hex(_ h: String) -> Color {
         if h == "red" { return red }
         var s = h; if s.hasPrefix("#") { s.removeFirst() }
@@ -35,6 +37,7 @@ let WD_LONG = ["MANDAG", "TIRSDAG", "ONSDAG", "TORSDAG", "FREDAG", "LØRDAG", "S
 struct NativeRoot: View {
     @StateObject private var store = Store()
     @StateObject private var rem = RemindersStore()
+    @AppStorage("almanakk.large") private var large = false
     @Environment(\.scenePhase) private var phase
     @State private var open: String? = nil
     @State private var detent: PresentationDetent = .medium
@@ -61,6 +64,7 @@ struct NativeRoot: View {
         // back swipe, "‹ Oktober" (Alan, 10.10: "opening a week from month view has no back")
         NavigationStack(path: $path) {
             MonthScreen(store: store, rem: rem, open: $open, selected: $selected, toWeek: toWeek, toYear: toYear)
+                .id(large)   // the switch redraws the whole almanac at the new size
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationTitle(MONTHS[store.month].capitalized)
                 .navigationDestination(for: Route.self) { r in
@@ -183,24 +187,26 @@ struct MonthScreen: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(MONTHS[store.month]).font(.system(size: 26, weight: .semibold)).tracking(1.5).foregroundStyle(Ink.ink)
+                Text(MONTHS[store.month]).font(.system(size: (26) * Ink.scale, weight: .semibold)).tracking(1.5).foregroundStyle(Ink.ink)
                     // the year opens the year
                 Button { toYear() } label: {
-                    Text(String(store.year)).font(.system(size: 15, weight: .regular)).tracking(1).foregroundStyle(Ink.muted)
+                    Text(String(store.year)).font(.system(size: (15) * Ink.scale, weight: .regular)).tracking(1).foregroundStyle(Ink.muted)
                 }
                 if store.loading { ProgressView().controlSize(.mini) }
                 Spacer()
                 // the quiet menu: the few switches, out of the way (L3)
                 Menu {
+                    Toggle("Større tekst", isOn: Binding(get: { UserDefaults.standard.bool(forKey: "almanakk.large") },
+                                                          set: { UserDefaults.standard.set($0, forKey: "almanakk.large") }))
                     Toggle("Påminnelser", isOn: Binding(get: { rem.enabled }, set: { on in Task { await rem.setEnabled(on) } }))
                     if !store.demo { Button("Logg ut av Google", role: .destructive) { store.signOut() } }
                 } label: {
-                    Image(systemName: "ellipsis").font(.system(size: 17, weight: .semibold)).foregroundStyle(Ink.ink)
+                    Image(systemName: "ellipsis").font(.system(size: (17) * Ink.scale, weight: .semibold)).foregroundStyle(Ink.ink)
                         .frame(width: 34, height: 30).contentShape(Rectangle())
                 }
                 .accessibilityLabel("Mer")
                 Button { withAnimation { store.goToday() } } label: {
-                    Text("I DAG").font(.system(size: 12, weight: .semibold)).tracking(1.2)
+                    Text("I DAG").font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1.2)
                         .padding(.horizontal, 10).padding(.vertical, 5)
                         .overlay(RoundedRectangle(cornerRadius: 5).stroke(Ink.ink, lineWidth: 1))
                 }
@@ -209,14 +215,14 @@ struct MonthScreen: View {
             // SIGNED OUT: ONE BUTTON, nothing else (Alan, 10.10)
             if store.demo && !Store.demoWanted {
                 Button { Task { await store.signIn() } } label: {
-                    Text("Logg inn med Google").font(.system(size: 15, weight: .semibold))
+                    Text("Logg inn med Google").font(.system(size: (15) * Ink.scale, weight: .semibold))
                         .frame(maxWidth: .infinity).padding(.vertical, 10)
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Ink.ink, lineWidth: 1))
                 }
                 .foregroundStyle(Ink.ink).padding(.top, 6)
             }
             if let p = store.problem {
-                Text(p).font(.system(size: 12)).foregroundStyle(Ink.red).lineLimit(2)
+                Text(p).font(.system(size: (12) * Ink.scale)).foregroundStyle(Ink.red).lineLimit(2)
             }
         }
         .padding(.horizontal, 14).padding(.top, 6).padding(.bottom, 8)
@@ -238,7 +244,7 @@ struct DayRow: View {
             // THE DAY'S FIGURE OPENS ITS WEEK (as in the web month, 08.10); the rest of the row opens the day
             HStack(spacing: 0) {
                 figure.frame(width: 28, alignment: .trailing)
-                Text(WD[row.wi]).font(.system(size: 10)).foregroundStyle(row.today ? Ink.onInkSoft : (row.red ? Ink.red : Ink.muted))
+                Text(WD[row.wi]).font(.system(size: (10) * Ink.scale)).foregroundStyle(row.today ? Ink.onInkSoft : (row.red ? Ink.red : Ink.muted))
                     .frame(width: 20, alignment: .leading).padding(.leading, 4)
             }
             .frame(maxHeight: .infinity).contentShape(Rectangle())
@@ -260,7 +266,7 @@ struct DayRow: View {
 
     private var figure: some View {
         Text("\(row.d)")
-            .font(.system(size: 13, weight: .medium).monospacedDigit())
+            .font(.system(size: (13) * Ink.scale, weight: .medium).monospacedDigit())
             .foregroundStyle(row.today ? (row.red ? Ink.onInkRed : Ink.paper) : (row.red ? Ink.red : Ink.ink))
     }
 
@@ -290,8 +296,8 @@ struct DayRow: View {
                 Group {
                     // a tour running on from last month: its name only; his own city column says the rest
                     if t.open { nameAndCity(t.name, t.continues ? "" : t.city) }
-                    else if !t.perf.isEmpty { Text(t.perf).font(.system(size: 13, weight: .bold)).foregroundStyle(Ink.red) }
-                    else if !t.word.isEmpty { Text(t.word).font(.system(size: 10)).foregroundStyle(Ink.soft) }
+                    else if !t.perf.isEmpty { Text(t.perf).font(.system(size: (13) * Ink.scale, weight: .bold)).foregroundStyle(Ink.red) }
+                    else if !t.word.isEmpty { Text(t.word).font(.system(size: (10) * Ink.scale)).foregroundStyle(Ink.soft) }
                 }
                 .italic(t.tbc).lineLimit(1).padding(.leading, 6)
             }
@@ -309,9 +315,9 @@ struct DayRow: View {
                 .overlay(alignment: .bottomLeading) {
                     let free = row.info == nil
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(h.name).font(.system(size: 11, weight: .bold)).tracking(0.4).fixedSize()
+                        Text(h.name).font(.system(size: (11) * Ink.scale, weight: .bold)).tracking(0.4).fixedSize()
                         if !h.city.isEmpty {
-                            Text(h.city).font(.system(size: 11)).lineLimit(1)
+                            Text(h.city).font(.system(size: (11) * Ink.scale)).lineLimit(1)
                                 .fixedSize(horizontal: free, vertical: false)
                         }
                     }
@@ -327,8 +333,8 @@ struct DayRow: View {
 
     /// THE NAME AND ITS CITY side by side (Alan, 10.10: "city name next to title")
     private func nameAndCity(_ name: String, _ city: String) -> some View {
-        (Text(name).font(.system(size: 10, weight: .bold)).tracking(0.4)
-         + Text(city.isEmpty ? "" : " " + city).font(.system(size: 10)))
+        (Text(name).font(.system(size: (10) * Ink.scale, weight: .bold)).tracking(0.4)
+         + Text(city.isEmpty ? "" : " " + city).font(.system(size: (10) * Ink.scale)))
             .foregroundStyle(Ink.ink).truncationMode(.tail)
     }
 
@@ -339,11 +345,11 @@ struct DayRow: View {
     @ViewBuilder private var infoText: some View {
         if let i = row.info {
             switch i.kind {
-            case .uke: Text(i.text).font(.system(size: 10)).tracking(0.4).foregroundStyle(row.today ? Ink.onInkSoft : Ink.muted)
+            case .uke: Text(i.text).font(.system(size: (10) * Ink.scale)).tracking(0.4).foregroundStyle(row.today ? Ink.onInkSoft : Ink.muted)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing).contentShape(Rectangle())
                     .onTapGesture { toWeek(row.date) }   // THE WEEK NUMBER IS THE WEEK'S HANDLE
-            case .hn: Text(i.text).font(.system(size: i.text.count > 9 ? 9 : 10)).italic().foregroundStyle(row.today ? Ink.onInkSoft : (row.red ? Ink.red : Ink.soft))
-            case .cty: Text(i.text.uppercased()).font(.system(size: i.text.count > 6 ? 9 : 10, weight: i.tbc ? .regular : .semibold))
+            case .hn: Text(i.text).font(.system(size: (i.text.count > 9 ? 9 : 10) * Ink.scale)).italic().foregroundStyle(row.today ? Ink.onInkSoft : (row.red ? Ink.red : Ink.soft))
+            case .cty: Text(i.text.uppercased()).font(.system(size: (i.text.count > 6 ? 9 : 10) * Ink.scale, weight: i.tbc ? .regular : .semibold))
                     .italic(i.tbc).tracking(0.8).foregroundStyle(row.today ? Ink.paper : Ink.soft)
             }
         } else { Color.clear }   // an empty cell keeps its width, or the tour column slides
@@ -362,7 +368,7 @@ struct DayLine: View {
                 ForEach(Array(parts.prefix(shown).enumerated()), id: \.offset) { i, p in
                     entry(p).lineLimit(1).layoutPriority(i == 0 ? 0 : 1).fixedSize(horizontal: i > 0, vertical: false)
                 }
-                if hidden > 0 { Text("+\(hidden)").font(.system(size: 11)).foregroundStyle(inverted ? Ink.onInkSoft : Ink.muted).fixedSize() }
+                if hidden > 0 { Text("+\(hidden)").font(.system(size: (11) * Ink.scale)).foregroundStyle(inverted ? Ink.onInkSoft : Ink.muted).fixedSize() }
             }
             .frame(height: geo.size.height)
         }
@@ -371,11 +377,11 @@ struct DayLine: View {
     private func entry(_ p: MonthRow.Part) -> Text {
         let colour: Color = inverted ? (p.show ? Ink.onInkRed : (p.pencil ? Ink.onInkSoft : Ink.paper))
             : (p.show ? Ink.red : (p.pencil ? Ink.muted : (p.ink.isEmpty ? Ink.ink : Ink.hex(p.ink))))
-        let clock = p.kind == .timed ? Text(p.time + " ").font(.system(size: 10)).foregroundColor(inverted ? Ink.onInkSoft : Ink.muted) : Text("")
+        let clock = p.kind == .timed ? Text(p.time + " ").font(.system(size: (10) * Ink.scale)).foregroundColor(inverted ? Ink.onInkSoft : Ink.muted) : Text("")
         if p.kind == .span {
-            return Text(p.text.uppercased()).font(.system(size: 10.5, weight: .semibold)).tracking(0.8).foregroundColor(colour)
+            return Text(p.text.uppercased()).font(.system(size: (10.5) * Ink.scale, weight: .semibold)).tracking(0.8).foregroundColor(colour)
         }
-        return clock + Text(p.text).font(.system(size: 12)).foregroundColor(colour)
+        return clock + Text(p.text).font(.system(size: (12) * Ink.scale)).foregroundColor(colour)
     }
 
     private func measure(_ p: MonthRow.Part) -> CGFloat {
@@ -383,9 +389,9 @@ struct DayLine: View {
             (s as NSString).size(withAttributes: [.font: f, .kern: k]).width
         }
         switch p.kind {
-        case .span: return w(p.text.uppercased(), .systemFont(ofSize: 10.5, weight: .semibold), 0.8)
-        case .timed: return w(p.time + " ", .systemFont(ofSize: 10)) + w(p.text, .systemFont(ofSize: 12))
-        case .allday: return w(p.text, .systemFont(ofSize: 12))
+        case .span: return w(p.text.uppercased(), .systemFont(ofSize: 10.5 * Ink.scale, weight: .semibold), 0.8)
+        case .timed: return w(p.time + " ", .systemFont(ofSize: 10 * Ink.scale)) + w(p.text, .systemFont(ofSize: 12 * Ink.scale))
+        case .allday: return w(p.text, .systemFont(ofSize: 12 * Ink.scale))
         }
     }
 
@@ -443,27 +449,27 @@ struct DaySheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text("\(Int(date.suffix(2))!)").font(.system(size: 44, weight: .semibold)).foregroundStyle(wi == 6 || (hol?.red ?? false) ? Ink.red : Ink.ink)
-                    Text(WD_LONG[wi]).font(.system(size: 13, weight: .semibold)).tracking(2).foregroundStyle(Ink.ink)
+                    Text("\(Int(date.suffix(2))!)").font(.system(size: (44) * Ink.scale, weight: .semibold)).foregroundStyle(wi == 6 || (hol?.red ?? false) ? Ink.red : Ink.ink)
+                    Text(WD_LONG[wi]).font(.system(size: (13) * Ink.scale, weight: .semibold)).tracking(2).foregroundStyle(Ink.ink)
                     Spacer()
-                    if let c = row?.city, !c.isEmpty { Text(c.uppercased()).font(.system(size: 12, weight: .semibold)).tracking(1.2).foregroundStyle(Ink.soft) }
-                    if let h = hol { Text(h.name).font(.system(size: 12)).italic().foregroundStyle(h.red ? Ink.red : Ink.soft) }
+                    if let c = row?.city, !c.isEmpty { Text(c.uppercased()).font(.system(size: (12) * Ink.scale, weight: .semibold)).tracking(1.2).foregroundStyle(Ink.soft) }
+                    if let h = hol { Text(h.name).font(.system(size: (12) * Ink.scale)).italic().foregroundStyle(h.red ? Ink.red : Ink.soft) }
                     // the sheet's week number opens that day's week: any day, also a week that
                     // began last month and has no "uke" cell in this one (Alan, 10.10)
                     Button { toWeek(date) } label: {
-                        Text("uke \(Day.isoWeek(date)) ›").font(.system(size: 12)).foregroundStyle(Ink.soft)
+                        Text("uke \(Day.isoWeek(date)) ›").font(.system(size: (12) * Ink.scale)).foregroundStyle(Ink.soft)
                     }
                 }
                 .padding(.top, 22).padding(.bottom, 10)
                 Rectangle().fill(Ink.ink).frame(height: 1)
                 if list.isEmpty {
-                    Text("Ingenting denne dagen.").font(.system(size: 14)).foregroundStyle(Ink.muted).padding(.vertical, 16)
+                    Text("Ingenting denne dagen.").font(.system(size: (14) * Ink.scale)).foregroundStyle(Ink.muted).padding(.vertical, 16)
                 }
                 ForEach(list) { e in
                     eventRow(e, alm: alm, wg: tour.contains(e.calId))
                     Rectangle().fill(Ink.rule).frame(height: 0.5)
                 }
-                if let p = store.problem { Text(p).font(.system(size: 13)).foregroundStyle(Ink.red).padding(.top, 10) }
+                if let p = store.problem { Text(p).font(.system(size: (13) * Ink.scale)).foregroundStyle(Ink.red).padding(.top, 10) }
                 DayReminders(rem: rem, date: date)
                 // THE ADD LINE, quiet at the foot: the keyboard comes only when it is tapped
                 AddLine(store: store, date: date, zone: cityZone) { d in
@@ -486,7 +492,7 @@ struct DaySheet: View {
                 // START AND END (Alan, 10.10: "I wanted to know how long the flight was and had
                 // to click edit to see it"): the end stands under the start
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(t).font(.system(size: 12).monospacedDigit()).foregroundStyle(Ink.muted)
+                    Text(t).font(.system(size: (12) * Ink.scale).monospacedDigit()).foregroundStyle(Ink.muted)
                     let endShown: String = {
                         if e.minutes > 0, let r = Places.route(e.title), let z = Places.zones[r.components(separatedBy: " → ").last ?? ""],
                            let c = alm.clock(e, plus: e.minutes, in: z) { return c }
@@ -494,15 +500,15 @@ struct DaySheet: View {
                         return e.endTime
                     }()
                     if !endShown.isEmpty && endShown != t {
-                        Text(endShown).font(.system(size: 11).monospacedDigit()).foregroundStyle(Ink.muted.opacity(0.8))
+                        Text(endShown).font(.system(size: (11) * Ink.scale).monospacedDigit()).foregroundStyle(Ink.muted.opacity(0.8))
                     }
                 }
                 .frame(width: 40, alignment: .leading)
                 Circle().fill(Ink.hex(alm.color(e))).frame(width: 7, height: 7)
-                Text(t.isEmpty ? e.title.deco : Rules.stripClock(e.title.deco)).font(.system(size: 17)).foregroundStyle(colour)
+                Text(t.isEmpty ? e.title.deco : Rules.stripClock(e.title.deco)).font(.system(size: (17) * Ink.scale)).foregroundStyle(colour)
                 Spacer(minLength: 4)
                 Text(e.isSpan ? range(e) : (alm.calendars.first { $0.id == e.calId }?.name ?? ""))
-                    .font(.system(size: 11)).foregroundStyle(Ink.muted)
+                    .font(.system(size: (11) * Ink.scale)).foregroundStyle(Ink.muted)
             }
             // a flight says how long it is, and where each clock belongs
             if e.minutes > 0, let r = Places.route(e.title) {
@@ -511,11 +517,11 @@ struct DaySheet: View {
                 let dep = Places.zones[a].flatMap { alm.clock(e, plus: 0, in: $0) } ?? ownT
                 let arr = Places.zones[b].flatMap { alm.clock(e, plus: e.minutes, in: $0) } ?? e.endTime
                 Text("\(a) \(dep) → \(b) \(arr) · \(e.minutes / 60) t \(String(format: "%02d", e.minutes % 60)) min")
-                    .font(.system(size: 12)).foregroundStyle(Ink.soft).padding(.leading, 48)
+                    .font(.system(size: (12) * Ink.scale)).foregroundStyle(Ink.soft).padding(.leading, 48)
             }
             // shown in the day's city time: the event's own clock is named beneath it
             if t != ownT && !ownT.isEmpty {
-                Text("\(ownT) \(Places.zoneLabel(e.zone))").font(.system(size: 11)).foregroundStyle(Ink.muted).padding(.leading, 48)
+                Text("\(ownT) \(Places.zoneLabel(e.zone))").font(.system(size: (11) * Ink.scale)).foregroundStyle(Ink.muted).padding(.leading, 48)
             }
             if viewing == e.id { details(e, alm: alm).padding(.leading, 48) }
         }
@@ -527,20 +533,20 @@ struct DaySheet: View {
 
     @ViewBuilder private func details(_ e: CalEvent, alm: Almanac) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            if !e.location.isEmpty { Text(e.location).font(.system(size: 14)).foregroundStyle(Ink.soft) }
+            if !e.location.isEmpty { Text(e.location).font(.system(size: (14) * Ink.scale)).foregroundStyle(Ink.soft) }
             // A FLIGHT: the booking reference large, a tap copies it; "Sjekk inn" copies it and
             // opens the airline's check-in (CONVENTIONS 18)
             if Places.dest(e.title) != nil, let ref = CheckIn.reference(e.notes) {
                 HStack(spacing: 14) {
                     Button { UIPasteboard.general.string = ref; store.toast = .init(text: "\(ref) kopiert") } label: {
-                        Text(ref).font(.system(size: 16, weight: .semibold).monospaced()).tracking(1).foregroundStyle(Ink.ink)
+                        Text(ref).font(.system(size: (16) * Ink.scale, weight: .semibold).monospaced()).tracking(1).foregroundStyle(Ink.ink)
                     }
                     if let a = CheckIn.airline(e), let url = URL(string: a.url) {
                         Button {
                             UIPasteboard.general.string = ref
                             UIApplication.shared.open(url)
                         } label: {
-                            Text("Sjekk inn · \(a.name)").font(.system(size: 14, weight: .semibold))
+                            Text("Sjekk inn · \(a.name)").font(.system(size: (14) * Ink.scale, weight: .semibold))
                                 .padding(.horizontal, 10).padding(.vertical, 6)
                                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Ink.ink, lineWidth: 1))
                         }
@@ -551,7 +557,7 @@ struct DaySheet: View {
             }
             let notes = RX.sub("^P[ \\t]*(?:\\r?\\n(?:[ \\t]*\\r?\\n)?|$)", e.notes, "")
             if !notes.isEmpty { NoteText(raw: notes) }
-            Text(alm.calendars.first { $0.id == e.calId }?.name ?? "").font(.system(size: 12)).foregroundStyle(Ink.muted)
+            Text(alm.calendars.first { $0.id == e.calId }?.name ?? "").font(.system(size: (12) * Ink.scale)).foregroundStyle(Ink.muted)
             // the robot's tour and the schedule are read here, never written
             if store.writable.contains(where: { $0.id == e.calId }) {
                 HStack(spacing: 18) {
@@ -561,7 +567,7 @@ struct DaySheet: View {
                     if Rules.isPencil(e) { Button("Bekreft") { Task { await store.confirm(e) } } }
                     Button("Slett", role: .destructive) { Task { await store.delete(e); viewing = nil } }
                 }
-                .font(.system(size: 15, weight: .semibold)).foregroundStyle(Ink.ink)
+                .font(.system(size: (15) * Ink.scale, weight: .semibold)).foregroundStyle(Ink.ink)
                 .padding(.top, 6)
             }
         }
@@ -594,7 +600,7 @@ struct NoteText: View {
             last = r.upperBound
         }
         out += AttributedString(String(s[last...]))
-        return Text(out).font(.system(size: 14)).foregroundStyle(Ink.ink).tint(Ink.ink)
+        return Text(out).font(.system(size: (14) * Ink.scale)).foregroundStyle(Ink.ink).tint(Ink.ink)
     }
 }
 #endif

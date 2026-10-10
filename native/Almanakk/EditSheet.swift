@@ -14,6 +14,7 @@ struct AddLine: View {
     var openForm: (Draft) -> Void
     @State private var text = ""
     @State private var alt = false
+    @State private var moving = false
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -23,30 +24,36 @@ struct AddLine: View {
                 // NO AUTOCORRECT: his titles are names — Vildanden, Taichung, YNGVAR — and the
                 // keyboard "corrected" Almanakk to Almanac in the first real test (10.10)
                 TextField("Ny hendelse …", text: $text)
-                    .font(.system(size: 16)).focused($focused).submitLabel(.send)
+                    .font(.system(size: (16) * Ink.scale)).focused($focused).submitLabel(.send)
                     .autocorrectionDisabled(true)
                     .onSubmit { add(draft) }
                     .onChange(of: text) { alt = false }
                 if !text.isEmpty {
-                    Button("Legg til") { add(draft) }.font(.system(size: 14, weight: .semibold))
+                    Button("Legg til") { add(draft) }.font(.system(size: (14) * Ink.scale, weight: .semibold))
                 }
+                // a move, picked rather than typed (CONVENTIONS 3)
+                Button("Reise") { focused = false; moving = true }
+                    .font(.system(size: (14) * Ink.scale))
                 Button("Skjema") {
                     var d = draft ?? Draft(day: date)
                     if draft == nil { d.zone = zone }
                     text = ""; focused = false
                     openForm(d)
                 }
-                .font(.system(size: 14))
+                .font(.system(size: (14) * Ink.scale))
             }
             .foregroundStyle(Ink.ink)
             // THE READING, BEFORE SAVING (CONVENTIONS 9): one tap switches days ↔ clock
             if let d = draft, !text.isEmpty {
                 Button { alt.toggle() } label: {
-                    Text(d.reading + (d.pencil ? " · blyant" : "")).font(.system(size: 12)).foregroundStyle(Ink.muted)
+                    Text(d.reading + (d.pencil ? " · blyant" : "")).font(.system(size: (12) * Ink.scale)).foregroundStyle(Ink.muted)
                 }
             }
         }
         .padding(.vertical, 12)
+        .sheet(isPresented: $moving) {
+            MoveForm(store: store, date: date, zone: zone).presentationDetents([.medium])
+        }
     }
 
     private func add(_ d: Draft?) {
@@ -73,7 +80,7 @@ struct EventForm: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Tittel", text: $draft.title).font(.system(size: 17)).autocorrectionDisabled(true)
+                    TextField("Tittel", text: $draft.title).font(.system(size: (17) * Ink.scale)).autocorrectionDisabled(true)
                     TextField("Sted", text: $draft.location).autocorrectionDisabled(true)
                 }
                 Section {
@@ -107,7 +114,7 @@ struct EventForm: View {
                         }
                     }
                 }
-                if let p = store.problem { Section { Text(p).foregroundStyle(Ink.red).font(.system(size: 13)) } }
+                if let p = store.problem { Section { Text(p).foregroundStyle(Ink.red).font(.system(size: (13) * Ink.scale)) } }
             }
             .navigationTitle(editing == nil ? "Ny hendelse" : "Endre")
             .navigationBarTitleDisplayMode(.inline)
@@ -177,14 +184,13 @@ struct ToastBar: View {
     var body: some View {
         if let t = store.toast {
             HStack(spacing: 14) {
-                Text(t.text).font(.system(size: 14, weight: .medium))
+                Text(t.text).font(.system(size: (14) * Ink.scale, weight: .medium))
                 if let undo = t.undo {
                     Button("Angre") {
-                        print("ALM angre tapped")
                         store.toast = nil
                         Task { @MainActor in await undo() }
                     }
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: (14) * Ink.scale, weight: .semibold))
                     .buttonStyle(.plain)
                 }
             }
@@ -199,6 +205,71 @@ struct ToastBar: View {
                 if store.toast?.id == t.id { withAnimation { store.toast = nil } }
             }
         }
+    }
+}
+#endif
+
+#if os(iOS)
+// "REISE TIL …" (CONVENTIONS 3, decided 10.10): a move picked, not typed. Writes the same
+// event a typed "-Roma" did — "→ Roma", optionally at a time, "?" when pencilled — so
+// subscribers and every other client read it as before.
+struct MoveForm: View {
+    @ObservedObject var store: Store
+    let date: String
+    let zone: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var place = ""
+    @State private var day = Date()
+    @State private var timed = false
+    @State private var at = Date()
+    @State private var pencil = false
+
+    private var suggestions: [String] {
+        let q = place.trimmingCharacters(in: .whitespaces).lowercased()
+        guard q.count >= 2 else { return [] }
+        let names = Set(Places.iata.values).union(Places.extra)
+        return names.filter { $0.lowercased().hasPrefix(q) }.sorted().prefix(4).map { $0 }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Til (by eller sted)", text: $place).autocorrectionDisabled(true)
+                    ForEach(suggestions, id: \.self) { s in
+                        Button(s) { place = s }.foregroundStyle(Ink.ink)
+                    }
+                }
+                Section {
+                    DatePicker("Dag", selection: $day, displayedComponents: .date)
+                    Toggle("Klokkeslett", isOn: $timed)
+                    if timed { DatePicker("Kl.", selection: $at, displayedComponents: .hourAndMinute) }
+                    Toggle("Blyant", isOn: $pencil)
+                }
+                if let p = store.problem { Section { Text(p).foregroundStyle(Ink.red).font(.system(size: 13 * Ink.scale)) } }
+            }
+            .navigationTitle("Reise til …").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Lagre") {
+                        var d = Draft(day: Day.key(day))
+                        d.title = "→ " + place.trimmingCharacters(in: .whitespaces)
+                        d.pencil = pencil
+                        d.calId = store.defaultCal
+                        d.zone = zone
+                        if timed {
+                            let c = Day.greg.dateComponents([.hour, .minute], from: at)
+                            d.allDay = false; d.time = String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
+                        }
+                        Task { if await store.save(d, editing: nil) { dismiss() } }
+                    }
+                    .disabled(place.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+        .environment(\.locale, Locale(identifier: "nb_NO"))
+        .onAppear { day = Day.date(date) }
     }
 }
 #endif

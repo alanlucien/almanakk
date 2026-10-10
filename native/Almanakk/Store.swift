@@ -143,7 +143,6 @@ final class Store: ObservableObject {
             toast = .init(text: old == nil ? "Lagt til i \(calendars.first { $0.id == cal }?.name ?? "kalenderen")" : "Lagret")
             return true
         } catch {
-            print("ALM save failed", error)
             problem = "Ble ikke lagret: " + error.localizedDescription
             return false
         }
@@ -159,10 +158,9 @@ final class Store: ObservableObject {
         events.removeAll { $0.id == e.id }
         if !demo { Cache.write(.init(calendars: calendars, events: events)); writeSnapshot() }
         toast = .init(text: "Slettet") { [weak self] in
-            print("ALM undo start", self == nil ? "no store" : "store")
             guard let self else { return }
             var d = back; d.calId = e.calId
-            if self.demo { self.events.append(e) } else { let ok = await self.save(d, editing: nil); print("ALM undo save", ok) }
+            if self.demo { self.events.append(e) } else { await self.save(d, editing: nil) }
             self.toast = .init(text: "Gjenopprettet")
         }
     }

@@ -508,6 +508,16 @@ else the month's first full week (a 1st on a weekend belongs to the week before)
 SEPTEMBER fits at 375px with both buttons. The design session's answer on the title
 toggle and the phone year is still to come; this button does not wait for it.
 
+**10.10 — TESTFLIGHT BUILD 5 UPLOADED (iPhone only) on Alan's "testflight": the native app.**
+The iPhone now runs the native almanac in release builds (AlmanakkApp: `#if os(iOS)`);
+the Mac stays on the web almanac. Added before the archive, on his word: READING
+GLASSES ("⋯" → Større tekst, every word ×1.2, the almanac redrawn; seen in the month)
+and "REISE TIL …" (a move picked: place with suggestions from the city tables, day, time,
+Blyant → writes "→ Roma"; seen on the demo). Debug prints removed. CURRENT_PROJECT_VERSION
+5. Apple processes the build before it appears in TestFlight.
+- On his phone, first: sign in with Google in the app; widgets refill only after the
+  app has loaded once (it now writes their data itself).
+
 **10.10 morning — bygg `20261010c` IN PRODUCTION on Alan's "go"** (deployment `aeae8396`;
 undo: Cloudflare Rollback to `2ecb26ab`, 20261010a). One event abroad moved from Oslo time
 to its local zone on his word ("fix reception"). Pushed to GitHub on his "push".

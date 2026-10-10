@@ -13,12 +13,11 @@ struct AlmanakkApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // THE FULL APP, IPHONE FIRST (Alan, 09.10). The native month runs in
-            // development builds only until Google sign-in is in (stage 2): it also has
-            // to take over writing the widgets' snapshot, which the web page does today,
-            // so TestFlight keeps the web almanac until then. The Mac keeps it for good,
-            // until it gets a design of its own.
-            #if os(iOS) && DEBUG
+            // THE FULL APP, IPHONE FIRST (Alan, 09.10). Since TestFlight build 5 (10.10)
+            // the iPhone runs the native almanac: Google sign-in, editing, week, year, and
+            // the widgets' snapshot written by the app itself. The Mac keeps the web
+            // almanac until it gets a design of its own.
+            #if os(iOS)
             NativeRoot()
             #else
             ContentView(page: page)
